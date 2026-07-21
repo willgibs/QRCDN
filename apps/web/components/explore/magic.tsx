@@ -4,23 +4,30 @@ import { motion, useReducedMotion, type Variants } from "motion/react";
 import type { ReactNode } from "react";
 
 /**
- * Shared motion language: quiet, precise, Apple-esque. Everything respects
- * prefers-reduced-motion (offsets collapse to opacity-only).
+ * Shared motion language, per the emil-design-eng skill: entrances use the
+ * strong ease-out curve, full `transform` strings (hardware-accelerated —
+ * motion's x/y shorthands run on the main thread), reduced-motion collapses
+ * movement to opacity-only. Marketing entrances may exceed the 300ms UI
+ * budget; in-app UI must not.
  */
 
-const EASE = [0.22, 1, 0.36, 1] as const;
+export const EASE_OUT = [0.23, 1, 0.32, 1] as const;
 
 export function useRevealVariants(): { container: Variants; item: Variants } {
   const reduced = useReducedMotion();
-  const y = reduced ? 0 : 16;
+  const from = reduced ? "translateY(0px)" : "translateY(16px)";
   return {
     container: {
       hidden: {},
-      visible: { transition: { staggerChildren: 0.08, delayChildren: 0.05 } },
+      visible: { transition: { staggerChildren: 0.07, delayChildren: 0.05 } },
     },
     item: {
-      hidden: { opacity: 0, y },
-      visible: { opacity: 1, y: 0, transition: { duration: 0.6, ease: EASE } },
+      hidden: { opacity: 0, transform: from },
+      visible: {
+        opacity: 1,
+        transform: "translateY(0px)",
+        transition: { duration: 0.55, ease: EASE_OUT },
+      },
     },
   };
 }
@@ -39,10 +46,13 @@ export function Reveal({
   return (
     <motion.div
       className={className}
-      initial={{ opacity: 0, y: reduced ? 0 : 18 }}
-      whileInView={{ opacity: 1, y: 0 }}
+      initial={{
+        opacity: 0,
+        transform: reduced ? "translateY(0px)" : "translateY(18px)",
+      }}
+      whileInView={{ opacity: 1, transform: "translateY(0px)" }}
       viewport={{ once: true, amount: 0.25 }}
-      transition={{ duration: 0.65, ease: EASE, delay }}
+      transition={{ duration: 0.55, ease: EASE_OUT, delay }}
     >
       {children}
     </motion.div>

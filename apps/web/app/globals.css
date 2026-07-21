@@ -2,16 +2,9 @@
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
 
-/* Brand exploration themes (P2). After checkpoint A, the winning file's values
-   collapse into :root/.dark below and these imports are deleted. Semantic
-   token NAMES are frozen (D13) — explorations may only change values. */
-@import "./themes/precision.css";
-@import "./themes/warmth.css";
-@import "./themes/bold.css";
-
 @custom-variant dark (&:is(.dark *));
 
-/* Layer 2 — written once, never edited during exploration (D13). */
+/* Layer 2 — written once, never edited during theming (D13). */
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
@@ -58,84 +51,102 @@
   --radius-2xl: calc(var(--radius) * 1.8);
   --radius-3xl: calc(var(--radius) * 2.2);
   --radius-4xl: calc(var(--radius) * 2.6);
+  --ease-out: var(--motion-ease-out);
+  --ease-in-out: var(--motion-ease-in-out);
+  --ease-drawer: var(--motion-ease-drawer);
 }
+
+/* QRCDN design system — "Precision" (locked at checkpoint A, D13).
+   Apple-esque restraint: single violet-blue accent, neutral surfaces,
+   hierarchy from scale and space. Inter display, JetBrains Mono accents. */
 
 :root {
   --brand-font-display: var(--font-inter);
   --brand-font-body: var(--font-inter);
   --brand-font-mono: var(--font-jetbrains-mono);
-  --surface-studio: oklch(0.97 0 0);
-  --qr-fg: #111111;
-  --qr-bg: #ffffff;
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
-  --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
-  --chart-1: oklch(0.87 0 0);
-  --chart-2: oklch(0.556 0 0);
-  --chart-3: oklch(0.439 0 0);
-  --chart-4: oklch(0.371 0 0);
-  --chart-5: oklch(0.269 0 0);
   --radius: 0.625rem;
+
+  /* Motion tokens (emil-design-eng + transitions.dev conventions).
+     All animation code consumes these — no ad-hoc curves or durations. */
+  --motion-ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --motion-ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
+  --motion-ease-drawer: cubic-bezier(0.32, 0.72, 0, 1);
+  --duration-press: 140ms;
+  --duration-fast: 200ms;
+  --duration-normal: 300ms;
+  --duration-slow: 500ms;
+
+  --background: oklch(1 0 0);
+  --foreground: oklch(0.15 0.004 280);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.15 0.004 280);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.15 0.004 280);
+  --primary: oklch(0.51 0.23 268);
+  --primary-foreground: oklch(0.99 0 0);
+  --secondary: oklch(0.96 0.003 280);
+  --secondary-foreground: oklch(0.22 0.004 280);
+  --muted: oklch(0.96 0.003 280);
+  --muted-foreground: oklch(0.52 0.005 280);
+  --accent: oklch(0.94 0.02 268);
+  --accent-foreground: oklch(0.35 0.12 268);
+  --destructive: oklch(0.577 0.245 27.325);
+  --border: oklch(0.92 0.002 280);
+  --input: oklch(0.92 0.002 280);
+  --ring: oklch(0.51 0.23 268);
+  --chart-1: oklch(0.51 0.23 268);
+  --chart-2: oklch(0.62 0.15 230);
+  --chart-3: oklch(0.42 0.12 285);
+  --chart-4: oklch(0.7 0.1 200);
+  --chart-5: oklch(0.34 0.06 268);
+  --surface-studio: oklch(0.975 0.002 280);
+  --qr-fg: #131316;
+  --qr-bg: #ffffff;
   --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.205 0 0);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
+  --sidebar-foreground: oklch(0.15 0.004 280);
+  --sidebar-primary: oklch(0.51 0.23 268);
+  --sidebar-primary-foreground: oklch(0.99 0 0);
+  --sidebar-accent: oklch(0.96 0.003 280);
+  --sidebar-accent-foreground: oklch(0.22 0.004 280);
+  --sidebar-border: oklch(0.92 0.002 280);
+  --sidebar-ring: oklch(0.51 0.23 268);
 }
 
 .dark {
-  --surface-studio: oklch(0.205 0 0);
-  --qr-fg: #ededed;
-  --qr-bg: #1c1c1c;
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.205 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.205 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.922 0 0);
-  --primary-foreground: oklch(0.205 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
+  --background: oklch(0.13 0.004 280);
+  --foreground: oklch(0.96 0.002 280);
+  --card: oklch(0.17 0.005 280);
+  --card-foreground: oklch(0.96 0.002 280);
+  --popover: oklch(0.17 0.005 280);
+  --popover-foreground: oklch(0.96 0.002 280);
+  --primary: oklch(0.62 0.21 268);
+  --primary-foreground: oklch(0.99 0 0);
+  --secondary: oklch(0.21 0.005 280);
+  --secondary-foreground: oklch(0.92 0.002 280);
+  --muted: oklch(0.21 0.005 280);
+  --muted-foreground: oklch(0.62 0.006 280);
+  --accent: oklch(0.24 0.04 268);
+  --accent-foreground: oklch(0.85 0.07 268);
   --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.556 0 0);
-  --chart-1: oklch(0.87 0 0);
-  --chart-2: oklch(0.556 0 0);
-  --chart-3: oklch(0.439 0 0);
-  --chart-4: oklch(0.371 0 0);
-  --chart-5: oklch(0.269 0 0);
-  --sidebar: oklch(0.205 0 0);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.269 0 0);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.556 0 0);
+  --border: oklch(1 0 0 / 9%);
+  --input: oklch(1 0 0 / 13%);
+  --ring: oklch(0.62 0.21 268);
+  --chart-1: oklch(0.62 0.21 268);
+  --chart-2: oklch(0.68 0.14 230);
+  --chart-3: oklch(0.52 0.12 285);
+  --chart-4: oklch(0.74 0.1 200);
+  --chart-5: oklch(0.46 0.08 268);
+  --surface-studio: oklch(0.155 0.005 280);
+  --qr-fg: #ececf1;
+  --qr-bg: #101013;
+  --sidebar: oklch(0.17 0.005 280);
+  --sidebar-foreground: oklch(0.96 0.002 280);
+  --sidebar-primary: oklch(0.62 0.21 268);
+  --sidebar-primary-foreground: oklch(0.99 0 0);
+  --sidebar-accent: oklch(0.21 0.005 280);
+  --sidebar-accent-foreground: oklch(0.92 0.002 280);
+  --sidebar-border: oklch(1 0 0 / 9%);
+  --sidebar-ring: oklch(0.62 0.21 268);
 }
 
 @layer base {
@@ -147,5 +158,43 @@
   }
   html {
     @apply font-sans;
+  }
+}
+
+/* Press feedback on every pressable element (emil-design-eng): the interface
+   must feel like it hears the user. Applied via data-slot to shadcn buttons. */
+@layer components {
+  [data-slot="button"],
+  [data-slot="toggle-group-item"] {
+    transition-property: transform, color, background-color, border-color,
+      box-shadow, opacity;
+    transition-duration: var(--duration-press);
+    transition-timing-function: var(--motion-ease-out);
+  }
+  [data-slot="button"]:active,
+  [data-slot="toggle-group-item"]:active {
+    transform: scale(0.97);
+  }
+}
+
+/* Scan-network trace animation (hero artwork). The dash segment is the
+   "energy packet" travelling the active path. */
+@keyframes qr-flow {
+  from {
+    stroke-dashoffset: 480;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+.animate-qr-flow {
+  stroke-dasharray: 26 454;
+  animation: qr-flow 2.2s linear infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .animate-qr-flow {
+    animation: none;
+    stroke-dasharray: none;
+    opacity: 0.5;
   }
 }

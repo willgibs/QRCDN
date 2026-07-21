@@ -3,9 +3,10 @@ import { BRANDS, brandCopy, isBrand } from "@/lib/explore";
 import { ExploreChrome } from "@/components/explore/explore-chrome";
 import { Hero } from "@/components/explore/hero";
 import { StudioSlice } from "@/components/explore/studio-slice";
+import { StudioWindow } from "@/components/explore/studio-window";
 import { DashboardCard } from "@/components/explore/dashboard-card";
 import { PricingPair } from "@/components/explore/pricing-pair";
-import { ModuleMark } from "@/components/explore/magic";
+import { ModuleMark, Reveal } from "@/components/explore/magic";
 
 export function generateStaticParams() {
   return BRANDS.map((brand) => ({ brand }));
@@ -26,8 +27,13 @@ export default async function ExplorePage(props: PageProps<"/explore/[brand]">) 
   if (!isBrand(brand)) notFound();
 
   return (
-    <div data-brand={brand} className="min-h-screen bg-background text-foreground">
+    <div className="min-h-screen bg-background text-foreground">
       <Hero brand={brand} />
+      <section className="relative border-b">
+        <div className="mx-auto max-w-5xl px-6 pb-24 -mt-4">
+          <Reveal><StudioWindow /></Reveal>
+        </div>
+      </section>
       <StudioSlice brand={brand} />
       <DashboardCard />
       <PricingPair brand={brand} />
@@ -37,10 +43,10 @@ export default async function ExplorePage(props: PageProps<"/explore/[brand]">) 
             <ModuleMark className="size-3 text-primary" />
             QRCDN
           </span>
-          <span>Exploration — {brandCopy[brand].label}</span>
+          <span>Working canvas — {brandCopy[brand].label}</span>
         </div>
       </footer>
-      <ExploreChrome brand={brand} />
+      <ExploreChrome />
     </div>
   );
 }

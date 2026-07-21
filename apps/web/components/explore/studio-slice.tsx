@@ -233,7 +233,7 @@ export function StudioSlice({ brand }: { brand: Brand }) {
               </Badge>
             </CardHeader>
             <CardContent>
-              <div className="rounded-lg bg-qr-bg p-5">
+              <div className="mx-auto w-full max-w-[300px] rounded-lg bg-qr-bg p-5 lg:max-w-none">
                 <div
                   aria-label="Live QR preview"
                   role="img"

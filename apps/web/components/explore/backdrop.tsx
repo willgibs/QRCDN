@@ -15,9 +15,10 @@ export function HeroBackdrop() {
             "radial-gradient(closest-side, var(--primary) 0%, transparent 70%)",
         }}
       />
-      {/* faint module grid, masked to the hero's heart */}
+      {/* faint module grid, tightly masked behind the hero's heart — at higher
+          opacities or looser masks this reads as a noisy checkerboard band */}
       <svg
-        className="absolute inset-x-0 top-0 h-[52rem] w-full text-foreground opacity-[0.05] [mask-image:radial-gradient(ellipse_60%_55%_at_50%_35%,black,transparent)] dark:opacity-[0.07]"
+        className="absolute inset-x-0 top-0 h-[40rem] w-full text-foreground opacity-[0.025] [mask-image:radial-gradient(ellipse_45%_38%_at_50%_42%,black,transparent)] dark:opacity-[0.035]"
         aria-hidden
       >
         <defs>

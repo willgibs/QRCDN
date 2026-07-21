@@ -115,9 +115,6 @@ export function ScanNetwork() {
               className="absolute inset-0 h-full w-full"
               aria-hidden
             >
-              {/* faint vertical stubs */}
-              <path d="M500 62 L500 26" className="stroke-border" strokeWidth="1.5" fill="none" />
-              <path d="M500 238 L500 274" className="stroke-border" strokeWidth="1.5" fill="none" />
               {PATHS.map((d, i) => (
                 <path
                   key={`base-${i}`}

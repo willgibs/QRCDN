@@ -159,7 +159,8 @@ export function PricingPair({ brand }: { brand: Brand }) {
         <Reveal className="mb-10 max-w-xl">
           <Eyebrow>Pricing</Eyebrow>
           <h2 className="font-display text-4xl font-semibold tracking-tight">
-            Honest pricing. Codes that never die.
+            <span className="block">Honest pricing.</span>
+            <span className="block">Codes that never die.</span>
           </h2>
           <p className="mt-2 text-muted-foreground">
             We cap features, never your printed codes. Downgrade anytime — every

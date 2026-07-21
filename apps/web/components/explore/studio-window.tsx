@@ -39,7 +39,7 @@ function MiniCodeSwatch() {
 export function StudioWindow() {
   return (
     <ProductWindow url="qrcdn.com/studio">
-      <div className="flex min-h-[420px] flex-col overflow-hidden md:flex-row">
+      <div className="flex flex-col overflow-hidden md:flex-row">
         {/* Left: brand kits */}
         <aside className="hidden w-52 shrink-0 border-r border-border/60 p-4 lg:block">
           <p className="mb-3 font-mono text-[11px] uppercase tracking-[0.2em] text-muted-foreground">

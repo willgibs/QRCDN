@@ -94,7 +94,7 @@ export function Hero({ brand }: { brand: Brand }) {
         </motion.div>
       </motion.div>
 
-      <div className="relative mx-auto max-w-6xl px-6 pb-16 pt-12 sm:pt-16">
+      <div className="relative mx-auto max-w-6xl px-6 pb-14 pt-8 sm:pt-10">
         <ScanNetwork />
       </div>
     </header>

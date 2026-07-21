@@ -1,15 +1,15 @@
 # Status
 
-_Last updated: 2026-07-21 (session 2). Update this file at every phase boundary or significant commit._
+_Last updated: 2026-07-21 (session 2, checkpoint-A v3 shipped). Update this file at every phase boundary or significant commit._
 
 ## Current phase
 
 **Checkpoint A (brand direction lock) — in progress.**
 Founder reviewed the three explorations and chose "Precision instrument" as the anchor, refined toward an Apple-esque register per references lazy.so / genie.io / stellar.work. The reference formula (already extracted): one enormous plain-spoken headline owning the viewport · extreme restraint (single accent, hierarchy from scale/space) · quiet gray subcopy · one strong CTA · eyebrow-labeled benefit sections · product visuals in soft frames.
 
+Iteration history: v1 (three directions) → founder picked precision + references → v2 (Inter display, restraint) → founder: "far too minimalist, zero design magic, hero looked broken at laptop viewports" → **v3 (current, awaiting review)**: atmosphere layer (violet glow + QR-module grid texture), two-column hero fitting the 1440×900 fold, glass gradient-border QR card with a live retargeting demo, motion system (`motion` pkg; entrance stagger + scroll reveals, reduced-motion aware), ModuleMark eyebrow glyphs, functional ink-color studio control, gradient chart fill, glowing Pro pricing card + "never dies" guarantee strip.
+
 In flight:
-- `apps/web/app/themes/precision.css` — v2 values done (Inter display, violet-blue accent, deeper dark surfaces).
-- `apps/web/components/explore/hero.tsx` — being restructured (centered, larger scale, soft-framed QR card).
 - After founder approves v2 → run the D13 lock protocol: (1) copy precision's Layer 0/1 values into `:root`/`.dark` in `globals.css`, (2) delete `app/themes/*.css` + their imports, (3) remove `data-brand` plumbing from explore pages or delete `/explore` entirely, (4) remove unused font loaders from `app/fonts.ts` (keep Inter + JetBrains Mono), (5) update `brandQrBackdrop`/`brandQrStyles` consumers. Semantic token names never change (D13).
 
 ## Phase ledger

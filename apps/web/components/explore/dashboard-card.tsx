@@ -18,6 +18,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import { Eyebrow, Reveal } from "./magic";
 
 const scans = [
   { day: "Jun 22", scans: 214 },
@@ -46,10 +47,8 @@ export function DashboardCard() {
   return (
     <section className="border-b">
       <div className="mx-auto max-w-6xl px-6 py-16">
-        <div className="mb-10 max-w-xl">
-          <p className="mb-3 font-mono text-xs uppercase tracking-[0.2em] text-muted-foreground">
-            Analytics
-          </p>
+        <Reveal className="mb-10 max-w-xl">
+          <Eyebrow>Analytics</Eyebrow>
           <h2 className="font-display text-4xl font-semibold tracking-tight">
             Know every scan
           </h2>
@@ -57,9 +56,9 @@ export function DashboardCard() {
             Volume, geography, and devices for every dynamic code — and the
             destination stays editable after printing.
           </p>
-        </div>
+        </Reveal>
 
-        <div className="grid gap-6 lg:grid-cols-3">
+        <Reveal delay={0.1} className="grid gap-6 lg:grid-cols-3">
           <Card className="lg:col-span-2">
             <CardHeader className="flex-row items-center justify-between">
               <CardTitle className="text-base">Scans · last 30 days</CardTitle>
@@ -70,6 +69,12 @@ export function DashboardCard() {
             <CardContent>
               <ChartContainer config={chartConfig} className="h-56 w-full">
                 <AreaChart data={scans} margin={{ left: 4, right: 4 }}>
+                  <defs>
+                    <linearGradient id="scansFade" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="var(--color-scans)" stopOpacity={0.32} />
+                      <stop offset="100%" stopColor="var(--color-scans)" stopOpacity={0} />
+                    </linearGradient>
+                  </defs>
                   <CartesianGrid vertical={false} strokeDasharray="3 3" />
                   <XAxis
                     dataKey="day"
@@ -82,8 +87,7 @@ export function DashboardCard() {
                   <Area
                     dataKey="scans"
                     type="monotone"
-                    fill="var(--color-scans)"
-                    fillOpacity={0.18}
+                    fill="url(#scansFade)"
                     stroke="var(--color-scans)"
                     strokeWidth={2}
                   />
@@ -94,13 +98,13 @@ export function DashboardCard() {
 
           <div className="flex flex-col gap-6">
             <div className="grid grid-cols-2 gap-6">
-              <Card>
+              <Card className="shadow-sm transition-transform hover:-translate-y-0.5">
                 <CardContent className="pt-0">
                   <p className="text-xs text-muted-foreground">Total scans</p>
                   <p className="font-display text-2xl font-bold">12,482</p>
                 </CardContent>
               </Card>
-              <Card>
+              <Card className="shadow-sm transition-transform hover:-translate-y-0.5">
                 <CardContent className="pt-0">
                   <p className="text-xs text-muted-foreground">Top country</p>
                   <p className="font-display text-2xl font-bold">US · 41%</p>
@@ -138,7 +142,7 @@ export function DashboardCard() {
               </CardContent>
             </Card>
           </div>
-        </div>
+        </Reveal>
       </div>
     </section>
   );

@@ -81,7 +81,7 @@ export const brandCopy: Record<Brand, BrandCopy> = {
   precision: {
     label: "Precision instrument",
     tagline: "QR infrastructure, engineered.",
-    headline: "One code. Every destination you'll ever need.",
+    headline: "One code.\nEvery destination",
     sub: "Set your brand's QR identity once. Every code inherits it — served from the edge, retargetable forever, measured to the scan.",
     ctaPrimary: "Start building",
     ctaSecondary: "See the API",

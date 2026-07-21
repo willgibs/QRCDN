@@ -4,8 +4,16 @@ import Link from "next/link";
 import { useTheme } from "next-themes";
 import { Moon, Sun } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { BRANDS, brandCopy, type Brand } from "@/lib/explore";
+import { BRANDS, type Brand } from "@/lib/explore";
 import { cn } from "@/lib/utils";
+
+/** Short one-word labels for the pill switcher — the full brandCopy labels
+ *  overflow the pill at 375px. */
+const shortLabel: Record<Brand, string> = {
+  precision: "Precision",
+  warmth: "Warmth",
+  bold: "Bold",
+};
 
 /** Floating exploration controls: brand switcher + color-scheme toggle. */
 export function ExploreChrome({ brand }: { brand: Brand }) {
@@ -19,9 +27,9 @@ export function ExploreChrome({ brand }: { brand: Brand }) {
           asChild
           size="sm"
           variant={b === brand ? "default" : "ghost"}
-          className="rounded-full"
+          className="rounded-full text-xs"
         >
-          <Link href={`/explore/${b}`}>{brandCopy[b].label}</Link>
+          <Link href={`/explore/${b}`}>{shortLabel[b]}</Link>
         </Button>
       ))}
       <Button

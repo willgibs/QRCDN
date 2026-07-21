@@ -12,6 +12,12 @@ import { Slider } from "@/components/ui/slider";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { brandQrBackdrop, brandQrStyles, type Brand } from "@/lib/explore";
 import { cn } from "@/lib/utils";
+import { Eyebrow, Reveal } from "./magic";
+
+const INK_SWATCHES = {
+  light: ["#131316", "#312e81", "#1e3a8a", "#0f766e"],
+  dark: ["#ececf1", "#c7d2fe", "#bfdbfe", "#5eead4"],
+} as const;
 
 const DOT_STYLES = ["square", "rounded", "circle"] as const;
 const EYE_FRAMES = ["square", "rounded", "circle", "leaf"] as const;
@@ -35,6 +41,17 @@ function DotSwatch({ style }: { style: (typeof DOT_STYLES)[number] }) {
           ) : null,
         ),
       )}
+    </svg>
+  );
+}
+
+/** Half-opacity split circle standing in for "inherit the brand fill" —
+ *  echoes ModuleMark's own full/45%-opacity quadrant motif. */
+function InkDefaultSwatch({ fill }: { fill: string }) {
+  return (
+    <svg viewBox="0 0 20 20" aria-hidden className="size-full">
+      <path d="M10 1a9 9 0 0 1 0 18z" fill={fill} />
+      <path d="M10 1a9 9 0 0 0 0 18z" fill={fill} opacity="0.4" />
     </svg>
   );
 }
@@ -66,6 +83,9 @@ export function StudioSlice({ brand }: { brand: Brand }) {
   // Theme-dependent output must wait for mount — SSR doesn't know the
   // resolved color scheme and would hydrate mismatched markup.
   const mounted = useMounted();
+  const dark = mounted && resolvedTheme === "dark";
+  const mode: "light" | "dark" = dark ? "dark" : "light";
+  const variant = dark ? base.dark : base.light;
 
   const [dotStyle, setDotStyle] = useState<(typeof DOT_STYLES)[number]>(
     base.light.dots.style,
@@ -74,14 +94,23 @@ export function StudioSlice({ brand }: { brand: Brand }) {
     base.light.eyes.frame,
   );
   const [sizeRatio, setSizeRatio] = useState(base.light.dots.sizeRatio);
+  // Selected ink is keyed to the mode it was picked in — a swatch tuned for
+  // light mode can kill contrast in dark mode, so a flip to the other mode
+  // silently falls back to the brand default rather than carrying it over.
+  const [inkSelection, setInkSelection] = useState<{
+    mode: "light" | "dark";
+    color: string | null;
+  }>({ mode: "light", color: null });
+  const activeInk = inkSelection.mode === mode ? inkSelection.color : null;
+  const variantFillColor =
+    variant.fill.type === "solid" ? variant.fill.color : "#888888";
 
   const { svg, report } = useMemo(() => {
-    const dark = mounted && resolvedTheme === "dark";
-    const variant = dark ? base.dark : base.light;
     const style = parseQrStyle({
       ...variant,
       dots: { style: dotStyle, sizeRatio },
       eyes: { ...variant.eyes, frame: eyeFrame },
+      ...(activeInk ? { fill: { type: "solid", color: activeInk } } : {}),
     });
     return {
       svg: renderQr({ data: "HTTPS://QRCDN.COM/K7M2X9A", style }).svg,
@@ -89,15 +118,13 @@ export function StudioSlice({ brand }: { brand: Brand }) {
         transparentBackdrop: brandQrBackdrop[brand][dark ? "dark" : "light"],
       }),
     };
-  }, [base, brand, dotStyle, eyeFrame, sizeRatio, mounted, resolvedTheme]);
+  }, [variant, brand, dotStyle, eyeFrame, sizeRatio, dark, activeInk]);
 
   return (
     <section className="border-b bg-surface-studio">
       <div className="mx-auto max-w-6xl px-6 py-16">
-        <div className="mb-10 max-w-xl">
-          <p className="mb-3 font-mono text-xs uppercase tracking-[0.2em] text-muted-foreground">
-            The studio
-          </p>
+        <Reveal className="mb-10 max-w-xl">
+          <Eyebrow>The studio</Eyebrow>
           <h2 className="font-display text-4xl font-semibold tracking-tight">
             Your brand&apos;s QR identity, set once
           </h2>
@@ -105,9 +132,9 @@ export function StudioSlice({ brand }: { brand: Brand }) {
             Every code you generate inherits this style automatically — in the
             studio, the dashboard, and the API.
           </p>
-        </div>
+        </Reveal>
 
-        <div className="grid gap-6 lg:grid-cols-[1fr_360px]">
+        <Reveal delay={0.1} className="grid gap-6 lg:grid-cols-[1fr_360px]">
           <Card>
             <CardHeader>
               <CardTitle className="text-base">Style controls</CardTitle>
@@ -160,6 +187,38 @@ export function StudioSlice({ brand }: { brand: Brand }) {
                   onValueChange={([v]) => v !== undefined && setSizeRatio(v)}
                 />
               </div>
+
+              <div className="flex flex-col gap-2">
+                <Label>Ink color</Label>
+                <div className="flex items-center gap-2.5">
+                  <button
+                    type="button"
+                    aria-label="Brand default ink"
+                    aria-pressed={activeInk === null}
+                    onClick={() => setInkSelection({ mode, color: null })}
+                    className={cn(
+                      "size-7 shrink-0 overflow-hidden rounded-full border border-border/60 transition-shadow",
+                      activeInk === null && "ring-2 ring-ring",
+                    )}
+                  >
+                    <InkDefaultSwatch fill={variantFillColor} />
+                  </button>
+                  {INK_SWATCHES[mode].map((color) => (
+                    <button
+                      key={color}
+                      type="button"
+                      aria-label={`Ink ${color}`}
+                      aria-pressed={activeInk === color}
+                      onClick={() => setInkSelection({ mode, color })}
+                      style={{ backgroundColor: color }}
+                      className={cn(
+                        "size-7 shrink-0 rounded-full border border-border/60 transition-shadow",
+                        activeInk === color && "ring-2 ring-ring",
+                      )}
+                    />
+                  ))}
+                </div>
+              </div>
             </CardContent>
           </Card>
 
@@ -187,7 +246,7 @@ export function StudioSlice({ brand }: { brand: Brand }) {
               </p>
             </CardContent>
           </Card>
-        </div>
+        </Reveal>
       </div>
     </section>
   );

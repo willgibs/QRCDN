@@ -1,5 +1,6 @@
 "use client";
 
+import { motion, useReducedMotion } from "motion/react";
 import { Area, AreaChart, CartesianGrid, XAxis } from "recharts";
 import {
   ChartContainer,
@@ -8,6 +9,7 @@ import {
   type ChartConfig,
 } from "@/components/ui/chart";
 import { ProductWindow } from "./product-window";
+import { EASE_OUT } from "./magic";
 
 // Same demo dataset as dashboard-card.tsx's AreaChart — kept in sync so both
 // mockups tell one consistent story ("Summer menu" / K7M2X9A).
@@ -28,10 +30,26 @@ const chartConfig = {
   scans: { label: "Scans", color: "var(--chart-1)" },
 } satisfies ChartConfig;
 
+const stats = [
+  { label: "Total scans", value: "12,482" },
+  { label: "Unique", value: "8,904" },
+  { label: "Top country", value: "US · 41%" },
+] as const;
+
+// Same top-codes list as dashboard-card.tsx used to render directly — now
+// owned here since DashboardWindow is the single framed product shot for
+// the analytics section.
+const topCodes = [
+  { name: "Summer menu", slug: "K7M2X9A", scans: "4,182" },
+  { name: "Poster · Tour", slug: "B3TWQ8N", scans: "2,914" },
+  { name: "Packaging insert", slug: "H9RFD2M", scans: "1,506" },
+] as const;
+
 /** Compact analytics product shot — client component only because it embeds
- *  the existing Recharts area chart (recharts requires the DOM). Not wired
- *  into a page yet; a component for later placement. */
+ *  the existing Recharts area chart (recharts requires the DOM). */
 export function DashboardWindow() {
+  const reduced = useReducedMotion();
+
   return (
     <ProductWindow url="qrcdn.com/codes/K7M2X9A">
       <div className="flex items-center gap-3 border-b border-border/60 px-6 py-4">
@@ -73,19 +91,41 @@ export function DashboardWindow() {
         </div>
 
         <div className="flex flex-col justify-center gap-4 border-t border-border/60 p-5 lg:border-t-0 lg:border-l">
-          <div>
-            <p className="text-xs text-muted-foreground">Total scans</p>
-            <p className="font-display text-xl font-semibold">12,482</p>
-          </div>
-          <div>
-            <p className="text-xs text-muted-foreground">Unique</p>
-            <p className="font-display text-xl font-semibold">8,904</p>
-          </div>
-          <div>
-            <p className="text-xs text-muted-foreground">Top country</p>
-            <p className="font-display text-xl font-semibold">US · 41%</p>
-          </div>
+          {stats.map((stat, i) => (
+            <div key={stat.label}>
+              <p className="text-xs text-muted-foreground">{stat.label}</p>
+              <motion.p
+                className="font-display text-xl font-semibold"
+                initial={{
+                  opacity: 0,
+                  transform: reduced ? "translateY(0px)" : "translateY(6px)",
+                }}
+                whileInView={{ opacity: 1, transform: "translateY(0px)" }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.4, ease: EASE_OUT, delay: i * 0.06 }}
+              >
+                {stat.value}
+              </motion.p>
+            </div>
+          ))}
         </div>
+      </div>
+
+      <div className="divide-y divide-border/60 border-t border-border/60">
+        {topCodes.map((code) => (
+          <div
+            key={code.slug}
+            className="flex items-center justify-between px-5 py-3"
+          >
+            <div>
+              <span className="block text-sm">{code.name}</span>
+              <span className="font-mono text-xs text-muted-foreground">
+                /{code.slug}
+              </span>
+            </div>
+            <span className="font-mono text-sm">{code.scans}</span>
+          </div>
+        ))}
       </div>
     </ProductWindow>
   );

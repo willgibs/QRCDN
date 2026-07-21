@@ -2,14 +2,26 @@
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
 
+/* Brand exploration themes (P2). After checkpoint A, the winning file's values
+   collapse into :root/.dark below and these imports are deleted. Semantic
+   token NAMES are frozen (D13) — explorations may only change values. */
+@import "./themes/precision.css";
+@import "./themes/warmth.css";
+@import "./themes/bold.css";
+
 @custom-variant dark (&:is(.dark *));
 
+/* Layer 2 — written once, never edited during exploration (D13). */
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-sans);
-  --font-mono: var(--font-geist-mono);
-  --font-heading: var(--font-sans);
+  --font-sans: var(--brand-font-body);
+  --font-mono: var(--brand-font-mono);
+  --font-display: var(--brand-font-display);
+  --font-heading: var(--brand-font-display);
+  --color-surface-studio: var(--surface-studio);
+  --color-qr-fg: var(--qr-fg);
+  --color-qr-bg: var(--qr-bg);
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -49,6 +61,12 @@
 }
 
 :root {
+  --brand-font-display: var(--font-inter);
+  --brand-font-body: var(--font-inter);
+  --brand-font-mono: var(--font-jetbrains-mono);
+  --surface-studio: oklch(0.97 0 0);
+  --qr-fg: #111111;
+  --qr-bg: #ffffff;
   --background: oklch(1 0 0);
   --foreground: oklch(0.145 0 0);
   --card: oklch(1 0 0);
@@ -84,6 +102,9 @@
 }
 
 .dark {
+  --surface-studio: oklch(0.205 0 0);
+  --qr-fg: #ededed;
+  --qr-bg: #1c1c1c;
   --background: oklch(0.145 0 0);
   --foreground: oklch(0.985 0 0);
   --card: oklch(0.205 0 0);

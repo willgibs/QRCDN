@@ -1,0 +1,66 @@
+/* Direction B — "Design studio warmth": editorial, soft paper surfaces,
+   expressive display serif. Light-first sensibility. */
+
+[data-brand="warmth"] {
+  --brand-font-display: var(--font-fraunces);
+  --brand-font-body: var(--font-hanken-grotesk);
+  --brand-font-mono: var(--font-jetbrains-mono);
+  --radius: 0.75rem;
+
+  --background: oklch(0.98 0.008 85);
+  --foreground: oklch(0.24 0.02 50);
+  --card: oklch(1 0.004 85);
+  --card-foreground: oklch(0.24 0.02 50);
+  --popover: oklch(1 0.004 85);
+  --popover-foreground: oklch(0.24 0.02 50);
+  --primary: oklch(0.5 0.13 35);
+  --primary-foreground: oklch(0.98 0.008 85);
+  --secondary: oklch(0.94 0.012 85);
+  --secondary-foreground: oklch(0.3 0.02 50);
+  --muted: oklch(0.94 0.012 85);
+  --muted-foreground: oklch(0.52 0.02 50);
+  --accent: oklch(0.92 0.03 60);
+  --accent-foreground: oklch(0.35 0.06 35);
+  --destructive: oklch(0.577 0.245 27.325);
+  --border: oklch(0.89 0.015 85);
+  --input: oklch(0.89 0.015 85);
+  --ring: oklch(0.5 0.13 35);
+  --chart-1: oklch(0.5 0.13 35);
+  --chart-2: oklch(0.6 0.1 70);
+  --chart-3: oklch(0.45 0.08 140);
+  --chart-4: oklch(0.65 0.08 25);
+  --chart-5: oklch(0.4 0.05 50);
+  --surface-studio: oklch(0.955 0.01 85);
+  --qr-fg: #2d2418;
+  --qr-bg: #faf6ee;
+}
+
+.dark [data-brand="warmth"],
+.dark[data-brand="warmth"] {
+  --background: oklch(0.21 0.012 50);
+  --foreground: oklch(0.93 0.012 85);
+  --card: oklch(0.25 0.014 50);
+  --card-foreground: oklch(0.93 0.012 85);
+  --popover: oklch(0.25 0.014 50);
+  --popover-foreground: oklch(0.93 0.012 85);
+  --primary: oklch(0.72 0.12 45);
+  --primary-foreground: oklch(0.2 0.02 50);
+  --secondary: oklch(0.3 0.015 50);
+  --secondary-foreground: oklch(0.9 0.012 85);
+  --muted: oklch(0.3 0.015 50);
+  --muted-foreground: oklch(0.68 0.015 60);
+  --accent: oklch(0.34 0.03 45);
+  --accent-foreground: oklch(0.88 0.05 60);
+  --destructive: oklch(0.704 0.191 22.216);
+  --border: oklch(1 0.01 85 / 12%);
+  --input: oklch(1 0.01 85 / 16%);
+  --ring: oklch(0.72 0.12 45);
+  --chart-1: oklch(0.72 0.12 45);
+  --chart-2: oklch(0.65 0.1 70);
+  --chart-3: oklch(0.6 0.08 140);
+  --chart-4: oklch(0.75 0.08 25);
+  --chart-5: oklch(0.55 0.05 50);
+  --surface-studio: oklch(0.24 0.013 50);
+  --qr-fg: #efe7d8;
+  --qr-bg: #241e15;
+}

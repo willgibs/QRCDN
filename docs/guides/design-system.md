@@ -107,3 +107,11 @@ visible tabs. Before screenshotting, neutralize frozen states via JS:
 — and expect to re-run it right before the capture (motion can re-apply styles).
 Programmatic scrolling doesn't repaint in the hidden pane; use a tall viewport
 (`resize_window` to e.g. 1280×2900) to capture full pages instead.
+
+## Motion & the taste toolchain (checkpoint A v4)
+
+- **Skills are law for design work:** any agent touching UI/motion loads `.agents/skills/emil-design-eng/SKILL.md` first; all motion code must pass the `review-animations` skill gate before commit (it runs as an adversarial review pass — expect Block verdicts to be fixed, not argued). `transitions.dev` patterns are the preferred source for standard transitions: copy from the catalog (`.agents/skills/transitions-dev/`) rather than inventing.
+- **Motion tokens** live in `globals.css`: `--motion-ease-out/in-out/drawer`, `--duration-press/fast/normal/slow`, bridged to Tailwind as `ease-(--motion-ease-out)` etc. No ad-hoc curves/durations. `magic.tsx` exports `EASE_OUT` for motion/react usage; always animate full `transform` strings, never x/y/scale shorthands.
+- **Known pitfall (verified live):** shadcn variants shipping `transition-all` silently override the press-feedback system — `transition-all` was removed from `button.tsx`/`toggle.tsx` variants; never reintroduce it.
+- **App-phase transition mapping** (P4/P6, from the transitions.dev catalog): Modal open/close (create/edit dialogs), Toast (Sonner already themed), Panel reveal (studio side panels), Success check (code created/saved), Skeleton loader and reveal (analytics loading), Input clear with dissolve + Error state shake (form validation), Tabs sliding (code-type/pricing toggles), Toggle switch (settings), Notification badge (scan alerts), Number pop-in/Spinning counter (dashboard stats).
+- **Reference set for marketing craft** (founder-endorsed): lazy.so, genie.io (framed product windows, alternating sections), withpipeline.com (connective line-art + centered icon hero — our ScanNetwork descends from this), stellar.work (scale + restraint), transitions.dev (micro-interactions).

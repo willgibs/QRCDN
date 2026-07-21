@@ -75,3 +75,7 @@ Every "done" report should cover:
 - **Tailwind v4 is CSS-first** — theme config lives in `@theme`/`@theme inline` blocks inside `apps/web/app/globals.css`; there is no `tailwind.config.ts`. See `docs/guides/design-system.md` for the token layering this enables.
 - **zod v4, vitest v4, `@cloudflare/workers-types` v5** are all in use — verify current APIs against installed `node_modules` or current docs before assuming v3-era signatures; training-data examples for these libraries are likely stale.
 - shadcn/ui style is `radix-nova` (`apps/web/components.json`), vendored under `apps/web/components/ui/` — don't reintroduce a different shadcn style or bypass the vendored components for primitives that already exist there.
+
+## Design-task addendum (checkpoint A v4)
+
+Any task touching UI, CSS, or motion: read `.agents/skills/emil-design-eng/SKILL.md` before writing code, consume the motion tokens in `globals.css` (never ad-hoc curves/durations), and expect your work to face a `review-animations` skill gate — hard flags (`transition: all`, `scale(0)` entries, `ease-in` on UI, pure-opacity entrances, layout-property animation) are auto-rejected. Marketing entrances may exceed 300ms; in-app UI must not.

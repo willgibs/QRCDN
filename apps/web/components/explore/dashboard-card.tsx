@@ -98,13 +98,13 @@ export function DashboardCard() {
 
           <div className="flex flex-col gap-6">
             <div className="grid grid-cols-2 gap-6">
-              <Card className="shadow-sm transition-transform hover:-translate-y-0.5">
+              <Card className="shadow-sm">
                 <CardContent className="pt-0">
                   <p className="text-xs text-muted-foreground">Total scans</p>
                   <p className="font-display text-2xl font-bold">12,482</p>
                 </CardContent>
               </Card>
-              <Card className="shadow-sm transition-transform hover:-translate-y-0.5">
+              <Card className="shadow-sm">
                 <CardContent className="pt-0">
                   <p className="text-xs text-muted-foreground">Top country</p>
                   <p className="font-display text-2xl font-bold">US · 41%</p>

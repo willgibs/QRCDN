@@ -155,8 +155,11 @@ export function ScanNetwork() {
                     ? { right: 1000 - dest.x, top: dest.y - 15 }
                     : { left: dest.x, top: dest.y - 15 }
                 }
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
+                initial={{
+                  opacity: 0,
+                  transform: reduced ? "translateY(0px)" : "translateY(8px)",
+                }}
+                animate={{ opacity: 1, transform: "translateY(0px)" }}
                 transition={{ duration: 0.5, delay: 0.35 + i * 0.07, ease: EASE_OUT }}
               >
                 <DestinationChip label={dest.label} active={i === active} />
@@ -165,7 +168,10 @@ export function ScanNetwork() {
 
             <div className="absolute left-1/2 top-1/2 w-[176px] -translate-x-1/2 -translate-y-1/2">
               <motion.div
-                initial={{ opacity: 0, transform: "scale(0.96)" }}
+                initial={{
+                  opacity: 0,
+                  transform: reduced ? "scale(1)" : "scale(0.96)",
+                }}
                 animate={{ opacity: 1, transform: "scale(1)" }}
                 transition={{ duration: 0.6, delay: 0.2, ease: EASE_OUT }}
               >
@@ -180,7 +186,10 @@ export function ScanNetwork() {
       <div className="flex flex-col items-center gap-4 md:hidden">
         <motion.div
           className="w-[180px]"
-          initial={{ opacity: 0, transform: "scale(0.96)" }}
+          initial={{
+            opacity: 0,
+            transform: reduced ? "scale(1)" : "scale(0.96)",
+          }}
           animate={{ opacity: 1, transform: "scale(1)" }}
           transition={{ duration: 0.6, delay: 0.2, ease: EASE_OUT }}
         >

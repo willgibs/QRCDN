@@ -197,7 +197,7 @@ export function StudioSlice({ brand }: { brand: Brand }) {
                     aria-pressed={activeInk === null}
                     onClick={() => setInkSelection({ mode, color: null })}
                     className={cn(
-                      "size-7 shrink-0 overflow-hidden rounded-full border border-border/60 transition-shadow",
+                      "size-7 shrink-0 overflow-hidden rounded-full border border-border/60 transition-shadow duration-200 ease-(--motion-ease-out)",
                       activeInk === null && "ring-2 ring-ring",
                     )}
                   >
@@ -212,7 +212,7 @@ export function StudioSlice({ brand }: { brand: Brand }) {
                       onClick={() => setInkSelection({ mode, color })}
                       style={{ backgroundColor: color }}
                       className={cn(
-                        "size-7 shrink-0 rounded-full border border-border/60 transition-shadow",
+                        "size-7 shrink-0 rounded-full border border-border/60 transition-shadow duration-200 ease-(--motion-ease-out)",
                         activeInk === color && "ring-2 ring-ring",
                       )}
                     />

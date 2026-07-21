@@ -46,10 +46,24 @@ artifacts forever. Explicit "re-sync from kit" re-snapshots. Schema is version-t
 ## D6 — Scannability guardrails (product differentiator)
 
 Quiet zone ≥4 modules · ECC H forced when logo knockout on (Q allowed ≤10% coverage) ·
-logo ≤20% area hard cap (15% recommended) · min version 3 with logo · contrast ≥3:1
-(4:1 recommended), worst gradient stop governs · dot sizeRatio ≥0.4 · eyes are dedicated
-solid shapes, exempt from dot styling · print calculator ≥0.33mm/module, warn <2×2cm ·
-zxing-wasm decode round-trip in CI and live "scannability score" in the studio.
+contrast ≥3:1 (4:1 recommended), worst gradient stop governs · dot sizeRatio ≥0.4 ·
+eyes are dedicated solid shapes, exempt from dot styling · print calculator
+≥0.33mm/module, warn <2×2cm · zxing-wasm decode round-trip in CI and live
+"scannability score" in the studio.
+
+**Logo limits are empirical, not theoretical** (measured 2026-07-21 across two
+adversarial decode campaigns, 160+ combos): concentrated central knockout fails
+beyond ~16-17% area even at ECC H — theoretical 30% codeword recovery does not
+survive concentrated damage. Enforced as *effective* linear ratio — sizeRatio +
+padding dilution **at the version the renderer actually floors to** (computing it
+against the wrong version shipped score-100 undecodable codes): clean ≤0.395,
+warn ≤0.412, error above. Floor version: v3 while effective-at-v3 ≤0.395, else v5.
+ECC Q exemption also gates on the padding-inclusive effective ratio (≤0.316 ≈ 10%
+area), never raw sizeRatio. Schema hard cap sizeRatio 0.40, studio default 0.32.
+Leaf eye frames use 2.25/1.25 radii — heavier rounding broke zxing finder
+detection on v7+ symbols at small rasters. Decode round-trips can NOT validate
+contrast rules (zxing's binarizer reads 1.23:1 clean rasters fine) — the 3:1/4:1
+contrast guardrail protects real camera/print conditions and must stay analytic.
 
 ## D7 — Hosted assets: on-demand + versioned immutable URLs
 

@@ -13,9 +13,11 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@qrcdn/shared": "workspace:^",
     "qrcode": "^1.5.4"
   },
   "devDependencies": {
+    "@resvg/resvg-js": "^2.6.2",
     "@types/qrcode": "^1.5.5",
     "typescript": "^5.9.3",
     "vitest": "^4.1.10",

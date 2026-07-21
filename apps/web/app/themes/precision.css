@@ -1,66 +1,69 @@
-/* Direction A — "Precision instrument": engineered, grid-driven, high-contrast,
-   mono accents. QR modules as the visual motif. Dark-first sensibility. */
+/* Direction A v2 — "Precision instrument", refined toward the founder's
+   references (lazy.so, genie.io, stellar.work): Apple-esque restraint — one
+   accent, neutral surfaces, hierarchy from scale and space. Display face is
+   Inter (SF Pro analog) at tight tracking; mono reserved for technical
+   accents (URLs, slugs, API). */
 
 [data-brand="precision"] {
-  --brand-font-display: var(--font-space-grotesk);
+  --brand-font-display: var(--font-inter);
   --brand-font-body: var(--font-inter);
   --brand-font-mono: var(--font-jetbrains-mono);
-  --radius: 0.375rem;
+  --radius: 0.625rem;
 
-  --background: oklch(0.99 0.002 106);
-  --foreground: oklch(0.17 0.005 106);
+  --background: oklch(1 0 0);
+  --foreground: oklch(0.15 0.004 280);
   --card: oklch(1 0 0);
-  --card-foreground: oklch(0.17 0.005 106);
+  --card-foreground: oklch(0.15 0.004 280);
   --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.17 0.005 106);
-  --primary: oklch(0.55 0.23 262);
+  --popover-foreground: oklch(0.15 0.004 280);
+  --primary: oklch(0.51 0.23 268);
   --primary-foreground: oklch(0.99 0 0);
-  --secondary: oklch(0.95 0.004 106);
-  --secondary-foreground: oklch(0.25 0.005 106);
-  --muted: oklch(0.95 0.004 106);
-  --muted-foreground: oklch(0.5 0.006 106);
-  --accent: oklch(0.93 0.03 262);
-  --accent-foreground: oklch(0.3 0.1 262);
+  --secondary: oklch(0.96 0.003 280);
+  --secondary-foreground: oklch(0.22 0.004 280);
+  --muted: oklch(0.96 0.003 280);
+  --muted-foreground: oklch(0.52 0.005 280);
+  --accent: oklch(0.94 0.02 268);
+  --accent-foreground: oklch(0.35 0.12 268);
   --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.9 0.004 106);
-  --input: oklch(0.9 0.004 106);
-  --ring: oklch(0.55 0.23 262);
-  --chart-1: oklch(0.55 0.23 262);
-  --chart-2: oklch(0.65 0.15 220);
-  --chart-3: oklch(0.45 0.1 280);
-  --chart-4: oklch(0.7 0.1 190);
-  --chart-5: oklch(0.35 0.06 262);
-  --surface-studio: oklch(0.965 0.003 106);
-  --qr-fg: #16161d;
+  --border: oklch(0.92 0.002 280);
+  --input: oklch(0.92 0.002 280);
+  --ring: oklch(0.51 0.23 268);
+  --chart-1: oklch(0.51 0.23 268);
+  --chart-2: oklch(0.62 0.15 230);
+  --chart-3: oklch(0.42 0.12 285);
+  --chart-4: oklch(0.7 0.1 200);
+  --chart-5: oklch(0.34 0.06 268);
+  --surface-studio: oklch(0.975 0.002 280);
+  --qr-fg: #131316;
   --qr-bg: #ffffff;
 }
 
 .dark [data-brand="precision"],
 .dark[data-brand="precision"] {
-  --background: oklch(0.16 0.005 280);
-  --foreground: oklch(0.95 0.004 106);
-  --card: oklch(0.2 0.006 280);
-  --card-foreground: oklch(0.95 0.004 106);
-  --popover: oklch(0.2 0.006 280);
-  --popover-foreground: oklch(0.95 0.004 106);
-  --primary: oklch(0.65 0.2 262);
-  --primary-foreground: oklch(0.13 0.01 280);
-  --secondary: oklch(0.25 0.008 280);
-  --secondary-foreground: oklch(0.9 0.004 106);
-  --muted: oklch(0.25 0.008 280);
-  --muted-foreground: oklch(0.65 0.008 280);
-  --accent: oklch(0.28 0.05 262);
-  --accent-foreground: oklch(0.85 0.06 262);
+  --background: oklch(0.13 0.004 280);
+  --foreground: oklch(0.96 0.002 280);
+  --card: oklch(0.17 0.005 280);
+  --card-foreground: oklch(0.96 0.002 280);
+  --popover: oklch(0.17 0.005 280);
+  --popover-foreground: oklch(0.96 0.002 280);
+  --primary: oklch(0.62 0.21 268);
+  --primary-foreground: oklch(0.99 0 0);
+  --secondary: oklch(0.21 0.005 280);
+  --secondary-foreground: oklch(0.92 0.002 280);
+  --muted: oklch(0.21 0.005 280);
+  --muted-foreground: oklch(0.62 0.006 280);
+  --accent: oklch(0.24 0.04 268);
+  --accent-foreground: oklch(0.85 0.07 268);
   --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 14%);
-  --ring: oklch(0.65 0.2 262);
-  --chart-1: oklch(0.65 0.2 262);
-  --chart-2: oklch(0.7 0.14 220);
-  --chart-3: oklch(0.55 0.12 280);
-  --chart-4: oklch(0.75 0.1 190);
-  --chart-5: oklch(0.5 0.08 262);
-  --surface-studio: oklch(0.19 0.006 280);
-  --qr-fg: #e8e8f0;
-  --qr-bg: #131318;
+  --border: oklch(1 0 0 / 9%);
+  --input: oklch(1 0 0 / 13%);
+  --ring: oklch(0.62 0.21 268);
+  --chart-1: oklch(0.62 0.21 268);
+  --chart-2: oklch(0.68 0.14 230);
+  --chart-3: oklch(0.52 0.12 285);
+  --chart-4: oklch(0.74 0.1 200);
+  --chart-5: oklch(0.46 0.08 268);
+  --surface-studio: oklch(0.155 0.005 280);
+  --qr-fg: #ececf1;
+  --qr-bg: #101013;
 }

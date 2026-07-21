@@ -94,8 +94,11 @@ export function StudioSlice({ brand }: { brand: Brand }) {
   return (
     <section className="border-b bg-surface-studio">
       <div className="mx-auto max-w-6xl px-6 py-16">
-        <div className="mb-8 max-w-xl">
-          <h2 className="font-display text-3xl font-bold tracking-tight">
+        <div className="mb-10 max-w-xl">
+          <p className="mb-3 font-mono text-xs uppercase tracking-[0.2em] text-muted-foreground">
+            The studio
+          </p>
+          <h2 className="font-display text-4xl font-semibold tracking-tight">
             Your brand&apos;s QR identity, set once
           </h2>
           <p className="mt-2 text-muted-foreground">

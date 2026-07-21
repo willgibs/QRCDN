@@ -1,0 +1,15 @@
+{
+  "name": "qrcdn",
+  "private": true,
+  "packageManager": "pnpm@9.14.4",
+  "scripts": {
+    "dev": "pnpm --filter web dev",
+    "build": "pnpm -r build",
+    "lint": "pnpm -r lint",
+    "typecheck": "pnpm -r typecheck",
+    "test": "pnpm -r test"
+  },
+  "devDependencies": {
+    "supabase": "^2.109.1"
+  }
+}

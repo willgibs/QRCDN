@@ -1,0 +1,34 @@
+# deps
+node_modules/
+
+# next.js
+apps/web/.next/
+apps/web/out/
+next-env.d.ts
+
+# builds
+dist/
+*.tsbuildinfo
+
+# env & secrets
+.env
+.env.*
+!.env.example
+
+# supabase local
+supabase/.branches
+supabase/.temp
+
+# wrangler
+.wrangler/
+.dev.vars
+
+# vercel
+.vercel/
+
+# misc
+.DS_Store
+*.log
+coverage/
+test-results/
+playwright-report/

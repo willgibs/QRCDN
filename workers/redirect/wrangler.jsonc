@@ -1,0 +1,11 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "qrcdn-redirect",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-07-01",
+  // Route + KV binding are configured in P5 when the namespace exists and
+  // DNS cuts over. Until then this worker is dev-only (wrangler dev).
+  // "routes": [{ "pattern": "qrcdn.com/*", "zone_name": "qrcdn.com" }],
+  // "kv_namespaces": [{ "binding": "CODES", "id": "<created-in-P5>" }],
+  "observability": { "enabled": true }
+}

@@ -14,7 +14,7 @@ QRCDN is a design-forward QR platform: brand style system → generator → dyna
 | **sonnet** | Implementation from a tight spec, research, doc drafting |
 | **haiku** | Mechanical edits/renames — no judgment calls |
 
-Orchestration model (from the founder, `docs/STATUS.md`): fable orchestrates and reviews; sonnet agents implement from tight specs and do research; haiku handles mechanical edits. Every sub-agent gets `CLAUDE.md` + this file + the guide module for its domain (`docs/guides/qr-engine.md`, `docs/guides/design-system.md`, or `docs/guides/infra.md`).
+Orchestration model (from the founder, `docs/STATUS.md`): fable orchestrates and reviews; sonnet agents implement from tight specs and do research; haiku handles mechanical edits. Every sub-agent gets `CLAUDE.md` + this file + the guide module for its domain (`docs/guides/qr-engine.md`, `docs/guides/design-system.md`, or `docs/guides/infra.md`). `docs/DECISIONS.md` is cross-cutting, not optional: read it whenever your task touches infrastructure, schema, redirect behavior, billing, or pricing — and read the specific `D#` any doc cites at you.
 
 ## Mandatory guardrails
 

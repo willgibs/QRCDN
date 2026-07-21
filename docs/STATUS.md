@@ -10,7 +10,7 @@ Founder reviewed the three explorations and chose "Precision instrument" as the 
 In flight:
 - `apps/web/app/themes/precision.css` — v2 values done (Inter display, violet-blue accent, deeper dark surfaces).
 - `apps/web/components/explore/hero.tsx` — being restructured (centered, larger scale, soft-framed QR card).
-- After founder approves v2 → run the D13 lock protocol (collapse winner into `:root`/`.dark`, delete warmth/bold themes + unused fonts, remove `data-brand`).
+- After founder approves v2 → run the D13 lock protocol: (1) copy precision's Layer 0/1 values into `:root`/`.dark` in `globals.css`, (2) delete `app/themes/*.css` + their imports, (3) remove `data-brand` plumbing from explore pages or delete `/explore` entirely, (4) remove unused font loaders from `app/fonts.ts` (keep Inter + JetBrains Mono), (5) update `brandQrBackdrop`/`brandQrStyles` consumers. Semantic token names never change (D13).
 
 ## Phase ledger
 

@@ -24,9 +24,9 @@ insert into public.brand_kits (id, owner_id, name, style) values
   ('33333333-3333-3333-3333-333333333333', '11111111-1111-1111-1111-111111111111', 'Kit A', '{"v":1}'::jsonb),
   ('44444444-4444-4444-4444-444444444444', '22222222-2222-2222-2222-222222222222', 'Kit B', '{"v":1}'::jsonb);
 
-insert into public.qr_codes (id, owner_id, slug, kind, destination_url, style) values
-  ('55555555-5555-5555-5555-555555555555', '11111111-1111-1111-1111-111111111111', 'QRTESTA1', 'dynamic', 'https://a.example.com', '{"v":1}'::jsonb),
-  ('66666666-6666-6666-6666-666666666666', '22222222-2222-2222-2222-222222222222', 'QRTESTB1', 'dynamic', 'https://b.example.com', '{"v":1}'::jsonb);
+insert into public.qr_codes (id, owner_id, slug, kind, name, destination_url, style) values
+  ('55555555-5555-5555-5555-555555555555', '11111111-1111-1111-1111-111111111111', 'QRTESTA1', 'dynamic', 'Fixture A', 'https://a.example.com', '{"v":1}'::jsonb),
+  ('66666666-6666-6666-6666-666666666666', '22222222-2222-2222-2222-222222222222', 'QRTESTB1', 'dynamic', 'Fixture B', 'https://b.example.com', '{"v":1}'::jsonb);
 
 insert into public.api_keys (id, owner_id, name, key_prefix, key_hash) values
   ('77777777-7777-7777-7777-777777777777', '11111111-1111-1111-1111-111111111111', 'Key A', 'qrcdn_live_aaaa', decode('aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa', 'hex')),

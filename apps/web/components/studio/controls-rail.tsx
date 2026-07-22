@@ -16,6 +16,7 @@ import {
 import { Slider } from "@/components/ui/slider";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { Eyebrow } from "@/components/brand/magic";
+import { glowSwatchSelected, glowTileOn } from "@/components/brand/glow-tile";
 import { DOT_STYLES, EYE_FRAMES, DotSwatch, EyeSwatch } from "@/components/qr/shape-swatches";
 import {
   LOGO_SIZE_RATIO_MAX,
@@ -79,7 +80,7 @@ function ColorField({
             style={{ backgroundColor: hex }}
             className={cn(
               "size-6 shrink-0 rounded-full border border-border/60 transition-shadow duration-(--duration-fast) ease-(--motion-ease-out)",
-              value.toLowerCase() === hex && "ring-2 ring-ring",
+              value.toLowerCase() === hex && glowSwatchSelected,
             )}
           />
         ))}
@@ -233,7 +234,7 @@ export function ControlsRail({
             onValueChange={(v) => v && onDotStyleChange(v as QrStyle["dots"]["style"])}
           >
             {DOT_STYLES.map((s) => (
-              <ToggleGroupItem key={s} value={s} aria-label={`${s} modules`}>
+              <ToggleGroupItem key={s} value={s} aria-label={`${s} modules`} className={glowTileOn}>
                 <DotSwatch style={s} />
               </ToggleGroupItem>
             ))}
@@ -248,7 +249,7 @@ export function ControlsRail({
             onValueChange={(v) => v && onEyeFrameChange(v as QrStyle["eyes"]["frame"])}
           >
             {EYE_FRAMES.map((f) => (
-              <ToggleGroupItem key={f} value={f} aria-label={`${f} eyes`}>
+              <ToggleGroupItem key={f} value={f} aria-label={`${f} eyes`} className={glowTileOn}>
                 <EyeSwatch frame={f} />
               </ToggleGroupItem>
             ))}

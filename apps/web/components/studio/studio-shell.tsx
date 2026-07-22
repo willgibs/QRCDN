@@ -225,7 +225,7 @@ export function StudioShell({
           onExportPng={handleExportPng}
         />
         <PreviewStage
-          className="order-1 lg:order-2 lg:flex-1 lg:self-stretch"
+          className="order-1 lg:order-2 lg:sticky lg:top-24 lg:h-[calc(100vh-8rem)] lg:flex-1 lg:self-start"
           svg={svg}
           payload={previewData}
           report={report}

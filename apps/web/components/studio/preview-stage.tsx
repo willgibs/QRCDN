@@ -39,11 +39,17 @@ function ModuleGridBackdrop() {
  * floor. `svg` is produced by our own deterministic `renderQr` one level up
  * (studio-shell.tsx), so `dangerouslySetInnerHTML` here is safe.
  *
- * The outer `<section>` picks up `lg:self-stretch` from its caller
- * (studio-shell.tsx) so it fills the full stage height at tall viewports;
- * `items-center justify-center` here then centers the artifact + chip block
- * within that height instead of leaving it top-anchored with dead space
- * below (P4-U3 deliverable #5).
+ * The outer `<section>` picks up `lg:sticky lg:top-24 lg:h-[calc(100vh-8rem)]`
+ * from its caller (studio-shell.tsx): at lg+ the stage pins below the sticky
+ * top bar while `ControlsRail` scrolls past it — the page (not the rail) is
+ * still the scrolling element, `lg:top-24` (6rem) is the top bar's own
+ * rendered height (~4rem) plus `<main>`'s `lg:py-8` top padding (2rem), and
+ * the height mirrors that same padding on the bottom edge so the stage
+ * never crowds the viewport edges. Below `lg` the column stacks normally
+ * (no sticky, no fixed height). `items-center justify-center` here centers
+ * the artifact + chip block within whatever height the section ends up
+ * with, sticky or stacked (P4-U3 deliverable #5; P4 design-iteration
+ * note 1 replaced the old `lg:self-stretch` contract with this one).
  */
 export function PreviewStage({
   svg,

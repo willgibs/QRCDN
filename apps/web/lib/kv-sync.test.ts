@@ -79,6 +79,29 @@ describe("writeSlugToKv — URL construction", () => {
     const [url] = fetchMock.mock.calls[0];
     expect(url).toContain(`/values/${encodeURIComponent("A/B C")}`);
   });
+
+  it("passes an optional codeId (P5-U2 additive field) straight through in the PUT body", async () => {
+    stubConfiguredEnv();
+    const fetchMock = vi.fn().mockResolvedValue({ ok: true });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const withCodeId: KvSlugRecord = { ...RECORD, codeId: "11111111-1111-1111-1111-111111111111" };
+    await writeSlugToKv("ABCD234", withCodeId);
+
+    const [, init] = fetchMock.mock.calls[0];
+    expect(init).toMatchObject({ body: JSON.stringify(withCodeId) });
+  });
+
+  it("omits codeId from the serialized body when the caller doesn't provide one", async () => {
+    stubConfiguredEnv();
+    const fetchMock = vi.fn().mockResolvedValue({ ok: true });
+    vi.stubGlobal("fetch", fetchMock);
+
+    await writeSlugToKv("ABCD234", RECORD);
+
+    const [, init] = fetchMock.mock.calls[0] as [string, { body: string }];
+    expect(JSON.parse(init.body)).not.toHaveProperty("codeId");
+  });
 });
 
 describe("writeSlugToKv — retry behavior", () => {

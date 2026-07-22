@@ -239,9 +239,12 @@ export async function retargetCode(
   // Postgres UPDATE already committed above — this is best-effort
   // write-through (D2). A KV failure does NOT fail the action; worst case
   // is ~60s staleness until the Worker's own read-through backfill.
+  // codeId (P5-U2, additive KvSlugRecord field): the row's own id, already
+  // known from the validated input — no extra select needed.
   const kvResult = await writeSlugToKv(data.slug, {
     destination: data.destination_url ?? "",
     paused: data.status === "paused",
+    codeId: idResult.data,
   });
 
   return {
@@ -293,6 +296,7 @@ export async function setCodePaused(
   const kvResult = await writeSlugToKv(data.slug, {
     destination: data.destination_url ?? "",
     paused: data.status === "paused",
+    codeId: idResult.data,
   });
 
   return {

@@ -10,4 +10,15 @@ export interface KvSlugRecord {
   /** When true, the Worker redirects to www.qrcdn.com/u/{slug} instead of
    *  `destination` (D2) rather than serving the code's real target. */
   paused: boolean;
+  /**
+   * qr_codes.id — added additively at P5-U2 so the redirect Worker's scan
+   * ingest (D3) can populate scan_events.code_id without a second Postgres
+   * round-trip. Optional because KV entries written before this field
+   * existed won't have it, and both sides must tolerate its absence
+   * (additive-only evolution, same discipline as the style schema, D5):
+   * writers (apps/web/lib/kv-sync.ts call sites) always set it now, but the
+   * Worker must not assume every record has it — when it's missing, skip
+   * scan ingest for that request rather than guessing an id.
+   */
+  codeId?: string;
 }

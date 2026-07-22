@@ -2,10 +2,25 @@
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "qrcdn-redirect",
   "main": "src/index.ts",
-  "compatibility_date": "2026-07-01",
-  // Route + KV binding are configured in P5 when the namespace exists and
-  // DNS cuts over. Until then this worker is dev-only (wrangler dev).
+  "compatibility_date": "2026-07-22",
+  // Route is still commented out — U3 (orchestrator) flips it live once DNS
+  // cuts over (apex qrcdn.com orange-clouded + this route, docs/guides/
+  // infra.md "DNS / domain topology"). Uncommenting this without the DNS
+  // side being ready would just 404/error at the edge; wiring the route and
+  // the actual cutover are infra steps, not this unit's job.
   // "routes": [{ "pattern": "qrcdn.com/*", "zone_name": "qrcdn.com" }],
-  // "kv_namespaces": [{ "binding": "CODES", "id": "<created-in-P5>" }],
-  "observability": { "enabled": true }
+  "kv_namespaces": [
+    { "binding": "KV", "id": "498cf67ed8f845b8aeef5133698f4041" },
+  ],
+  // Non-secret: the Supabase project's REST base URL. Fill in the real
+  // value (https://yklhpbhfowuvxlwlalhf.supabase.co) when wiring this
+  // Worker's environment — left as a placeholder here since env vars in
+  // wrangler.jsonc are committed to the repo.
+  "vars": {
+    "SUPABASE_URL": "<set-me>",
+  },
+  // SUPABASE_SECRET_KEY (sb_secret_...) and SCAN_SALT are Worker secrets —
+  // `wrangler secret put SUPABASE_SECRET_KEY` / `wrangler secret put
+  // SCAN_SALT` — NEVER committed here (infra guide "Env var conventions").
+  "observability": { "enabled": true },
 }

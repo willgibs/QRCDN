@@ -62,6 +62,11 @@ async function putOnce(url: string, apiToken: string, record: KvSlugRecord): Pro
  * follows is the source of truth (D2) — this call never throws, and a
  * failure here does NOT fail the calling server action. One retry on
  * failure to absorb a transient network blip, then give up.
+ *
+ * `record.codeId` (additive, P5-U2) flows through untouched — this function
+ * doesn't need to know it exists to pass it along; callers just include it
+ * so the redirect Worker's scan ingest can populate scan_events.code_id
+ * without a second Postgres round-trip.
  */
 export async function writeSlugToKv(
   slug: string,

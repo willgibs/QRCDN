@@ -73,6 +73,16 @@ function TintedModuleMark({ hex, className }: { hex: string; className?: string 
   );
 }
 
+/**
+ * Founder round-3 note 1: the pill itself dropped its unlabeled status dots
+ * (default / unsaved-changes) entirely — every state now has to be either
+ * labeled or self-evident. The unsaved-changes signal moves here: this
+ * button IS the state, not just the action that clears it. Its idle
+ * ("ready to save") state carries its own small amber dot *inside* a
+ * button already labeled "Save changes" — self-labeling, never a bare
+ * colored dot loose on the page — plus a `title` tooltip spelling out what
+ * the dot means for anyone who pauses on it.
+ */
 function SaveButton({
   busy,
   saved,
@@ -82,6 +92,7 @@ function SaveButton({
   saved: boolean;
   onClick: () => void;
 }) {
+  const idle = !busy && !saved;
   return (
     <Button
       type="button"
@@ -89,7 +100,8 @@ function SaveButton({
       size="sm"
       disabled={busy}
       onClick={onClick}
-      aria-label={saved ? "Saved" : "Save to kit"}
+      aria-label={busy ? "Saving" : saved ? "Saved" : "Save changes"}
+      title={idle ? "You have unsaved style changes" : undefined}
       className="gap-1.5 text-primary hover:bg-primary/10 hover:text-primary"
     >
       {busy ? (
@@ -97,9 +109,12 @@ function SaveButton({
       ) : saved ? (
         <Check className="size-3.5" aria-hidden />
       ) : (
-        <Save className="size-3.5" aria-hidden />
+        <>
+          <Save className="size-3.5" aria-hidden />
+          <span aria-hidden className="size-1.5 shrink-0 rounded-full bg-amber-500" />
+        </>
       )}
-      {busy ? "Saving" : saved ? "Saved" : "Save"}
+      {busy ? "Saving" : saved ? "Saved" : "Save changes"}
     </Button>
   );
 }
@@ -374,16 +389,6 @@ export function KitBar({
               >
                 <TintedModuleMark hex={liveInkHex} />
                 <span className="max-w-[9rem] truncate">{activeKit.name}</span>
-                {activeKit.is_default && (
-                  <span aria-hidden title="Default kit" className="size-1.5 shrink-0 rounded-full bg-primary" />
-                )}
-                {hasUnsavedChanges && (
-                  <span
-                    aria-hidden
-                    title="Unsaved changes"
-                    className="size-1.5 shrink-0 rounded-full bg-amber-500"
-                  />
-                )}
                 <ChevronDown className="size-3.5 text-muted-foreground" aria-hidden />
               </button>
             </DropdownMenuTrigger>
@@ -392,7 +397,18 @@ export function KitBar({
                 <DropdownMenuItem key={kit.id} onSelect={() => onSwitch(kit)} className="gap-2">
                   <TintedModuleMark hex={kitInkHex(kit)} />
                   <span className="flex-1 truncate">{kit.name}</span>
-                  {kit.id === activeKitId && <Check className="size-3.5 text-primary" aria-hidden />}
+                  {/* Default-ness lives only here now (round-3 note 1) — a
+                   *  quiet mono micro-tag, never a bare dot. Independent of
+                   *  the active-kit check: a kit can be default without
+                   *  being the one currently open, or both at once. */}
+                  {kit.is_default && (
+                    <span className="shrink-0 font-mono text-[10px] tracking-wide text-muted-foreground uppercase">
+                      Default
+                    </span>
+                  )}
+                  {kit.id === activeKitId && (
+                    <Check className="size-3.5 shrink-0 text-primary" aria-hidden />
+                  )}
                 </DropdownMenuItem>
               ))}
               <DropdownMenuSeparator />

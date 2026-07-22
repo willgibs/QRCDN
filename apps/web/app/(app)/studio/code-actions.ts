@@ -26,15 +26,10 @@ import type { Tables, TablesInsert } from "@qrcdn/shared";
 // (not `destination`), a `status` text column checked against
 // ('active' | 'paused' | 'archived') — not a boolean `paused` field — and
 // `style_version` (integer, defaults to 1, untouched by this unit). The
-// P5 spec's `createDynamicCode({ name, destination, style })` signature
-// assumes a `name` field that does not exist in this schema version; adding
-// one is a schema change, which this unit's verification bar explicitly
-// forbids ("you add no schema"). Rather than accept a `name` parameter that
-// gets silently dropped (a real, hard-to-notice bug once the P5-U4 studio
-// hook wires up a name input), `createDynamicCode` below intentionally omits
-// it — TypeScript will reject an unexpected `name` property at the U4 call
-// site instead of it disappearing silently at runtime. See the final report
-// for the recommended follow-up migration.
+// `name` column was NOT in the original schema — the U1 agent caught the
+// spec/schema gap and refused to silently drop the field; migration
+// 20260722000006 added it (1..80 check, matching brand_kits/api_keys), and
+// this file carries it end-to-end (validate → insert → summary).
 //
 // scan_count is written ONLY by the nightly rollup job (D8, CLAUDE.md hard
 // rule) — no action in this file ever touches it, including in a `.select()`
@@ -47,7 +42,7 @@ export type QrCode = Tables<"qr_codes">;
  *  for `scan_count` (D8: rollup-only). */
 export type DynamicCodeSummary = Pick<
   Tables<"qr_codes">,
-  "id" | "slug" | "destination_url" | "status" | "scan_count" | "created_at"
+  "id" | "slug" | "name" | "destination_url" | "status" | "scan_count" | "created_at"
 >;
 
 type SupabaseServerClient = Awaited<ReturnType<typeof createClient>>;
@@ -108,6 +103,7 @@ async function dynamicCodeCountFor(supabase: SupabaseServerClient): Promise<numb
 }
 
 export async function createDynamicCode(input: {
+  name: unknown;
   destination: unknown;
   style: unknown;
 }): Promise<ActionResult<QrCode>> {
@@ -153,6 +149,7 @@ export async function createDynamicCode(input: {
       owner_id: userId,
       slug: generateSlug(),
       kind: "dynamic",
+      name: validated.data.name,
       destination_url: validated.data.destination,
       // Frozen snapshot at creation — never mutated by brand-kit edits
       // afterward (D5 hard rule). No update action in this file accepts a
@@ -192,7 +189,7 @@ export async function listDynamicCodes(): Promise<ActionResult<DynamicCodeSummar
   // this to the caller's own rows.
   const { data, error } = await supabase
     .from("qr_codes")
-    .select("id, slug, destination_url, status, scan_count, created_at")
+    .select("id, slug, name, destination_url, status, scan_count, created_at")
     .eq("kind", "dynamic")
     .order("created_at", { ascending: false });
 

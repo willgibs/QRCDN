@@ -235,25 +235,50 @@ describe("validateDestination", () => {
 });
 
 describe("validateDynamicCodeInput", () => {
-  it("accepts a valid destination and style", () => {
+  it("accepts a valid name, destination, and style", () => {
     const result = validateDynamicCodeInput({
+      name: "Spring menu",
       destination: "https://example.com",
       style: { v: 1 },
     });
     expect(result.ok).toBe(true);
     if (result.ok) {
+      expect(result.data.name).toBe("Spring menu");
       expect(result.data.destination).toBe("https://example.com");
       expect(result.data.style).toEqual(defaultQrStyle);
     }
   });
 
+  it("rejects a missing name before anything else", () => {
+    const result = validateDynamicCodeInput({
+      name: "",
+      destination: "https://example.com",
+      style: { v: 1 },
+    });
+    expect(result.ok).toBe(false);
+  });
+
+  it("rejects a name over 60 chars", () => {
+    const result = validateDynamicCodeInput({
+      name: "a".repeat(61),
+      destination: "https://example.com",
+      style: { v: 1 },
+    });
+    expect(result.ok).toBe(false);
+  });
+
   it("rejects an invalid destination before checking style", () => {
-    const result = validateDynamicCodeInput({ destination: "not a url", style: "garbage" });
+    const result = validateDynamicCodeInput({
+      name: "Menu",
+      destination: "not a url",
+      style: "garbage",
+    });
     expect(result).toEqual({ ok: false, error: "invalid_destination" });
   });
 
   it("rejects an invalid style payload", () => {
     const result = validateDynamicCodeInput({
+      name: "Menu",
       destination: "https://example.com",
       style: { v: 2 },
     });
@@ -262,6 +287,7 @@ describe("validateDynamicCodeInput", () => {
 
   it("rejects an oversized logo assetId", () => {
     const result = validateDynamicCodeInput({
+      name: "Menu",
       destination: "https://example.com",
       style: {
         v: 1,

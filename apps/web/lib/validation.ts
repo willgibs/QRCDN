@@ -132,15 +132,24 @@ export const destinationUrlSchema = z.preprocess(
 export const pausedSchema = z.boolean();
 
 export interface ValidatedDynamicCode {
+  name: string;
   destination: string;
   style: QrStyle;
 }
 
-/** Full validation for create: destination and style are both required. */
+/** Full validation for create: name, destination, and style all required.
+ *  Name reuses the brand-kit rules (1..60 trimmed — stricter than the DB's
+ *  1..80 check, deliberately). */
 export function validateDynamicCodeInput(input: {
+  name: unknown;
   destination: unknown;
   style: unknown;
 }): ActionResult<ValidatedDynamicCode> {
+  const name = brandKitNameSchema.safeParse(input.name);
+  if (!name.success) {
+    return { ok: false, error: firstIssueMessage(name, "invalid_name") };
+  }
+
   const destination = destinationUrlSchema.safeParse(input.destination);
   if (!destination.success) {
     return { ok: false, error: firstIssueMessage(destination, "invalid_destination") };
@@ -151,7 +160,7 @@ export function validateDynamicCodeInput(input: {
     if (!styleWithinLimits(style)) {
       return { ok: false, error: "logo_too_large" };
     }
-    return { ok: true, data: { destination: destination.data, style } };
+    return { ok: true, data: { name: name.data, destination: destination.data, style } };
   } catch {
     return { ok: false, error: "invalid_style" };
   }

@@ -28,28 +28,28 @@ Read this when touching tokens, themes, fonts, or shared UI components under `ap
 - Product features still never gate on the `brand` route param — `/explore/[brand]` is a throwaway marketing-preview surface, not multi-tenancy.
 - P4 (studio + generator) landed the Resend-grammar "luminous staging" restage on top of the locked precision tokens — see "Luminous staging grammar" and "Shared brand primitives" below. This is a visual-language extension, not a reopening of brand exploration.
 
-## The D13 lock protocol
+## The D13 lock protocol (executed at Checkpoint A close)
 
-Once the founder approves the final direction (Checkpoint A close), a single pass does all of the following — do this as one coherent commit, not incrementally:
+The lock ran as one coherent pass when the founder approved precision. Kept here as the record of how the current single-brand state came to be:
 
-1. Collapse the winning theme's Layer 0/1 values into the base `:root` and `.dark` blocks in `globals.css` (replacing the current shadcn-default placeholder values there).
-2. Delete the losing theme files (`warmth.css`, `bold.css`, and their `@import`s in `globals.css`) and the winning theme's own now-redundant `[data-brand="..."]` file.
-3. Remove `data-brand` entirely — the wrapper `<div data-brand={brand}>` in `app/explore/[brand]/page.tsx` and all `[data-brand=...]`/`.dark [data-brand=...]` selectors go away along with the `/explore/[brand]` route itself.
-4. Delete unused fonts from `apps/web/app/fonts.ts` and `fontVariables` — keep only the winning brand's `--brand-font-display`/`--brand-font-body`/`--brand-font-mono` sources.
-5. Leave Layer 2 (`@theme inline`) untouched — it was already brand-agnostic.
+1. Collapsed precision's Layer 0/1 values into the base `:root` and `.dark` blocks in `globals.css` (replacing the shadcn-default placeholder values).
+2. Deleted the losing theme files (`warmth.css`, `bold.css`, their `@import`s) and precision's own now-redundant `[data-brand="..."]` file — `apps/web/app/themes/` no longer exists.
+3. Removed `data-brand` entirely — no wrapper attribute and no `[data-brand=...]`/`.dark [data-brand=...]` selector remains anywhere in `apps/web` (grep-verified).
+4. Deleted the unused font loaders from `apps/web/app/fonts.ts` and `fontVariables` — only Inter and JetBrains Mono remain.
+5. Left Layer 2 (`@theme inline`) untouched — it was already brand-agnostic.
+
+One deviation from the protocol as originally written: `/explore/[brand]` was **not** deleted — the founder kept it as the P9 marketing-page seed (see "Current brand state"); `BRANDS` in `lib/explore.ts` collapsed to `["precision"] as const`, so precision is the only resolvable value.
 
 ## Fonts (`apps/web/app/fonts.ts`)
 
-All six fonts below are loaded during the P2 exploration phase; the comment in `fonts.ts` states the rest are deleted at lock (D13):
+Post-lock, exactly two fonts load (both `next/font/google`, `display: "swap"`, joined in `fontVariables`):
 
-| Font | CSS variable | Used by |
+| Font | CSS variable | Role |
 |---|---|---|
-| Inter | `--font-inter` | `precision` (display + body), `bold` (body) |
-| JetBrains Mono | `--font-jetbrains-mono` | all three themes' `--brand-font-mono` |
-| Fraunces | `--font-fraunces` | `warmth` (display) |
-| Hanken Grotesk | `--font-hanken-grotesk` | `warmth` (body) |
-| Bricolage Grotesque | `--font-bricolage` | `bold` (display) |
-| Space Grotesk | `--font-space-grotesk` | **none** — see Outline discrepancies |
+| Inter | `--font-inter` | `--brand-font-display` + `--brand-font-body` |
+| JetBrains Mono | `--font-jetbrains-mono` | `--brand-font-mono` — technical accents: eyebrows, payload/hex strings, chip labels. Register: `font-mono text-xs`/`text-[11px]` + `uppercase tracking-[0.15em–0.2em]` |
+
+The P2 exploration fonts (Fraunces, Hanken Grotesk, Bricolage Grotesque, Space Grotesk) were removed by the D13 lock.
 
 ## Product tokens
 
@@ -132,8 +132,8 @@ Why not `useState` + `useEffect`:
 
 ## Outline discrepancies
 
-- **Space Grotesk is loaded but unused.** `apps/web/app/fonts.ts` exports `spaceGrotesk` and includes `--font-space-grotesk` in `fontVariables`, but no theme file (`precision.css`, `warmth.css`, `bold.css`) references it anywhere. `docs/STATUS.md` notes precision was "refined toward" Inter display in its "v2" pass — Space Grotesk was almost certainly precision's pre-v2 display font, left orphaned in `fonts.ts` after the refinement. Flag for removal now or fold into the D13 lock cleanup rather than waiting.
-- **Chart placement rule — resolved.** "Charts only in dashboard routes, never marketing" is a *bundle-size* rule from the design-system research (recharts ≈150–200 KB min) that applies to the **real P9 marketing site**: the production homepage must show analytics as a static screenshot/pre-rendered visual, not a live Recharts import. The `/explore/[brand]` pages are throwaway exploration surfaces (deleted at D13 lock) and are exempt — their live chart exists to judge chart theming per direction.
+- **Space Grotesk — resolved (removed at lock).** During P2 it was loaded but referenced by no theme file (almost certainly precision's pre-v2 display font, orphaned after the Inter refinement — `docs/STATUS.md` notes precision was "refined toward" Inter display). The D13 lock deleted it from `fonts.ts` along with the other exploration fonts; nothing loads it today.
+- **Chart placement rule — resolved.** "Charts only in dashboard routes, never marketing" is a *bundle-size* rule from the design-system research (recharts ≈150–200 KB min) that applies to the **real P9 marketing site**: the production homepage must show analytics as a static screenshot/pre-rendered visual, not a live Recharts import. The `/explore/[brand]` pages are throwaway exploration surfaces (kept post-lock as the P9 seed, precision-only) and are exempt — their live chart exists to judge chart theming per direction.
 - **"Geo table" doesn't exist yet.** The only table in the current codebase (`DashboardCard`'s `topCodes`) is a top-codes-by-volume list (name, slug, scan count), not a geography breakdown. A geo table is plausible future P6 (dashboard + analytics rollups) scope but isn't present to document as-built.
 
 ## Testing note: browser-pane screenshots vs motion

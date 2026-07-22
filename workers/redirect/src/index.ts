@@ -90,8 +90,17 @@ export default {
       if (restResult.status === "found") {
         // Backfill KV so the next request for this slug is a hit. Fire-and-
         // forget via waitUntil — must not delay this response.
+        //
+        // expirationTtl caps staleness at 5 minutes even when the app-side
+        // retarget write-through (apps/web/lib/kv-sync.ts) is unavailable or
+        // unconfigured — without it, a backfilled entry would pin the old
+        // destination FOREVER after a retarget that failed to sync (found
+        // live in P5-U4 review). Cost: one extra Supabase read-through per
+        // slug per 5 min — negligible; D2's staleness promise stays honest.
         const backfill = buildKvBackfillRecord(restResult.row);
-        ctx.waitUntil(env.KV.put(slugUpper, JSON.stringify(backfill)));
+        ctx.waitUntil(
+          env.KV.put(slugUpper, JSON.stringify(backfill), { expirationTtl: 300 }),
+        );
       }
     }
 

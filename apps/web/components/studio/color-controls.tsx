@@ -125,11 +125,15 @@ export function ColorField({
   value,
   onChange,
   presets,
+  trailing,
 }: {
   label: string;
   value: string;
   onChange: (hex: string) => void;
   presets: readonly string[];
+  /** Extra chip rendered after the rainbow trigger, before the hex input —
+   *  e.g. Paper's transparent checker chip. */
+  trailing?: ReactNode;
 }) {
   const inputId = useId();
   const [draft, setDraft] = useState(value);
@@ -153,6 +157,7 @@ export function ColorField({
       <Label htmlFor={inputId}>{label}</Label>
       <div className="flex flex-wrap items-center gap-2">
         <ColorSwatches label={label} value={value} presets={presets} onChange={handleDraft} />
+        {trailing}
         <div className="relative w-24 min-w-0 flex-1">
           <span
             aria-hidden
@@ -198,5 +203,40 @@ export function ColorChipRow({
       {leading}
       <ColorSwatches label={label} value={value} presets={presets} onChange={onChange} />
     </div>
+  );
+}
+
+// Quiet 2-tone checker, sized to match a preset swatch — the universal
+// "transparent" affordance (Photoshop/Figma), built from `currentColor` so
+// it reads correctly in both themes without a hardcoded gray.
+const CHECKER_SQUARE_PX = 8;
+const CHECKER_PATTERN =
+  "conic-gradient(currentcolor 90deg, transparent 0 180deg, currentcolor 0 270deg, transparent 0)";
+
+/** Paper row's "transparent background" chip — sets `background.transparent`
+ *  per the schema. Selected state uses the same `glowSwatchSelected`
+ *  treatment as every other swatch in the rail. */
+export function TransparentPaperChip({
+  active,
+  onClick,
+}: {
+  active: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      aria-label="Transparent paper"
+      aria-pressed={active}
+      onClick={onClick}
+      style={{
+        backgroundImage: CHECKER_PATTERN,
+        backgroundSize: `${CHECKER_SQUARE_PX}px ${CHECKER_SQUARE_PX}px`,
+      }}
+      className={cn(
+        "size-6 shrink-0 rounded-full border border-border/60 bg-background text-muted-foreground/70 transition-shadow duration-(--duration-fast) ease-(--motion-ease-out)",
+        active && glowSwatchSelected,
+      )}
+    />
   );
 }

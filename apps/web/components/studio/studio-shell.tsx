@@ -1,10 +1,14 @@
 "use client";
 
 import { useCallback, useMemo, useState } from "react";
+import { useTheme } from "next-themes";
 import { scannabilityReport } from "@qrcdn/qr-engine";
 import { defaultQrStyle, parseQrStyle, type QrStyle } from "@qrcdn/shared";
 import type { BrandKit } from "@/app/(app)/studio/actions";
+import { useMounted } from "@/hooks/use-mounted";
+import { degreesToRadians } from "@/lib/angle";
 import { downloadBlob, exportFilename, rasterizeSvgToPng } from "@/lib/export";
+import { brandQrBackdrop } from "@/lib/explore";
 import {
   LOGO_PADDING_DEFAULT,
   LOGO_SIZE_RATIO_DEFAULT,
@@ -114,6 +118,74 @@ export function StudioShell({
     setStyle((s) => ({ ...s, eyes: { ...s.eyes, frame: value } }));
   }, []);
 
+  // Solid <-> Gradient (founder note 3.1). Switching to Gradient seeds both
+  // stops with the current ink color so the swap is visually silent until
+  // the user actually edits Start/End; switching back to Solid keeps
+  // whichever color was in the first stop ("glow inkHex stays first-stop").
+  // A pre-existing radialGradient (unreachable via this UI, but schema-legal)
+  // is handled defensively rather than discarded.
+  const setFillType = useCallback((mode: "solid" | "gradient") => {
+    setStyle((s) => {
+      const currentColor = inkHexFromStyle(s);
+      if (mode === "solid") {
+        return { ...s, fill: { type: "solid", color: currentColor } };
+      }
+      if (s.fill.type === "linearGradient") return s;
+      const stops =
+        s.fill.type === "radialGradient"
+          ? s.fill.stops
+          : [
+              { offset: 0, color: currentColor },
+              { offset: 1, color: currentColor },
+            ];
+      return { ...s, fill: { type: "linearGradient", rotation: 0, stops } };
+    });
+  }, []);
+
+  // Start = first stop, End = last stop — covers the (UI-unreachable) 3-4
+  // stop case sanely instead of assuming exactly 2.
+  const setGradientStart = useCallback((hex: string) => {
+    setStyle((s) => {
+      if (s.fill.type === "solid") return s;
+      const stops = [...s.fill.stops];
+      stops[0] = { ...stops[0], color: hex };
+      return { ...s, fill: { ...s.fill, stops } };
+    });
+  }, []);
+  const setGradientEnd = useCallback((hex: string) => {
+    setStyle((s) => {
+      if (s.fill.type === "solid") return s;
+      const stops = [...s.fill.stops];
+      const lastIndex = stops.length - 1;
+      stops[lastIndex] = { ...stops[lastIndex], color: hex };
+      return { ...s, fill: { ...s.fill, stops } };
+    });
+  }, []);
+  // Degrees enter/leave the style at this boundary (lib/angle.ts) — the
+  // schema field itself is radians (qr-engine.md: consumed via quantized
+  // Math.cos/sin at render time).
+  const setGradientRotationDegrees = useCallback((degrees: number) => {
+    setStyle((s) => {
+      if (s.fill.type !== "linearGradient") return s;
+      return { ...s, fill: { ...s.fill, rotation: degreesToRadians(degrees) } };
+    });
+  }, []);
+
+  // null = inherit the foreground fill (packages/shared/src/style.ts
+  // `eyes.color` comment) — "Match ink" clears back to that, exactly the
+  // schema's own inherit semantics rather than copying the current ink hex.
+  const setEyeColor = useCallback((hex: string | null) => {
+    setStyle((s) => ({ ...s, eyes: { ...s.eyes, color: hex } }));
+  }, []);
+
+  const setPaperTransparent = useCallback((transparent: boolean) => {
+    setStyle((s) => ({ ...s, background: { ...s.background, transparent } }));
+  }, []);
+
+  const setEcc = useCallback((value: QrStyle["ecc"]) => {
+    setStyle((s) => ({ ...s, ecc: value }));
+  }, []);
+
   const handleLogoFileSelected = useCallback(async (file: File): Promise<string | null> => {
     try {
       const dataUri = await readFileAsDataUri(file);
@@ -172,14 +244,36 @@ export function StudioShell({
     [previewData, validStyle, logoDataUri],
   );
 
-  const report = useMemo(() => scannabilityReport(validStyle), [validStyle]);
+  // Theme-dependent output must wait for mount (hooks/use-mounted.ts) — SSR
+  // doesn't know the resolved color scheme. `brandQrBackdrop.precision` is
+  // studio-slice.tsx's own transparentBackdrop source, duplicated here for
+  // the same reason lib/explore.ts's own comment documents: it must match
+  // --qr-bg in globals.css by hand, there's no build-time check yet.
+  const { resolvedTheme } = useTheme();
+  const mounted = useMounted();
+  const dark = mounted && resolvedTheme === "dark";
+
+  // Wired truthfully (P4 design-iteration note 3.3): when background.transparent
+  // is on, the report should score contrast against what the code will
+  // actually sit on in this preview — the mat's --qr-bg fallback — not the
+  // guardrail's own white default, which would under-report risk in dark mode.
+  const report = useMemo(
+    () =>
+      scannabilityReport(validStyle, {
+        transparentBackdrop: brandQrBackdrop.precision[dark ? "dark" : "light"],
+      }),
+    [validStyle, dark],
+  );
 
   // Shared derivation (lib/qr-style-derive.ts) — feeds ArtifactStage's
   // ambient bloom (via PreviewStage) so the glow re-hues live with the
   // kit's own ink color; the same helper also drives controls-rail's Ink
   // swatch value and kit-bar's pill/menu ModuleMark tint.
   const inkHex = inkHexFromStyle(validStyle);
-  const paperHex = validStyle.background.color;
+  // The mat's own background: the schema color normally, or the studio
+  // surface's --qr-bg bridge token when background.transparent is on (the
+  // fallback preview-stage.tsx's own doc comment always planned for).
+  const paperHex = validStyle.background.transparent ? "var(--qr-bg)" : validStyle.background.color;
 
   const handleExportSvg = useCallback(() => {
     const blob = new Blob([svg], { type: "image/svg+xml" });
@@ -214,11 +308,19 @@ export function StudioShell({
           className="order-2 lg:order-1 lg:w-[300px] lg:shrink-0"
           style={validStyle}
           payload={payload}
+          effectiveEcc={report.effectiveEcc}
           onPayloadChange={setPayload}
           onInkChange={setInk}
           onPaperChange={setPaper}
+          onFillTypeChange={setFillType}
+          onGradientStartChange={setGradientStart}
+          onGradientEndChange={setGradientEnd}
+          onGradientRotationChange={setGradientRotationDegrees}
           onDotStyleChange={setDotStyle}
           onEyeFrameChange={setEyeFrame}
+          onEyeColorChange={setEyeColor}
+          onPaperTransparentChange={setPaperTransparent}
+          onEccChange={setEcc}
           onLogoFileSelected={handleLogoFileSelected}
           onLogoRemove={handleLogoRemove}
           onLogoSizeChange={handleLogoSizeChange}
@@ -230,6 +332,7 @@ export function StudioShell({
           svg={svg}
           payload={previewData}
           report={report}
+          transparentBackground={validStyle.background.transparent}
           renderError={renderError}
           inkHex={inkHex}
           paperHex={paperHex}

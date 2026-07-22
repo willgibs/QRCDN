@@ -18,28 +18,38 @@ import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { Eyebrow } from "@/components/brand/magic";
 import { glowTileOn } from "@/components/brand/glow-tile";
 import { DOT_STYLES, EYE_FRAMES, DotSwatch, EyeSwatch } from "@/components/qr/shape-swatches";
-import { ColorField } from "@/components/studio/color-controls";
+import { ColorChipRow, ColorField, TransparentPaperChip } from "@/components/studio/color-controls";
+import { radiansToDegrees } from "@/lib/angle";
 import {
   LOGO_SIZE_RATIO_MAX,
   LOGO_SIZE_RATIO_MIN,
   logoValidationMessage,
   validateLogoFile,
 } from "@/lib/logo";
-import { inkHexFromStyle } from "@/lib/qr-style-derive";
 import { cn } from "@/lib/utils";
 
 const INK_PRESETS = ["#131316", "#312e81", "#1e3a8a", "#0f766e", "#b91c1c"] as const;
 const PAPER_PRESETS = ["#ffffff", "#f4f4f5", "#101013", "#18181b"] as const;
 const EXPORT_SIZES = [512, 1024, 2048, 4096] as const;
+const ECC_LEVELS = ["L", "M", "Q", "H"] as const;
+const FILL_MODES = ["solid", "gradient"] as const;
 
 export function ControlsRail({
   style,
   payload,
+  effectiveEcc,
   onPayloadChange,
   onInkChange,
   onPaperChange,
+  onFillTypeChange,
+  onGradientStartChange,
+  onGradientEndChange,
+  onGradientRotationChange,
   onDotStyleChange,
   onEyeFrameChange,
+  onEyeColorChange,
+  onPaperTransparentChange,
+  onEccChange,
   onLogoFileSelected,
   onLogoRemove,
   onLogoSizeChange,
@@ -49,11 +59,25 @@ export function ControlsRail({
 }: {
   style: QrStyle;
   payload: string;
+  /** The ECC level the engine will actually encode with (qr-engine's
+   *  `effectiveEcc`) — may differ from `style.ecc` when a logo forces it
+   *  higher; the Export section's helper text reflects that honestly. */
+  effectiveEcc: QrStyle["ecc"];
   onPayloadChange: (value: string) => void;
   onInkChange: (hex: string) => void;
   onPaperChange: (hex: string) => void;
+  onFillTypeChange: (mode: "solid" | "gradient") => void;
+  onGradientStartChange: (hex: string) => void;
+  onGradientEndChange: (hex: string) => void;
+  /** Degrees (0-360) — converted to the schema's radians at the style
+   *  boundary, one level up in studio-shell.tsx. */
+  onGradientRotationChange: (degrees: number) => void;
   onDotStyleChange: (value: QrStyle["dots"]["style"]) => void;
   onEyeFrameChange: (value: QrStyle["eyes"]["frame"]) => void;
+  /** `null` = "Match ink" (schema's own inherit-foreground-fill semantics). */
+  onEyeColorChange: (hex: string | null) => void;
+  onPaperTransparentChange: (transparent: boolean) => void;
+  onEccChange: (value: QrStyle["ecc"]) => void;
   /** Resolves to an error message on failure, `null` on success — lets the
    *  rail surface a rare FileReader failure without lifting error UI state
    *  up to studio-shell. */
@@ -67,12 +91,13 @@ export function ControlsRail({
   const payloadId = useId();
   const sizeId = useId();
   const logoSizeId = useId();
+  const gradientAngleId = useId();
   const [exportSize, setExportSize] = useState<string>("1024");
   const [logoError, setLogoError] = useState<string | null>(null);
   const [exporting, setExporting] = useState<"svg" | "png" | null>(null);
   const [exportError, setExportError] = useState<string | null>(null);
 
-  const inkValue = inkHexFromStyle(style);
+  const fillMode: (typeof FILL_MODES)[number] = style.fill.type === "solid" ? "solid" : "gradient";
 
   async function handleLogoInputChange(e: ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -141,12 +166,76 @@ export function ControlsRail({
 
       <section className="flex flex-col gap-4">
         <Eyebrow>Colors</Eyebrow>
-        <ColorField label="Ink" value={inkValue} onChange={onInkChange} presets={INK_PRESETS} />
+        <div className="flex flex-col gap-2">
+          <div className="flex items-center justify-between">
+            <Label>Ink</Label>
+            <ToggleGroup
+              type="single"
+              variant="outline"
+              size="sm"
+              value={fillMode}
+              onValueChange={(v) => v && onFillTypeChange(v as "solid" | "gradient")}
+            >
+              {FILL_MODES.map((mode) => (
+                <ToggleGroupItem
+                  key={mode}
+                  value={mode}
+                  aria-label={`${mode} ink`}
+                  className={cn(glowTileOn, "px-2.5 text-xs capitalize")}
+                >
+                  {mode}
+                </ToggleGroupItem>
+              ))}
+            </ToggleGroup>
+          </div>
+          {style.fill.type === "solid" ? (
+            <ColorField label="Ink" value={style.fill.color} onChange={onInkChange} presets={INK_PRESETS} />
+          ) : (
+            <div className="flex flex-col gap-3">
+              <ColorField
+                label="Start"
+                value={style.fill.stops[0]?.color ?? "#111111"}
+                onChange={onGradientStartChange}
+                presets={INK_PRESETS}
+              />
+              <ColorField
+                label="End"
+                value={style.fill.stops[style.fill.stops.length - 1]?.color ?? "#111111"}
+                onChange={onGradientEndChange}
+                presets={INK_PRESETS}
+              />
+              {style.fill.type === "linearGradient" && (
+                <div className="flex flex-col gap-1.5">
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor={gradientAngleId}>Angle</Label>
+                    <span className="font-mono text-xs tabular-nums text-muted-foreground">
+                      {Math.round(radiansToDegrees(style.fill.rotation))}°
+                    </span>
+                  </div>
+                  <Slider
+                    id={gradientAngleId}
+                    min={0}
+                    max={360}
+                    step={1}
+                    value={[Math.round(radiansToDegrees(style.fill.rotation))]}
+                    onValueChange={([v]) => v !== undefined && onGradientRotationChange(v)}
+                  />
+                </div>
+              )}
+            </div>
+          )}
+        </div>
         <ColorField
           label="Paper"
           value={style.background.color}
           onChange={onPaperChange}
           presets={PAPER_PRESETS}
+          trailing={
+            <TransparentPaperChip
+              active={style.background.transparent}
+              onClick={() => onPaperTransparentChange(!style.background.transparent)}
+            />
+          }
         />
       </section>
 
@@ -181,6 +270,29 @@ export function ControlsRail({
               </ToggleGroupItem>
             ))}
           </ToggleGroup>
+        </div>
+        <div className="flex flex-col gap-2">
+          <Label>Eye color</Label>
+          <ColorChipRow
+            label="Eye"
+            value={style.eyes.color}
+            onChange={onEyeColorChange}
+            presets={INK_PRESETS}
+            leading={
+              <button
+                type="button"
+                aria-pressed={style.eyes.color === null}
+                onClick={() => onEyeColorChange(null)}
+                className={cn(
+                  "shrink-0 rounded-full border border-border/60 px-2.5 py-1 text-xs text-muted-foreground transition-colors duration-(--duration-fast) ease-(--motion-ease-out) hover:text-foreground",
+                  style.eyes.color === null &&
+                    "border-primary/50 bg-accent text-accent-foreground shadow-sm shadow-primary/10",
+                )}
+              >
+                Match ink
+              </button>
+            }
+          />
         </div>
       </section>
 
@@ -247,6 +359,30 @@ export function ControlsRail({
 
       <section className="flex flex-col gap-3 pb-2">
         <Eyebrow>Export</Eyebrow>
+        <div className="flex flex-col gap-1.5">
+          <Label>Error correction</Label>
+          <ToggleGroup
+            type="single"
+            variant="outline"
+            value={style.ecc}
+            onValueChange={(v) => v && onEccChange(v as QrStyle["ecc"])}
+          >
+            {ECC_LEVELS.map((level) => (
+              <ToggleGroupItem
+                key={level}
+                value={level}
+                aria-label={`Error correction ${level}`}
+                className={cn(glowTileOn, "flex-1 font-mono text-xs")}
+              >
+                {level}
+              </ToggleGroupItem>
+            ))}
+          </ToggleGroup>
+          <p className="text-xs text-muted-foreground">
+            Higher levels survive more print damage but pack modules denser.
+            {effectiveEcc !== style.ecc && ` Auto-raised to ${effectiveEcc} — a logo is set.`}
+          </p>
+        </div>
         <div className="flex flex-col gap-1.5">
           <Label htmlFor={sizeId}>Size</Label>
           <Select value={exportSize} onValueChange={setExportSize}>

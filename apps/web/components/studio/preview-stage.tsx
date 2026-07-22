@@ -29,6 +29,31 @@ function ModuleGridBackdrop() {
   );
 }
 
+// Same 2-tone checker family as color-controls.tsx's TransparentPaperChip,
+// scaled up for the mat itself — the universal "transparent" affordance,
+// kept quiet (~4% contrast) so it reads as a hint, not a texture.
+const MAT_CHECKER_SQUARE_PX = 12;
+const MAT_CHECKER_PATTERN =
+  "conic-gradient(currentcolor 90deg, transparent 0 180deg, currentcolor 0 270deg, transparent 0)";
+
+/** Underlay shown inside the paper mat when `background.transparent` is on
+ *  — the QR's own SVG omits its background rect entirely in that case
+ *  (packages/qr-engine/src/render.ts), so without this the mat would just
+ *  show its `--qr-bg` fallback as a second solid color with no indication
+ *  anything is actually transparent. */
+function TransparencyChecker() {
+  return (
+    <div
+      aria-hidden
+      className="pointer-events-none absolute inset-0 rounded-2xl text-foreground opacity-[0.04] dark:opacity-[0.06]"
+      style={{
+        backgroundImage: MAT_CHECKER_PATTERN,
+        backgroundSize: `${MAT_CHECKER_SQUARE_PX}px ${MAT_CHECKER_SQUARE_PX}px`,
+      }}
+    />
+  );
+}
+
 /**
  * The studio QR restaged as a floating luminous artifact (Resend grammar),
  * not a glass gradient-border frame — frames stay reserved for window-
@@ -58,6 +83,7 @@ export function PreviewStage({
   renderError,
   inkHex,
   paperHex,
+  transparentBackground = false,
   className,
 }: {
   svg: string;
@@ -70,9 +96,13 @@ export function PreviewStage({
   /** Solid fill color or first gradient stop (studio-shell derives this the
    *  same way controls-rail does) — drives the ambient bloom's hue. */
   inkHex: string;
-  /** `validStyle.background.color` — the mat's own background. Falls back
-   *  to `var(--qr-bg)` if `background.transparent` is ever exposed. */
+  /** `validStyle.background.color`, or `var(--qr-bg)` when
+   *  `background.transparent` is on — the mat's own background. */
   paperHex: string;
+  /** `validStyle.background.transparent` — renders the checkerboard underlay
+   *  inside the mat so "transparent" reads as an intentional state, not a
+   *  second solid paper color. */
+  transparentBackground?: boolean;
   className?: string;
 }) {
   return (
@@ -87,13 +117,14 @@ export function PreviewStage({
       <div className="relative z-10 w-full max-w-md">
         <ArtifactStage glowColor={inkHex} className="mx-auto w-full max-w-[320px]">
           <div
-            className="w-full rounded-2xl p-5 shadow-xl shadow-black/25 ring-1 ring-black/5 transition-[background-color] duration-(--duration-fast) ease-(--motion-ease-out) dark:shadow-black/50 dark:ring-white/10"
+            className="relative w-full overflow-hidden rounded-2xl p-5 shadow-xl shadow-black/25 ring-1 ring-black/5 transition-[background-color] duration-(--duration-fast) ease-(--motion-ease-out) dark:shadow-black/50 dark:ring-white/10"
             style={{ backgroundColor: paperHex }}
           >
+            {transparentBackground && <TransparencyChecker />}
             <div
               role="img"
               aria-label={`QR preview for ${payload}`}
-              className="[&_svg]:h-auto [&_svg]:w-full"
+              className="relative [&_svg]:h-auto [&_svg]:w-full"
               dangerouslySetInnerHTML={{ __html: svg }}
             />
           </div>

@@ -75,12 +75,11 @@ P4 studio components, built under `apps/web/components/studio/` and `apps/web/co
 | Component | File | What it does |
 |---|---|---|
 | Shell | `studio-shell.tsx` (`StudioShell`) | Owns live `QrStyle` state, wires every control straight into `renderQr`/`scannabilityReport` (no round-trip), derives `inkHex`/`paperHex` for the preview stage |
-| Preview stage | `preview-stage.tsx` (`PreviewStage`) | Live QR restaged as a floating luminous artifact — see "Luminous staging grammar" below |
+| Preview stage | `preview-stage.tsx` (`PreviewStage`) | Live QR restaged as an interactive 3D artifact — see "Luminous staging grammar" below |
 | Controls rail | `controls-rail.tsx` (`ControlsRail`, `ColorField`) | Payload input, ink/paper color fields (swatch presets + free-hex text field, glow-tile selected states), shape `ToggleGroup`s, logo upload + size slider, SVG/PNG export |
 | Shape swatches | `qr/shape-swatches.tsx` (`DotSwatch`, `EyeSwatch`) | Hand-drawn SVG previews for `dots.style` / `eyes.frame`, `currentColor`-filled so the glow-tile selected state tints them |
-| Kit bar | `kit-bar.tsx` (`KitBar`) | Create/switch/save/delete brand kits, two-step delete confirm, default-kit toggle |
-| Top bar | `top-bar.tsx` (`TopBar`) | Wordmark + account cluster + kit bar, directive-free presentational leaf |
-| Scannability chip | `scannability-chip.tsx` (`ScannabilityChip`) | Live clean/warn/error status pill from `ScannabilityReport`, worst-issue-first |
+| Kit bar | `kit-bar.tsx` (`KitBar`) | Create/switch/save/delete brand kits, two-step delete confirm, default-kit toggle; round-3 note 1 removed the pill's unlabeled status dots — default-ness lives only in the menu (a mono "Default" micro-tag) and the unsaved-changes state lives inside the Save button itself ("Save changes" + a small dot, self-labeling) |
+| Scannability chip | `scannability-chip.tsx` (`ScannabilityChip`) | Two-tier live instrument (round 3): a compact summary row (`● Scannable · V{version} · ECC {effectiveEcc}` when clean, `● N issues` when not) plus, when there's anything to report, the FULL issue list below it — every message rendered in full, never truncated. See "Scannability instrument" note below the staging grammar for what `version` is and isn't sourced from |
 
 ## Shared brand primitives (`components/brand/`)
 
@@ -89,13 +88,14 @@ Cross-surface primitives — shared by studio, auth, and explore/marketing alike
 | Module | Exports | Server-safe? | What it's for |
 |---|---|---|---|
 | `magic.tsx` | `EASE_OUT`, `useRevealVariants`, `Reveal`, `ModuleMark`, `Eyebrow` | No (`"use client"`, uses `motion/react` + `useReducedMotion`) | Shared motion language (entrance variants, scroll reveal) + the eyebrow/module-mark brand mark, used by login, studio, and every explore section |
-| `artifact-stage.tsx` | `ArtifactStage` | **Yes** — presentational, no hooks | Glow-layer wrapper for a floating "luminous artifact" (first consumer: the studio QR preview). See "Luminous staging grammar" below |
+| `artifact-stage.tsx` | `ArtifactStage` | **Yes** — presentational, no hooks | Glow-layer wrapper for a floating "luminous artifact" — now the **marketing-only** staging rig (P9 static product visuals) since round 3 moved the studio preview to `TiltStage`. See "Luminous staging grammar" below |
+| `tilt-stage.tsx` | `TiltStage` | No (`"use client"`, uses `motion/react` + `useReducedMotion`) | Interactive 3D staging wrapper — tilt-toward-cursor + moving specular sheen + reactive floor shadow. Studio-only (round 3, replacing `ArtifactStage` on that one surface). See "Luminous staging grammar" below |
 | `accent-text.tsx` | `AccentText` | **Yes** — presentational, no hooks | Gradient accent-word span for headlines. Built for P9; not applied to any live surface yet |
 | `glow-tile.ts` | `glowTileOn`, `glowSwatchSelected` | N/A (plain string constants, not components) | Class recipes for "lit" selected states — composed into vendored Radix `ToggleGroupItem`/swatch `className`s, never baked into `ui/toggle*.tsx` itself |
 
 ## Luminous staging grammar (Resend reference)
 
-The Resend-grammar restage (P4): a product artifact staged on a recessed near-black floor, glowing under its own ambient bloom, with a seamless paper-colored card instead of a glass gradient-border frame. First applied to the studio QR preview (`preview-stage.tsx` + `ArtifactStage`); the primitives are reusable for P9 marketing surfaces.
+The Resend-grammar restage (P4): a product artifact staged on a recessed near-black floor, glowing under its own ambient bloom, with a seamless paper-colored card instead of a glass gradient-border frame. First applied to the studio QR preview (`preview-stage.tsx` + `ArtifactStage`) and originally meant as one shared rig for both the studio and future P9 marketing surfaces. **Round 3 split that in two** — see "Studio vs. marketing staging" below for why, and for the interactive `TiltStage` recipe that now owns the studio surface. The glow-layer recipe in this section still describes `ArtifactStage` exactly as built; it's just scoped to marketing now, not shared.
 
 - **Grammar.** Floating artifact (no visible frame seam) + recessed stage floor (`--surface-studio` sits below `--background`, not above it) + glowing selected controls + generous vertical rhythm. This is the same register as Resend's product screenshots and pricing cards — luminosity and depth substitute for the borders/gradients the pre-P4 studio used.
 - **Glow layer recipe** (`ArtifactStage`, `components/brand/artifact-stage.tsx`), stacked in one `aria-hidden pointer-events-none absolute inset-0 -z-10` wrapper. P4 design-iteration note 5 (founder: the original single centered bloom "reads as haze... almost feels like my eyes are creating the blur") restructured this from one symmetric ink bloom into an **authored** rig — five layers, each doing one specific job instead of one layer doing all of them:
@@ -109,6 +109,30 @@ The Resend-grammar restage (P4): a product artifact staged on a recessed near-bl
 - **Light-mode adaptation:** every glow layer's opacity roughly halves (or more) in light mode — base bloom `0.08` light / `0.13` dark, outer field and inner halo carry the widest light/dark gap (inner halo `0.14` light / `0.30` dark, roughly 2×) since light surfaces need much less glow to read as luminous before they wash out, reflection streak `0.25` light / `0.40` dark. Tune further in live review; worst case a layer drops to `opacity-0` in light mode and the stage leans on the layers below it.
 - **Glow-opacity family vs. the texture ceiling:** glow opacities (`0.08`–`0.40` across the five layers) are a distinct, much stronger family than the ≤0.035 quiet-texture ceiling used for background motifs like `ModuleGridBackdrop`'s QR-module grid (`preview-stage.tsx`) — don't conflate the two. Texture is barely-there; glow is the focal luminosity effect.
 - **Frames stay reserved for window-chrome.** The glass gradient-border frame treatment (still used by `ProductWindow`, browser-chrome mockups) is for surfaces that need to read as a *window onto* a product screen. A staged artifact that *is* the product (the QR itself) uses `ArtifactStage` + a seamless paper-hex mat instead — don't reach for a frame here.
+
+### Studio vs. marketing staging (P4 founder round 3, note 2)
+
+Founder feedback on round 2's stage: the bloom (glow-only) treatment reads well for a static hero shot but underserves the one surface where the user is actively shaping a real object in real time — it doesn't respond to anything they do. Round 3 kept the bloom rig for what it's actually for and gave the studio a rig of its own:
+
+- **Marketing artifact — `ArtifactStage`, unchanged.** A screenshot-like visual the viewer looks *at*, not interacts *with*. Keeps its full 5-layer authored bloom + ink-tinted reflection streak exactly as documented above. This is the P9 marketing-artifact treatment; nothing in round 3 touched `artifact-stage.tsx`.
+- **Studio artifact — `TiltStage` (`components/brand/tilt-stage.tsx`), new.** The one object in the product the user is actively editing. It tilts toward the cursor (orbit-limited to ±`maxTilt`) with a moving specular sheen, instead of glowing ambiently — direct-manipulation feedback that reinforces "this is a real, touchable thing" rather than "this is the hero visual." The reflection-streak recipe from `ArtifactStage` is **not** reused here; round 3 explicitly dropped it from the studio stage along with the rest of the bloom layers. The moving sheen is `TiltStage`'s equivalent "the light is alive" cue, driven by the cursor instead of authored as a static streak.
+
+#### TiltStage recipe
+
+- **Mechanics.** `pointermove`/`pointerleave`/`pointerup`/`pointercancel` on `TiltStage`'s own root (not the inner rotating card — hit-testing has to stay on the untransformed plane, not a plane that's tilting away from the cursor as it responds) set two raw `useMotionValue`s, normalized to [-1, 1] from the root's own center (`lib/tilt-math.ts`'s `normalizeStagePointer`, unit-tested). Two `useSpring`s (stiffness 150 / damping 20 — a touch underdamped, so a fast reversal has some life instead of snapping dead-stop) smooth those into `rotateX`/`rotateY`, each clamped to ±`maxTilt` (default 12°) via `tilt-math.ts`'s `tiltDegrees` (also unit-tested — the clamp matters because a spring can briefly overshoot its target on a fast reversal even though its *input* is already bounded to [-1, 1]).
+- **Sign convention — verified empirically, not assumed.** `rotateY(+θ)` recedes the card's RIGHT edge (moves it away from the viewer) and advances the left; `rotateX(+θ)` advances the BOTTOM edge and recedes the top — confirmed by reading the browser's own computed `matrix3d()` output for each axis directly (reasoning about 3D CSS rotation direction from memory is exactly the kind of thing that's easy to get backwards — an earlier pass of this component had both axes inverted and looked *almost* plausible until actually tested). For the card to read as "facing the cursor" — the near-cursor edge lifting toward the viewer, like a gaze tracking it — `rotateY` **inverts** the pointer's normalized x (cursor right ⇒ negative rotateY, which advances the right edge) while `rotateX` tracks the pointer's normalized y **directly** (cursor below ⇒ positive rotateX, which advances the bottom edge). This matches the convention most pointer-tilt implementations (e.g. vanilla-tilt.js) use.
+- **Specular sheen.** A radial white-highlight `<div>` inside the card bounds (rounded to match — currently hardcoded to `rounded-2xl` for its one consumer; a second consumer with a different card radius would need this promoted to a prop), translated via `useTransform` off the same springs so it sweeps in the same direction as the pointer — the "light" reads fixed while the surface turns under it. Its opacity is itself spring-derived (`clamp(Math.hypot(x, y), 0, 1)` — 0 at rest, rising toward 1 at full tilt), multiplied by a static Tailwind ceiling (`opacity-[0.08] dark:opacity-[0.13]` — deliberately reusing `ArtifactStage`'s own base-bloom numbers so the two staging rigs share one light/dark ratio family) so the highlight fades in as the surface catches it and fades back out as the springs settle on release.
+- **Floor shadow.** A blurred ellipse behind the card, tinted from the kit's own ink color via `color-mix(in srgb, ${tint} 30%, black)` (same "ink drives ambient tone" policy as `ArtifactStage`'s glow layers), shifted opposite the pointer via the same springs so the card reads as grounded rather than floating free as it turns.
+- **Reduced motion.** `useReducedMotion()` collapses the whole interactive path — no `perspective`, no rotate wrapper, no sheen: a flat card over a static (non-shifting, still ink-tinted) shadow. This is a full disable rather than a reduced-intensity version, because the tilt is pure decorative direct-manipulation feedback with no functional payload once it can't move.
+- **Touch/coarse pointers.** No separate media-query gate. The handler never calls `preventDefault()` or captures the pointer, so a touch-scroll is never blocked; `pointerup`/`pointercancel` are wired alongside `pointerleave` so a brief touch-drag settles the springs back to rest instead of leaving the card stuck mid-tilt.
+- **Perf + why this animates at all.** Every animated property is `transform`/`opacity`, all `MotionValue`-driven (zero React re-renders on pointer move). Per the emil-design-eng skill's animation-decision framework, this is a "decorative mouse-tracking interaction" (explicitly called out there as a valid `useSpring` use case) rather than an entrance or a frequency-sensitive control — it's continuous, user-driven direct-manipulation feedback on a single always-visible surface, not something replayed on every keystroke or repeated hundreds of times a day the way a keyboard shortcut would be. This is also the project's implementation of the transitions.dev "3D tilt" pattern named in the checkpoint-A motion mandate (see "Motion & the taste toolchain" below).
+
+### Scannability instrument — what the engine actually exposes (P4 founder round 3, note 3)
+
+`ScannabilityChip`'s clean-state metadata line (`● Scannable · V{version} · ECC {effectiveEcc}`) reads from two different places, which is worth recording precisely since it's easy to assume both numbers come from the same call:
+
+- **`effectiveEcc`** comes straight from `ScannabilityReport` (`scannabilityReport()`, `packages/qr-engine/src/guardrails.ts`) — this was already wired pre-round-3 (`ControlsRail`'s Export section reads the same field).
+- **`version`** (the QR symbol version, 1–40) is **not** on `ScannabilityReport` at all — `scannabilityReport()`'s return type only carries `score`, `issues`, `worstContrast`, and `effectiveEcc`. It IS exposed, just from a different call: `renderQr()`'s `RenderResult.version` (`packages/qr-engine/src/render.ts`). The Studio already calls `renderQr` (via `lib/preview.ts`'s `renderPreview` wrapper) for the live SVG, so round 3 threads `version` through `PreviewRenderResult` rather than touching the engine — no engine or schema change, per the standing hard rule. `version` is `null` on the render-error branch (payload over QR capacity): the placeholder render's version describes an unrelated payload, so there's nothing honest to report, and `ScannabilityChip` never mounts on that branch anyway.
 
 ## Chart approach
 
@@ -147,12 +171,26 @@ visible tabs. Before screenshotting, neutralize frozen states via JS:
 Programmatic scrolling doesn't repaint in the hidden pane; use a tall viewport
 (`resize_window` to e.g. 1280×2900) to capture full pages instead.
 
+**Verifying 3D transform direction (e.g. `rotateX`/`rotateY` sign) in this pane**
+(round 3, `TiltStage`): the frozen-rAF issue above means you can't just hover and
+screenshot to see which way a spring-driven tilt turns. Two techniques that work
+around it instead of fighting it: (1) direct DOM style mutation still paints even
+while `document.hidden` is `true` — `javascript_tool`-set
+`element.style.transform = "rotateY(20deg)"` renders immediately, no rAF needed;
+(2) `getComputedStyle(el).transform` on a rotated element returns the raw
+`matrix3d(...)` — read it as **column-major** (each group of 4 numbers is one
+column) and multiply by the unit vector for the axis you care about (e.g. `(1,0,0,0)`
+for +X) to get that axis's exact `(x', y', z')` mapping; `z' > 0` means "moved toward
+the viewer" (CSS's Z+ points out of the screen). This is exact and spec-guaranteed —
+reasoning about rotation direction from memory is not (an earlier pass of `TiltStage`
+had both axes backwards and looked *almost* plausible on paper).
+
 ## Motion & the taste toolchain (checkpoint A v4)
 
 - **Skills are law for design work:** any agent touching UI/motion loads `.agents/skills/emil-design-eng/SKILL.md` first; all motion code must pass the `review-animations` skill gate before commit (it runs as an adversarial review pass — expect Block verdicts to be fixed, not argued). `transitions.dev` patterns are the preferred source for standard transitions: copy from the catalog (`.agents/skills/transitions-dev/`) rather than inventing.
 - **Motion tokens** live in `globals.css`: `--motion-ease-out/in-out/drawer`, `--duration-press/fast/normal/slow`, bridged to Tailwind as `ease-(--motion-ease-out)` etc. No ad-hoc curves/durations. `components/brand/magic.tsx` exports `EASE_OUT` for motion/react usage; always animate full `transform` strings, never x/y/scale shorthands.
 - **Known pitfall (verified live):** shadcn variants shipping `transition-all` silently override the press-feedback system — `transition-all` was removed from `button.tsx`/`toggle.tsx` variants; never reintroduce it.
-- **App-phase transition mapping** (P4/P6, from the transitions.dev catalog): Modal open/close (create/edit dialogs), Toast (Sonner already themed), Panel reveal (studio side panels), Success check (code created/saved), Skeleton loader and reveal (analytics loading), Input clear with dissolve + Error state shake (form validation), Tabs sliding (code-type/pricing toggles), Toggle switch (settings), Notification badge (scan alerts), Number pop-in/Spinning counter (dashboard stats).
+- **App-phase transition mapping** (P4/P6, from the transitions.dev catalog): Modal open/close (create/edit dialogs), Toast (Sonner already themed), Panel reveal (studio side panels), Success check (code created/saved), Skeleton loader and reveal (analytics loading), Input clear with dissolve + Error state shake (form validation), Tabs sliding (code-type/pricing toggles), Toggle switch (settings), Notification badge (scan alerts), Number pop-in/Spinning counter (dashboard stats), **3D tilt** (studio preview artifact, `TiltStage` — round 3, see "Luminous staging grammar" above for the recipe).
 - **Reference set for marketing craft** (founder-endorsed): lazy.so, genie.io (framed product windows, alternating sections), withpipeline.com (connective line-art + centered icon hero — our ScanNetwork descends from this), stellar.work (scale + restraint), transitions.dev (micro-interactions).
 
 ## The quality floor (founder-set, checkpoint A close)

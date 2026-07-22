@@ -28,6 +28,19 @@ export interface PreviewRenderResult {
    * was never actually encoded.
    */
   error: string | null;
+  /**
+   * The QR symbol version (1-40) `renderQr` actually encoded at — surfaced
+   * straight from `RenderResult.version` (packages/qr-engine/src/render.ts).
+   * `scannabilityReport`'s own `ScannabilityReport` does NOT carry symbol
+   * version (only `effectiveEcc`), so this wrapper is the one place the
+   * Studio can read it without touching the engine — see
+   * docs/guides/design-system.md's staging-grammar note for the full
+   * fact-check. `null` on the error branch: the placeholder render's
+   * version describes an unrelated payload, not the one the user typed, so
+   * there's nothing honest to report (callers gate the scannability chip's
+   * version readout on `error` being null anyway).
+   */
+  version: number | null;
 }
 
 function friendlyRenderError(err: unknown): string {
@@ -49,9 +62,10 @@ export function renderPreview(
   logoDataUri?: string,
 ): PreviewRenderResult {
   try {
-    return { svg: renderQr({ data, style, logoDataUri }).svg, error: null };
+    const result = renderQr({ data, style, logoDataUri });
+    return { svg: result.svg, error: null, version: result.version };
   } catch (err) {
     const svg = renderQr({ data: PREVIEW_PAYLOAD_DEFAULT, style: defaultQrStyle }).svg;
-    return { svg, error: friendlyRenderError(err) };
+    return { svg, error: friendlyRenderError(err), version: null };
   }
 }

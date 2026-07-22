@@ -239,7 +239,7 @@ export function StudioShell({
   // attempted payload (P4-U4 red-team finding: this used to swap in the
   // placeholder with no indication at all, while the scannability chip kept
   // reporting "Scannable").
-  const { svg, error: renderError } = useMemo(
+  const { svg, error: renderError, version } = useMemo(
     () => renderPreview(previewData, validStyle, logoDataUri),
     [previewData, validStyle, logoDataUri],
   );
@@ -332,6 +332,7 @@ export function StudioShell({
           svg={svg}
           payload={previewData}
           report={report}
+          version={version}
           transparentBackground={validStyle.background.transparent}
           renderError={renderError}
           inkHex={inkHex}

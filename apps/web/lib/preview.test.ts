@@ -7,6 +7,7 @@ describe("renderPreview", () => {
     const result = renderPreview("HTTPS://QRCDN.COM/K7M2X9A", defaultQrStyle);
     expect(result.error).toBeNull();
     expect(result.svg).toContain("<svg");
+    expect(result.version).toBeGreaterThanOrEqual(1);
   });
 
   // P4-U4 red-team: before this wrapper existed, studio-shell.tsx swallowed
@@ -17,6 +18,9 @@ describe("renderPreview", () => {
     const result = renderPreview("a".repeat(5000), defaultQrStyle);
     expect(result.error).toMatch(/too long/i);
     expect(result.svg).toContain("<svg");
+    // No honest version to report for a placeholder render of an unrelated
+    // payload — see PreviewRenderResult's doc comment.
+    expect(result.version).toBeNull();
   });
 
   it("never throws for a 3KB payload (documented hostile-input case)", () => {

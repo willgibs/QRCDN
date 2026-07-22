@@ -1,11 +1,20 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Check, Loader2, Plus, Save, Star, Trash2, X } from "lucide-react";
+import { Check, ChevronDown, Loader2, Pencil, Plus, Save, Star, Trash2, X } from "lucide-react";
 import { parseQrStyle, type QrStyle } from "@qrcdn/shared";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { ModuleMark } from "@/components/brand/magic";
 import { createClient } from "@/lib/supabase/client";
+import { inkHexFromStyle } from "@/lib/qr-style-derive";
 import { stylesEqual } from "@/lib/style-compare";
 import { cn } from "@/lib/utils";
 import {
@@ -20,6 +29,8 @@ const DELETE_CONFIRM_TIMEOUT_MS = 4000;
 const LIMIT_NOTE_TIMEOUT_MS = 6000;
 const SAVED_FLASH_TIMEOUT_MS = 1600;
 const ACTION_ERROR_TIMEOUT_MS = 6000;
+
+type Mode = "idle" | "creating" | "renaming";
 
 /**
  * Best-effort upload of a pending logo File to the durable `brand-logos`
@@ -41,20 +52,55 @@ async function uploadPendingLogo(userId: string, kitId: string, file: File): Pro
   }
 }
 
-/** 2x2 module quadrant, recolored to the --qr-fg/--qr-bg bridge tokens —
- *  same decorative stand-in the approved StudioWindow mockup uses for every
- *  kit row (not per-kit color, deliberately, to match that reference). */
-function MiniSwatch() {
+/** A kit's ink color for its ModuleMark tint — a corrupted/unparseable
+ *  snapshot falls back to a neutral ink rather than crashing the menu
+ *  (mirrors studio-shell's own styleFromKit fallback philosophy). */
+function kitInkHex(kit: BrandKit): string {
+  try {
+    return inkHexFromStyle(parseQrStyle(kit.style));
+  } catch {
+    return "#111111";
+  }
+}
+
+/** ModuleMark tinted via `currentColor`, driven by an inline `color` on the
+ *  wrapping span — the glyph itself never takes a color prop directly. */
+function TintedModuleMark({ hex, className }: { hex: string; className?: string }) {
   return (
-    <span
-      aria-hidden
-      className="grid size-4 shrink-0 grid-cols-2 grid-rows-2 gap-0.5 rounded-[3px] bg-qr-fg p-0.5"
-    >
-      <span className="rounded-[1px] bg-qr-bg" />
-      <span className="rounded-[1px] bg-qr-bg/50" />
-      <span className="rounded-[1px] bg-qr-bg/50" />
-      <span className="rounded-[1px] bg-qr-bg" />
+    <span aria-hidden style={{ color: hex }} className="inline-flex shrink-0">
+      <ModuleMark className={className ?? "size-3"} />
     </span>
+  );
+}
+
+function SaveButton({
+  busy,
+  saved,
+  onClick,
+}: {
+  busy: boolean;
+  saved: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <Button
+      type="button"
+      variant="ghost"
+      size="sm"
+      disabled={busy}
+      onClick={onClick}
+      aria-label={saved ? "Saved" : "Save to kit"}
+      className="gap-1.5 text-primary hover:bg-primary/10 hover:text-primary"
+    >
+      {busy ? (
+        <Loader2 className="size-3.5 animate-spin" aria-hidden />
+      ) : saved ? (
+        <Check className="size-3.5" aria-hidden />
+      ) : (
+        <Save className="size-3.5" aria-hidden />
+      )}
+      {busy ? "Saving" : saved ? "Saved" : "Save"}
+    </Button>
   );
 }
 
@@ -81,7 +127,7 @@ export function KitBar({
   onDeleted: (id: string) => void;
   onDefaultChanged: (id: string) => void;
 }) {
-  const [creating, setCreating] = useState(false);
+  const [mode, setMode] = useState<Mode>("idle");
   const [draftName, setDraftName] = useState("");
   const [busyId, setBusyId] = useState<string | null>(null);
   const [limitError, setLimitError] = useState(false);
@@ -119,6 +165,11 @@ export function KitBar({
     }
   }, [activeKit, currentStyle]);
 
+  // The pill's own ModuleMark tint reflects the *live working* style, not
+  // the saved kit snapshot — it re-hues as the user edits ink, matching
+  // ArtifactStage's own "your brand, everywhere" glow re-hue.
+  const liveInkHex = inkHexFromStyle(currentStyle);
+
   function armDeleteConfirm(id: string) {
     setConfirmDeleteId(id);
     if (deleteTimer.current) clearTimeout(deleteTimer.current);
@@ -141,6 +192,21 @@ export function KitBar({
     setActionError(message);
     if (actionErrorTimer.current) clearTimeout(actionErrorTimer.current);
     actionErrorTimer.current = setTimeout(() => setActionError(null), ACTION_ERROR_TIMEOUT_MS);
+  }
+
+  function startCreating() {
+    setDraftName("");
+    setMode("creating");
+  }
+
+  function startRenaming(kit: BrandKit) {
+    setDraftName(kit.name);
+    setMode("renaming");
+  }
+
+  function cancelDraft() {
+    setMode("idle");
+    setDraftName("");
   }
 
   // Every handler below wraps its server-action call in try/finally: the
@@ -168,10 +234,28 @@ export function KitBar({
         await uploadPendingLogo(userId, result.data.id, pendingLogoFile);
       }
       onCreated(result.data);
-      setCreating(false);
-      setDraftName("");
+      cancelDraft();
     } catch {
       showActionError("Couldn't create that kit — try again.");
+    } finally {
+      setBusyId(null);
+    }
+  }
+
+  async function handleRename(id: string) {
+    const name = draftName.trim();
+    if (!name || busyId) return;
+    setBusyId(id);
+    try {
+      const result = await updateBrandKit(id, { name });
+      if (!result.ok) {
+        showActionError("Couldn't rename that kit — try again.");
+        return;
+      }
+      onSaved(result.data);
+      cancelDraft();
+    } catch {
+      showActionError("Couldn't rename that kit — try again.");
     } finally {
       setBusyId(null);
     }
@@ -236,175 +320,150 @@ export function KitBar({
     }
   }
 
+  function handleDraftSubmit() {
+    if (mode === "creating") {
+      handleCreate();
+    } else if (mode === "renaming" && activeKit) {
+      handleRename(activeKit.id);
+    }
+  }
+
   return (
-    <div className="flex items-center gap-2">
-      <div className="flex min-w-0 items-center gap-1.5 overflow-x-auto py-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-        {kits.map((kit) => {
-          const isActive = kit.id === activeKitId;
-          return (
-            <div
-              key={kit.id}
-              className={cn(
-                "flex shrink-0 items-center gap-0.5 rounded-full",
-                isActive && "bg-accent text-accent-foreground",
-              )}
-            >
+    <div className="relative flex items-center gap-2">
+      {mode !== "idle" ? (
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            handleDraftSubmit();
+          }}
+          className="flex items-center gap-1.5"
+        >
+          <Input
+            autoFocus
+            value={draftName}
+            onChange={(e) => setDraftName(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Escape") cancelDraft();
+            }}
+            placeholder={mode === "creating" ? "Kit name" : undefined}
+            aria-label={mode === "creating" ? "New kit name" : "Rename kit"}
+            maxLength={60}
+            disabled={busyId !== null}
+            className="h-8 w-36"
+          />
+          <Button
+            type="submit"
+            size="icon-sm"
+            variant="ghost"
+            disabled={busyId !== null || draftName.trim().length === 0}
+            aria-label={mode === "creating" ? "Create kit" : "Save name"}
+          >
+            {busyId !== null ? <Loader2 className="animate-spin" /> : <Check />}
+          </Button>
+          <Button type="button" size="icon-sm" variant="ghost" onClick={cancelDraft} aria-label="Cancel">
+            <X />
+          </Button>
+        </form>
+      ) : kits.length > 0 && activeKit ? (
+        <>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
               <button
                 type="button"
-                onClick={() => onSwitch(kit)}
-                aria-pressed={isActive}
-                className={cn(
-                  "flex items-center gap-2 rounded-full py-1.5 pr-3 pl-2.5 text-sm outline-none transition-colors duration-(--duration-fast) ease-(--motion-ease-out) focus-visible:ring-3 focus-visible:ring-ring/50",
-                  !isActive && "text-muted-foreground hover:bg-muted hover:text-foreground",
-                )}
+                className="flex h-8 items-center gap-2 rounded-full border border-border/60 bg-muted/40 pr-2.5 pl-2 text-sm text-foreground outline-none transition-colors duration-(--duration-fast) ease-(--motion-ease-out) hover:bg-muted focus-visible:ring-3 focus-visible:ring-ring/50 aria-expanded:bg-muted"
               >
-                <MiniSwatch />
-                <span className="max-w-[8rem] truncate">{kit.name}</span>
-                {kit.is_default && (
-                  <span
-                    aria-hidden
-                    title="Default kit"
-                    className="size-1.5 shrink-0 rounded-full bg-primary"
-                  />
+                <TintedModuleMark hex={liveInkHex} />
+                <span className="max-w-[9rem] truncate">{activeKit.name}</span>
+                {activeKit.is_default && (
+                  <span aria-hidden title="Default kit" className="size-1.5 shrink-0 rounded-full bg-primary" />
                 )}
-                {isActive && hasUnsavedChanges && (
+                {hasUnsavedChanges && (
                   <span
                     aria-hidden
                     title="Unsaved changes"
                     className="size-1.5 shrink-0 rounded-full bg-amber-500"
                   />
                 )}
+                <ChevronDown className="size-3.5 text-muted-foreground" aria-hidden />
               </button>
-              {isActive && (hasUnsavedChanges || savedFlashId === kit.id) && (
-                <button
-                  type="button"
-                  title={savedFlashId === kit.id ? "Saved" : "Save to kit"}
-                  aria-label={savedFlashId === kit.id ? "Saved" : "Save to kit"}
-                  disabled={busyId === kit.id}
-                  onClick={() => handleSave(kit.id)}
-                  className={cn(
-                    "flex size-7 shrink-0 items-center justify-center rounded-full text-muted-foreground outline-none transition-colors duration-(--duration-fast) ease-(--motion-ease-out) hover:bg-background hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50 disabled:pointer-events-none disabled:opacity-40",
-                    savedFlashId === kit.id && "text-primary",
-                  )}
-                >
-                  {busyId === kit.id ? (
-                    <Loader2 className="size-3.5 animate-spin" />
-                  ) : savedFlashId === kit.id ? (
-                    <Check className="size-3.5" />
-                  ) : (
-                    <Save className="size-3.5" />
-                  )}
-                </button>
-              )}
-              {isActive && (
-                <>
-                  <button
-                    type="button"
-                    title={kit.is_default ? "Default kit" : "Set as default"}
-                    aria-label={kit.is_default ? "Default kit" : "Set as default"}
-                    disabled={kit.is_default || busyId === kit.id}
-                    onClick={() => handleSetDefault(kit.id)}
-                    className="flex size-7 shrink-0 items-center justify-center rounded-full text-muted-foreground outline-none transition-colors duration-(--duration-fast) ease-(--motion-ease-out) hover:bg-background hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50 disabled:pointer-events-none disabled:opacity-40"
-                  >
-                    <Star className={cn("size-3.5", kit.is_default && "fill-current text-primary")} />
-                  </button>
-                  <button
-                    type="button"
-                    title={confirmDeleteId === kit.id ? "Confirm delete" : "Delete kit"}
-                    aria-label={confirmDeleteId === kit.id ? "Confirm delete" : "Delete kit"}
-                    disabled={busyId === kit.id}
-                    onClick={() => handleDelete(kit.id)}
-                    className={cn(
-                      "mr-1 flex size-7 shrink-0 items-center justify-center rounded-full text-muted-foreground outline-none transition-colors duration-(--duration-fast) ease-(--motion-ease-out) hover:bg-destructive/10 hover:text-destructive focus-visible:ring-3 focus-visible:ring-ring/50 disabled:pointer-events-none disabled:opacity-40",
-                      confirmDeleteId === kit.id && "bg-destructive/10 text-destructive",
-                    )}
-                  >
-                    <Trash2 className="size-3.5" />
-                  </button>
-                </>
-              )}
-            </div>
-          );
-        })}
-      </div>
-
-      <div className="relative shrink-0">
-        {creating ? (
-          <form
-            onSubmit={(e) => {
-              e.preventDefault();
-              handleCreate();
-            }}
-            className="flex items-center gap-1.5"
-          >
-            <Input
-              autoFocus
-              value={draftName}
-              onChange={(e) => setDraftName(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Escape") {
-                  setCreating(false);
-                  setDraftName("");
-                }
-              }}
-              placeholder="Kit name"
-              aria-label="New kit name"
-              maxLength={60}
-              disabled={busyId === "create"}
-              className="h-8 w-32"
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start" className="w-64">
+              {kits.map((kit) => (
+                <DropdownMenuItem key={kit.id} onSelect={() => onSwitch(kit)} className="gap-2">
+                  <TintedModuleMark hex={kitInkHex(kit)} />
+                  <span className="flex-1 truncate">{kit.name}</span>
+                  {kit.id === activeKitId && <Check className="size-3.5 text-primary" aria-hidden />}
+                </DropdownMenuItem>
+              ))}
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onSelect={() => startRenaming(activeKit)} className="gap-2">
+                <Pencil className="size-3.5" aria-hidden />
+                Rename
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                disabled={activeKit.is_default}
+                onSelect={() => handleSetDefault(activeKit.id)}
+                className="gap-2"
+              >
+                <Star className={cn("size-3.5", activeKit.is_default && "fill-current text-primary")} aria-hidden />
+                {activeKit.is_default ? "Default kit" : "Set as default"}
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                variant="destructive"
+                disabled={busyId === activeKit.id}
+                onSelect={(e) => {
+                  if (confirmDeleteId !== activeKit.id) e.preventDefault();
+                  handleDelete(activeKit.id);
+                }}
+                className="gap-2"
+              >
+                <Trash2 className="size-3.5" aria-hidden />
+                {confirmDeleteId === activeKit.id ? "Confirm delete" : "Delete kit"}
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onSelect={startCreating} className="gap-2">
+                <Plus className="size-3.5" aria-hidden />
+                New kit
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+          {hasUnsavedChanges && (
+            <SaveButton
+              busy={busyId === activeKit.id}
+              saved={savedFlashId === activeKit.id}
+              onClick={() => handleSave(activeKit.id)}
             />
-            <Button
-              type="submit"
-              size="icon-sm"
-              variant="ghost"
-              disabled={busyId === "create" || draftName.trim().length === 0}
-              aria-label="Create kit"
-            >
-              <Check />
-            </Button>
-            <Button
-              type="button"
-              size="icon-sm"
-              variant="ghost"
-              onClick={() => {
-                setCreating(false);
-                setDraftName("");
-              }}
-              aria-label="Cancel new kit"
-            >
-              <X />
-            </Button>
-          </form>
-        ) : (
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            className="gap-1.5 rounded-full border-dashed"
-            onClick={() => setCreating(true)}
-          >
-            <Plus className="size-3.5" />
-            New kit
-          </Button>
-        )}
+          )}
+        </>
+      ) : (
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          className="gap-1.5 rounded-full border-dashed"
+          onClick={startCreating}
+        >
+          <Plus className="size-3.5" />
+          New kit
+        </Button>
+      )}
 
-        {limitError && (
-          <div
-            role="alert"
-            className="absolute top-full left-0 z-10 mt-2 w-56 rounded-lg border border-border/60 bg-popover px-3 py-2 text-xs text-muted-foreground shadow-md"
-          >
-            Free includes 1 brand kit — Pro removes the wait.
-          </div>
-        )}
-        {actionError && (
-          <div
-            role="alert"
-            className="absolute top-full left-0 z-10 mt-2 w-56 rounded-lg border border-destructive/25 bg-popover px-3 py-2 text-xs text-destructive shadow-md"
-          >
-            {actionError}
-          </div>
-        )}
-      </div>
+      {limitError && (
+        <div
+          role="alert"
+          className="absolute top-full left-0 z-10 mt-2 w-56 rounded-lg border border-border/60 bg-popover px-3 py-2 text-xs text-muted-foreground shadow-md"
+        >
+          Free includes 1 brand kit — Pro removes the wait.
+        </div>
+      )}
+      {actionError && (
+        <div
+          role="alert"
+          className="absolute top-full left-0 z-10 mt-2 w-56 rounded-lg border border-destructive/25 bg-popover px-3 py-2 text-xs text-destructive shadow-md"
+        >
+          {actionError}
+        </div>
+      )}
     </div>
   );
 }

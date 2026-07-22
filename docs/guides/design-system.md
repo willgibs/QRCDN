@@ -22,10 +22,11 @@ Read this when touching tokens, themes, fonts, or shared UI components under `ap
 
 ## Current brand state (as of this doc)
 
-- **Checkpoint A is open.** Founder chose "Precision instrument" as the anchor and asked for a refinement pass toward an Apple-esque register, formula extracted from lazy.so / genie.io / stellar.work (per `docs/STATUS.md`): one enormous plain-spoken headline owning the viewport; extreme restraint (single accent, hierarchy from scale/space only); quiet gray subcopy; one strong CTA; eyebrow-labeled benefit sections; product visuals in soft frames.
-- `apps/web/app/themes/precision.css` is at "v2" (Inter display, violet-blue accent `oklch(0.51 0.23 268)`, deeper dark surfaces) and is the pending direction.
-- `warmth.css` (editorial/serif, Fraunces + Hanken Grotesk) and `bold.css` (saturated/playful, Bricolage + Inter) are **archived alternatives** — kept only until the lock, not under active refinement.
-- Do not add product features gated on a specific `data-brand` value; the exploration is temporary scaffolding for the lock decision, not permanent multi-tenancy.
+- **Checkpoint A is closed.** "Precision instrument" won the three-way exploration — Apple-esque register, formula extracted from lazy.so / genie.io / stellar.work: one enormous plain-spoken headline owning the viewport; extreme restraint (single accent, hierarchy from scale/space only); quiet gray subcopy; one strong CTA; eyebrow-labeled benefit sections; product visuals in soft frames. The v4.2 hero is the codified quality floor for every future surface (see "The quality floor" below).
+- The D13 lock protocol has executed: precision's Layer 0/1 values live directly in the base `:root`/`.dark` blocks in `apps/web/app/globals.css` (Inter display + body, JetBrains Mono accents, violet-blue accent `oklch(0.51 0.23 268)` light / `oklch(0.62 0.21 268)` dark, deeper dark surfaces). `warmth.css`/`bold.css` and their `[data-brand]` selectors are deleted, along with the Fraunces/Hanken Grotesk/Bricolage Grotesque/Space Grotesk font loaders — `apps/web/app/fonts.ts` now exports only `inter` and `jetbrainsMono`.
+- `/explore/[brand]` persists post-lock as the P9 marketing-page seed (founder decision, not a lock-protocol exception): `BRANDS` in `lib/explore.ts` resolves to `["precision"]` only, with no `data-brand` plumbing left in the explore components.
+- Product features still never gate on the `brand` route param — `/explore/[brand]` is a throwaway marketing-preview surface, not multi-tenancy.
+- P4 (studio + generator) landed the Resend-grammar "luminous staging" restage on top of the locked precision tokens — see "Luminous staging grammar" and "Shared brand primitives" below. This is a visual-language extension, not a reopening of brand exploration.
 
 ## The D13 lock protocol
 
@@ -69,7 +70,43 @@ Custom, domain-specific components built in P2 under `apps/web/components/explor
 | Stat tiles | `dashboard-card.tsx` (`DashboardCard`) | Plain `Card`s showing "Total scans" / "Top country" as large numbers |
 | (Table, not yet a true geo table) | `dashboard-card.tsx` (`DashboardCard`'s `topCodes` table) | Currently a top-codes-by-scan-count table (name/slug/scans); see Outline discrepancies — a real geo breakdown table doesn't exist yet |
 
-**Not yet built** (called out in the outline as expected inventory, absent from the repo as of this doc — build these following the `QrSvg`/`StudioSlice` pattern when P4/P6 land): a color/gradient editor for `fill`, and logo upload + sanitization (client-side rasterization/validation before it becomes a `logoDataUri`).
+P4 studio components, built under `apps/web/components/studio/` and `apps/web/components/qr/` (the color/gradient editor and logo upload the outline once called "not yet built" both landed here):
+
+| Component | File | What it does |
+|---|---|---|
+| Shell | `studio-shell.tsx` (`StudioShell`) | Owns live `QrStyle` state, wires every control straight into `renderQr`/`scannabilityReport` (no round-trip), derives `inkHex`/`paperHex` for the preview stage |
+| Preview stage | `preview-stage.tsx` (`PreviewStage`) | Live QR restaged as a floating luminous artifact — see "Luminous staging grammar" below |
+| Controls rail | `controls-rail.tsx` (`ControlsRail`, `ColorField`) | Payload input, ink/paper color fields (swatch presets + free-hex text field, glow-tile selected states), shape `ToggleGroup`s, logo upload + size slider, SVG/PNG export |
+| Shape swatches | `qr/shape-swatches.tsx` (`DotSwatch`, `EyeSwatch`) | Hand-drawn SVG previews for `dots.style` / `eyes.frame`, `currentColor`-filled so the glow-tile selected state tints them |
+| Kit bar | `kit-bar.tsx` (`KitBar`) | Create/switch/save/delete brand kits, two-step delete confirm, default-kit toggle |
+| Top bar | `top-bar.tsx` (`TopBar`) | Wordmark + account cluster + kit bar, directive-free presentational leaf |
+| Scannability chip | `scannability-chip.tsx` (`ScannabilityChip`) | Live clean/warn/error status pill from `ScannabilityReport`, worst-issue-first |
+
+## Shared brand primitives (`components/brand/`)
+
+Cross-surface primitives — shared by studio, auth, and explore/marketing alike, which is why they live outside `components/explore/` (their P2 birthplace mischaracterized them as marketing-only). No barrel file: import each module directly (`@/components/brand/<name>`), preserving the server/client module split below.
+
+| Module | Exports | Server-safe? | What it's for |
+|---|---|---|---|
+| `magic.tsx` | `EASE_OUT`, `useRevealVariants`, `Reveal`, `ModuleMark`, `Eyebrow` | No (`"use client"`, uses `motion/react` + `useReducedMotion`) | Shared motion language (entrance variants, scroll reveal) + the eyebrow/module-mark brand mark, used by login, studio, and every explore section |
+| `artifact-stage.tsx` | `ArtifactStage` | **Yes** — presentational, no hooks | Glow-layer wrapper for a floating "luminous artifact" (first consumer: the studio QR preview). See "Luminous staging grammar" below |
+| `accent-text.tsx` | `AccentText` | **Yes** — presentational, no hooks | Gradient accent-word span for headlines. Built for P9; not applied to any live surface yet |
+| `glow-tile.ts` | `glowTileOn`, `glowSwatchSelected` | N/A (plain string constants, not components) | Class recipes for "lit" selected states — composed into vendored Radix `ToggleGroupItem`/swatch `className`s, never baked into `ui/toggle*.tsx` itself |
+
+## Luminous staging grammar (Resend reference)
+
+The Resend-grammar restage (P4): a product artifact staged on a recessed near-black floor, glowing under its own ambient bloom, with a seamless paper-colored card instead of a glass gradient-border frame. First applied to the studio QR preview (`preview-stage.tsx` + `ArtifactStage`); the primitives are reusable for P9 marketing surfaces.
+
+- **Grammar.** Floating artifact (no visible frame seam) + recessed stage floor (`--surface-studio` sits below `--background`, not above it) + glowing selected controls + generous vertical rhythm. This is the same register as Resend's product screenshots and pricing cards — luminosity and depth substitute for the borders/gradients the pre-P4 studio used.
+- **Glow layer recipe** (`ArtifactStage`, `components/brand/artifact-stage.tsx`), stacked in one `aria-hidden pointer-events-none absolute inset-0 -z-10` wrapper:
+  1. **Base violet bloom** (always on) — `rounded-full bg-primary blur-3xl opacity-[0.10] dark:opacity-[0.16]`, sized ~140%/130% of the stage wrapper, centered via `-translate-x-1/2 -translate-y-1/2`. Guarantees the stage reads as luminous even with the schema-default near-black `#111111` ink.
+  2. **Ink-tinted bloom** — a blurred solid-color div (`style={{ backgroundColor: glowColor }}`), ~120%/110% of the stage wrapper, `transition-[background-color] duration-(--duration-slow) ease-(--motion-ease-out)`.
+  3. **Floor-shadow ellipse** — `inset-x-8 -bottom-5 h-8 rounded-[50%] bg-black/20 blur-2xl dark:bg-black/55`, anchoring the artifact to the floor.
+- **Accent policy:** brand chrome is violet-only; ambient glows may take their hue from user content where it exists. The base bloom is always `--primary` (D13 precision lock — never a second brand hue); only the ink-tinted bloom re-hues, and only from the user's own kit data (the QR's ink color), never from an arbitrary palette.
+- **Solid-under-blur technique:** the ink-tinted bloom is a solid `background-color` under `blur-3xl`, not a `radial-gradient` — `background-color` interpolates smoothly across a CSS transition, gradients don't. This is what lets the glow re-hue live as the user edits their ink color instead of hard-cutting between colors.
+- **Light-mode adaptation:** glow opacities roughly halve in light mode (base bloom: `0.10` light / `0.16` dark; ink bloom: `0.20` light / `0.28` dark) — light surfaces need much less glow to read as luminous before they wash out. Tune further in live review; worst case the ink bloom drops to `opacity-0` in light mode and the stage leans on the base violet bloom alone.
+- **Glow-opacity family vs. the texture ceiling:** glow opacities (`0.10`–`0.28`) are a distinct, much stronger family than the ≤0.035 quiet-texture ceiling used for background motifs like `ModuleGridBackdrop`'s QR-module grid (`preview-stage.tsx`) — don't conflate the two. Texture is barely-there; glow is the focal luminosity effect.
+- **Frames stay reserved for window-chrome.** The glass gradient-border frame treatment (still used by `ProductWindow`, browser-chrome mockups) is for surfaces that need to read as a *window onto* a product screen. A staged artifact that *is* the product (the QR itself) uses `ArtifactStage` + a seamless paper-hex mat instead — don't reach for a frame here.
 
 ## Chart approach
 
@@ -111,7 +148,7 @@ Programmatic scrolling doesn't repaint in the hidden pane; use a tall viewport
 ## Motion & the taste toolchain (checkpoint A v4)
 
 - **Skills are law for design work:** any agent touching UI/motion loads `.agents/skills/emil-design-eng/SKILL.md` first; all motion code must pass the `review-animations` skill gate before commit (it runs as an adversarial review pass — expect Block verdicts to be fixed, not argued). `transitions.dev` patterns are the preferred source for standard transitions: copy from the catalog (`.agents/skills/transitions-dev/`) rather than inventing.
-- **Motion tokens** live in `globals.css`: `--motion-ease-out/in-out/drawer`, `--duration-press/fast/normal/slow`, bridged to Tailwind as `ease-(--motion-ease-out)` etc. No ad-hoc curves/durations. `magic.tsx` exports `EASE_OUT` for motion/react usage; always animate full `transform` strings, never x/y/scale shorthands.
+- **Motion tokens** live in `globals.css`: `--motion-ease-out/in-out/drawer`, `--duration-press/fast/normal/slow`, bridged to Tailwind as `ease-(--motion-ease-out)` etc. No ad-hoc curves/durations. `components/brand/magic.tsx` exports `EASE_OUT` for motion/react usage; always animate full `transform` strings, never x/y/scale shorthands.
 - **Known pitfall (verified live):** shadcn variants shipping `transition-all` silently override the press-feedback system — `transition-all` was removed from `button.tsx`/`toggle.tsx` variants; never reintroduce it.
 - **App-phase transition mapping** (P4/P6, from the transitions.dev catalog): Modal open/close (create/edit dialogs), Toast (Sonner already themed), Panel reveal (studio side panels), Success check (code created/saved), Skeleton loader and reveal (analytics loading), Input clear with dissolve + Error state shake (form validation), Tabs sliding (code-type/pricing toggles), Toggle switch (settings), Notification badge (scan alerts), Number pop-in/Spinning counter (dashboard stats).
 - **Reference set for marketing craft** (founder-endorsed): lazy.so, genie.io (framed product windows, alternating sections), withpipeline.com (connective line-art + centered icon hero — our ScanNetwork descends from this), stellar.work (scale + restraint), transitions.dev (micro-interactions).

@@ -17,18 +17,24 @@ export function TopBar({
   kits,
   activeKitId,
   currentStyle,
+  userId,
   userEmail,
+  pendingLogoFile,
   onSwitch,
   onCreated,
+  onSaved,
   onDeleted,
   onDefaultChanged,
 }: {
   kits: BrandKit[];
   activeKitId: string | null;
   currentStyle: QrStyle;
+  userId: string;
   userEmail: string;
+  pendingLogoFile: File | null;
   onSwitch: (kit: BrandKit) => void;
   onCreated: (kit: BrandKit) => void;
+  onSaved: (kit: BrandKit) => void;
   onDeleted: (id: string) => void;
   onDefaultChanged: (id: string) => void;
 }) {
@@ -64,8 +70,11 @@ export function TopBar({
             kits={kits}
             activeKitId={activeKitId}
             currentStyle={currentStyle}
+            userId={userId}
+            pendingLogoFile={pendingLogoFile}
             onSwitch={onSwitch}
             onCreated={onCreated}
+            onSaved={onSaved}
             onDeleted={onDeleted}
             onDefaultChanged={onDefaultChanged}
           />

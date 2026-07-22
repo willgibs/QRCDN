@@ -1,20 +1,44 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
-import { Check, Plus, Star, Trash2, X } from "lucide-react";
-import type { QrStyle } from "@qrcdn/shared";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { Check, Loader2, Plus, Save, Star, Trash2, X } from "lucide-react";
+import { parseQrStyle, type QrStyle } from "@qrcdn/shared";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { createClient } from "@/lib/supabase/client";
+import { stylesEqual } from "@/lib/style-compare";
 import { cn } from "@/lib/utils";
 import {
   createBrandKit,
   deleteBrandKit,
   setDefaultBrandKit,
+  updateBrandKit,
   type BrandKit,
 } from "@/app/(app)/studio/actions";
 
 const DELETE_CONFIRM_TIMEOUT_MS = 4000;
 const LIMIT_NOTE_TIMEOUT_MS = 6000;
+const SAVED_FLASH_TIMEOUT_MS = 1600;
+
+/**
+ * Best-effort upload of a pending logo File to the durable `brand-logos`
+ * bucket at the kit's canonical path (p4-studio.md: `{owner_id}/{kit_id}`,
+ * exactly that, extensionless — `deleteBrandKit` cleans up this literal
+ * path). Never blocks kit create/save on failure: `style.logo.assetId`
+ * already carries the data URI the preview and every future render use, so
+ * a failed bucket upload only means the durable copy is missing, not that
+ * the kit itself is broken.
+ */
+async function uploadPendingLogo(userId: string, kitId: string, file: File): Promise<void> {
+  const supabase = createClient();
+  const path = `${userId}/${kitId}`;
+  const { error } = await supabase.storage
+    .from("brand-logos")
+    .upload(path, file, { upsert: true, contentType: file.type });
+  if (error) {
+    console.error("brand-logos upload failed for", path, error);
+  }
+}
 
 /** 2x2 module quadrant, recolored to the --qr-fg/--qr-bg bridge tokens —
  *  same decorative stand-in the approved StudioWindow mockup uses for every
@@ -37,16 +61,22 @@ export function KitBar({
   kits,
   activeKitId,
   currentStyle,
+  userId,
+  pendingLogoFile,
   onSwitch,
   onCreated,
+  onSaved,
   onDeleted,
   onDefaultChanged,
 }: {
   kits: BrandKit[];
   activeKitId: string | null;
   currentStyle: QrStyle;
+  userId: string;
+  pendingLogoFile: File | null;
   onSwitch: (kit: BrandKit) => void;
   onCreated: (kit: BrandKit) => void;
+  onSaved: (kit: BrandKit) => void;
   onDeleted: (id: string) => void;
   onDefaultChanged: (id: string) => void;
 }) {
@@ -55,17 +85,35 @@ export function KitBar({
   const [busyId, setBusyId] = useState<string | null>(null);
   const [limitError, setLimitError] = useState(false);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+  const [savedFlashId, setSavedFlashId] = useState<string | null>(null);
 
   const deleteTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const limitTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const savedFlashTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(
     () => () => {
       if (deleteTimer.current) clearTimeout(deleteTimer.current);
       if (limitTimer.current) clearTimeout(limitTimer.current);
+      if (savedFlashTimer.current) clearTimeout(savedFlashTimer.current);
     },
     [],
   );
+
+  // The active kit's own saved style, deep-compared against the working
+  // `currentStyle` to drive the unsaved-changes indicator + Save action
+  // (P4-U3 deliverable #4). A corrupted/unparseable snapshot is treated as
+  // "differs" so Save can overwrite it — mirrors studio-shell's own
+  // styleFromKit fallback philosophy.
+  const activeKit = kits.find((k) => k.id === activeKitId) ?? null;
+  const hasUnsavedChanges = useMemo(() => {
+    if (!activeKit) return false;
+    try {
+      return !stylesEqual(currentStyle, parseQrStyle(activeKit.style));
+    } catch {
+      return true;
+    }
+  }, [activeKit, currentStyle]);
 
   function armDeleteConfirm(id: string) {
     setConfirmDeleteId(id);
@@ -79,19 +127,42 @@ export function KitBar({
     limitTimer.current = setTimeout(() => setLimitError(false), LIMIT_NOTE_TIMEOUT_MS);
   }
 
+  function flashSaved(id: string) {
+    setSavedFlashId(id);
+    if (savedFlashTimer.current) clearTimeout(savedFlashTimer.current);
+    savedFlashTimer.current = setTimeout(() => setSavedFlashId(null), SAVED_FLASH_TIMEOUT_MS);
+  }
+
   async function handleCreate() {
     const name = draftName.trim();
     if (!name || busyId) return;
     setBusyId("create");
     const result = await createBrandKit({ name, style: currentStyle });
-    setBusyId(null);
     if (!result.ok) {
+      setBusyId(null);
       if (result.error === "kit_limit") showLimitError();
       return;
     }
+    if (pendingLogoFile) {
+      await uploadPendingLogo(userId, result.data.id, pendingLogoFile);
+    }
+    setBusyId(null);
     onCreated(result.data);
     setCreating(false);
     setDraftName("");
+  }
+
+  async function handleSave(id: string) {
+    if (busyId) return;
+    setBusyId(id);
+    if (pendingLogoFile) {
+      await uploadPendingLogo(userId, id, pendingLogoFile);
+    }
+    const result = await updateBrandKit(id, { style: currentStyle });
+    setBusyId(null);
+    if (!result.ok) return;
+    onSaved(result.data);
+    flashSaved(id);
   }
 
   async function handleDelete(id: string) {
@@ -145,7 +216,35 @@ export function KitBar({
                     className="size-1.5 shrink-0 rounded-full bg-primary"
                   />
                 )}
+                {isActive && hasUnsavedChanges && (
+                  <span
+                    aria-hidden
+                    title="Unsaved changes"
+                    className="size-1.5 shrink-0 rounded-full bg-amber-500"
+                  />
+                )}
               </button>
+              {isActive && (hasUnsavedChanges || savedFlashId === kit.id) && (
+                <button
+                  type="button"
+                  title={savedFlashId === kit.id ? "Saved" : "Save to kit"}
+                  aria-label={savedFlashId === kit.id ? "Saved" : "Save to kit"}
+                  disabled={busyId === kit.id}
+                  onClick={() => handleSave(kit.id)}
+                  className={cn(
+                    "flex size-7 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors duration-(--duration-fast) ease-(--motion-ease-out) hover:bg-background hover:text-foreground disabled:pointer-events-none disabled:opacity-40",
+                    savedFlashId === kit.id && "text-primary",
+                  )}
+                >
+                  {busyId === kit.id ? (
+                    <Loader2 className="size-3.5 animate-spin" />
+                  ) : savedFlashId === kit.id ? (
+                    <Check className="size-3.5" />
+                  ) : (
+                    <Save className="size-3.5" />
+                  )}
+                </button>
+              )}
               {isActive && (
                 <>
                   <button

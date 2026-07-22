@@ -25,5 +25,11 @@ export default async function StudioPage() {
 
   const userEmail = typeof data.claims.email === "string" ? data.claims.email : "";
 
-  return <StudioShell initialKits={(kits ?? []) as BrandKit[]} userEmail={userEmail} />;
+  return (
+    <StudioShell
+      initialKits={(kits ?? []) as BrandKit[]}
+      userId={data.claims.sub}
+      userEmail={userEmail}
+    />
+  );
 }

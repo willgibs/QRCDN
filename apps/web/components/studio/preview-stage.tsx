@@ -1,4 +1,6 @@
+import type { ScannabilityReport } from "@qrcdn/qr-engine";
 import { cn } from "@/lib/utils";
+import { ScannabilityChip } from "./scannability-chip";
 
 /** Quiet tiled QR-module texture for the preview stage floor — same motif
  *  family as HeroBackdrop's `qr-grid`, but tiled edge-to-edge instead of
@@ -32,14 +34,22 @@ function ModuleGridBackdrop() {
  * chrome bar since this is the real app surface, not a marketing mockup.
  * `svg` is produced by our own deterministic `renderQr` one level up
  * (studio-shell.tsx), so `dangerouslySetInnerHTML` here is safe.
+ *
+ * The outer `<section>` picks up `lg:self-stretch` from its caller
+ * (studio-shell.tsx) so it fills the full stage height at tall viewports;
+ * `items-center justify-center` here then centers the frame + chip block
+ * within that height instead of leaving it top-anchored with dead space
+ * below (P4-U3 deliverable #5).
  */
 export function PreviewStage({
   svg,
   payload,
+  report,
   className,
 }: {
   svg: string;
   payload: string;
+  report: ScannabilityReport;
   className?: string;
 }) {
   return (
@@ -65,6 +75,9 @@ export function PreviewStage({
             <p className="mt-4 truncate text-center font-mono text-xs text-muted-foreground">
               {payload}
             </p>
+            <div className="mt-3 flex justify-center">
+              <ScannabilityChip report={report} />
+            </div>
           </div>
         </div>
       </div>

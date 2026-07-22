@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { Eyebrow } from "@/components/explore/magic";
+import { StudioShell } from "@/components/studio/studio-shell";
+import type { BrandKit } from "./actions";
 
 // D9: all (app) routes are force-dynamic so the getClaims() guard below runs
 // fresh on every request rather than riding a cached response.
@@ -14,16 +15,15 @@ export default async function StudioPage() {
     redirect("/login");
   }
 
-  return (
-    <div className="flex min-h-dvh flex-col items-center justify-center gap-3 bg-background px-6 text-center">
-      <Eyebrow>Studio</Eyebrow>
-      <h2 className="font-display text-3xl font-semibold tracking-tight text-foreground sm:text-4xl">
-        Studio coming in P4
-      </h2>
-      <p className="max-w-md text-sm text-muted-foreground">
-        You&apos;re signed in — the generator and brand-kit editor land in the
-        next phase.
-      </p>
-    </div>
-  );
+  // Default-first, then oldest-first — the default kit (if any) is what the
+  // shell loads into the working style on first paint.
+  const { data: kits } = await supabase
+    .from("brand_kits")
+    .select("*")
+    .order("is_default", { ascending: false })
+    .order("created_at", { ascending: true });
+
+  const userEmail = typeof data.claims.email === "string" ? data.claims.email : "";
+
+  return <StudioShell initialKits={(kits ?? []) as BrandKit[]} userEmail={userEmail} />;
 }

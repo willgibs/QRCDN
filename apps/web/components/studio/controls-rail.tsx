@@ -1,0 +1,235 @@
+"use client";
+
+import { useId, useState } from "react";
+import { Upload } from "lucide-react";
+import { hexColorSchema, type QrStyle } from "@qrcdn/shared";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import { Eyebrow } from "@/components/explore/magic";
+import { DOT_STYLES, EYE_FRAMES, DotSwatch, EyeSwatch } from "@/components/qr/shape-swatches";
+import { cn } from "@/lib/utils";
+
+const INK_PRESETS = ["#131316", "#312e81", "#1e3a8a", "#0f766e", "#b91c1c"] as const;
+const PAPER_PRESETS = ["#ffffff", "#f4f4f5", "#101013", "#18181b"] as const;
+const EXPORT_SIZES = [512, 1024, 2048, 4096] as const;
+
+function isHex(value: string): boolean {
+  return hexColorSchema.safeParse(value).success;
+}
+
+/** Swatch presets + a free-hex text field, sharing one committed value. The
+ *  text field tracks its own draft so a mid-typed, momentarily-invalid hex
+ *  never reaches `renderQr` — only a value that passes `hexColorSchema` is
+ *  ever pushed up via `onChange`. */
+function ColorField({
+  label,
+  value,
+  onChange,
+  presets,
+}: {
+  label: string;
+  value: string;
+  onChange: (hex: string) => void;
+  presets: readonly string[];
+}) {
+  const inputId = useId();
+  const [draft, setDraft] = useState(value);
+  // Reset the draft when `value` changes for a reason other than our own
+  // `handleDraft` calls (e.g. a kit switch loading a new ink/paper color) —
+  // adjusted during render per the React docs, not in an effect, so this
+  // never trips `react-hooks/set-state-in-effect`.
+  const [syncedValue, setSyncedValue] = useState(value);
+  if (value !== syncedValue) {
+    setSyncedValue(value);
+    setDraft(value);
+  }
+
+  function handleDraft(next: string) {
+    setDraft(next);
+    if (isHex(next)) onChange(next);
+  }
+
+  return (
+    <div className="flex flex-col gap-2">
+      <Label htmlFor={inputId}>{label}</Label>
+      <div className="flex flex-wrap items-center gap-2">
+        {presets.map((hex) => (
+          <button
+            key={hex}
+            type="button"
+            aria-label={`${label} ${hex}`}
+            aria-pressed={value.toLowerCase() === hex}
+            onClick={() => handleDraft(hex)}
+            style={{ backgroundColor: hex }}
+            className={cn(
+              "size-6 shrink-0 rounded-full border border-border/60 transition-shadow duration-(--duration-fast) ease-(--motion-ease-out)",
+              value.toLowerCase() === hex && "ring-2 ring-ring",
+            )}
+          />
+        ))}
+        <div className="relative w-24 min-w-0 flex-1">
+          <span
+            aria-hidden
+            className="pointer-events-none absolute top-1/2 left-2 size-3.5 -translate-y-1/2 rounded-full border border-border/60"
+            style={{ backgroundColor: isHex(draft) ? draft : value }}
+          />
+          <Input
+            id={inputId}
+            value={draft}
+            onChange={(e) => handleDraft(e.target.value)}
+            aria-invalid={!isHex(draft)}
+            spellCheck={false}
+            maxLength={7}
+            className="h-8 pl-7 font-mono text-xs uppercase"
+          />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export function ControlsRail({
+  style,
+  payload,
+  onPayloadChange,
+  onInkChange,
+  onPaperChange,
+  onDotStyleChange,
+  onEyeFrameChange,
+  className,
+}: {
+  style: QrStyle;
+  payload: string;
+  onPayloadChange: (value: string) => void;
+  onInkChange: (hex: string) => void;
+  onPaperChange: (hex: string) => void;
+  onDotStyleChange: (value: QrStyle["dots"]["style"]) => void;
+  onEyeFrameChange: (value: QrStyle["eyes"]["frame"]) => void;
+  className?: string;
+}) {
+  const payloadId = useId();
+  const sizeId = useId();
+  const [exportSize, setExportSize] = useState<string>("1024");
+
+  const inkValue = style.fill.type === "solid" ? style.fill.color : (style.fill.stops[0]?.color ?? "#111111");
+
+  return (
+    <div className={cn("flex flex-col gap-8", className)}>
+      <section className="flex flex-col gap-3">
+        <Eyebrow>Payload</Eyebrow>
+        <div className="flex flex-col gap-1.5">
+          <Label htmlFor={payloadId}>Destination</Label>
+          <Input
+            id={payloadId}
+            value={payload}
+            onChange={(e) => onPayloadChange(e.target.value)}
+            placeholder="https://example.com"
+            spellCheck={false}
+            className="font-mono text-xs"
+          />
+        </div>
+        <p className="text-xs text-muted-foreground">
+          Static preview only — dynamic codes with retargeting land in P5.
+        </p>
+      </section>
+
+      <section className="flex flex-col gap-4">
+        <Eyebrow>Colors</Eyebrow>
+        <ColorField label="Ink" value={inkValue} onChange={onInkChange} presets={INK_PRESETS} />
+        <ColorField
+          label="Paper"
+          value={style.background.color}
+          onChange={onPaperChange}
+          presets={PAPER_PRESETS}
+        />
+      </section>
+
+      <section className="flex flex-col gap-4">
+        <Eyebrow>Shape</Eyebrow>
+        <div className="flex flex-col gap-2">
+          <Label>Module</Label>
+          <ToggleGroup
+            type="single"
+            variant="outline"
+            value={style.dots.style}
+            onValueChange={(v) => v && onDotStyleChange(v as QrStyle["dots"]["style"])}
+          >
+            {DOT_STYLES.map((s) => (
+              <ToggleGroupItem key={s} value={s} aria-label={`${s} modules`}>
+                <DotSwatch style={s} />
+              </ToggleGroupItem>
+            ))}
+          </ToggleGroup>
+        </div>
+        <div className="flex flex-col gap-2">
+          <Label>Eye</Label>
+          <ToggleGroup
+            type="single"
+            variant="outline"
+            value={style.eyes.frame}
+            onValueChange={(v) => v && onEyeFrameChange(v as QrStyle["eyes"]["frame"])}
+          >
+            {EYE_FRAMES.map((f) => (
+              <ToggleGroupItem key={f} value={f} aria-label={`${f} eyes`}>
+                <EyeSwatch frame={f} />
+              </ToggleGroupItem>
+            ))}
+          </ToggleGroup>
+        </div>
+      </section>
+
+      <section className="flex flex-col gap-3">
+        <Eyebrow>Logo</Eyebrow>
+        <label className="flex cursor-not-allowed flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-border px-4 py-6 text-center text-xs text-muted-foreground opacity-60">
+          <Upload className="size-4" aria-hidden />
+          <span>Drop a PNG, JPEG, or WebP — or click to browse</span>
+          <input
+            type="file"
+            accept="image/png,image/jpeg,image/webp"
+            disabled
+            className="sr-only"
+            aria-label="Upload logo (coming soon)"
+          />
+        </label>
+        <p className="text-xs text-muted-foreground">Logo upload wiring lands in the next unit.</p>
+      </section>
+
+      <section className="flex flex-col gap-3 pb-2">
+        <Eyebrow>Export</Eyebrow>
+        <div className="flex flex-col gap-1.5">
+          <Label htmlFor={sizeId}>Size</Label>
+          <Select value={exportSize} onValueChange={setExportSize} disabled>
+            <SelectTrigger id={sizeId} className="w-full">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {EXPORT_SIZES.map((size) => (
+                <SelectItem key={size} value={String(size)}>
+                  {size} × {size}px
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="flex gap-2">
+          <Button type="button" variant="outline" className="flex-1" disabled>
+            Download SVG
+          </Button>
+          <Button type="button" variant="outline" className="flex-1" disabled>
+            Download PNG
+          </Button>
+        </div>
+        <p className="text-xs text-muted-foreground">Export wiring lands in the next unit.</p>
+      </section>
+    </div>
+  );
+}

@@ -12,38 +12,13 @@ import { Slider } from "@/components/ui/slider";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { brandQrBackdrop, brandQrStyles, type Brand } from "@/lib/explore";
 import { cn } from "@/lib/utils";
+import { DOT_STYLES, EYE_FRAMES, DotSwatch, EyeSwatch } from "@/components/qr/shape-swatches";
 import { Eyebrow, Reveal } from "./magic";
 
 const INK_SWATCHES = {
   light: ["#131316", "#312e81", "#1e3a8a", "#0f766e"],
   dark: ["#ececf1", "#c7d2fe", "#bfdbfe", "#5eead4"],
 } as const;
-
-const DOT_STYLES = ["square", "rounded", "circle"] as const;
-const EYE_FRAMES = ["square", "rounded", "circle", "leaf"] as const;
-
-function DotSwatch({ style }: { style: (typeof DOT_STYLES)[number] }) {
-  const r = style === "circle" ? 45 : style === "rounded" ? 28 : 6;
-  return (
-    <svg viewBox="0 0 100 100" className="size-5" aria-hidden>
-      {[0, 1, 2].flatMap((y) =>
-        [0, 1, 2].map((x) =>
-          (x + y) % 2 === 0 ? (
-            <rect
-              key={`${x}${y}`}
-              x={x * 34}
-              y={y * 34}
-              width={30}
-              height={30}
-              rx={(r / 100) * 30}
-              fill="currentColor"
-            />
-          ) : null,
-        ),
-      )}
-    </svg>
-  );
-}
 
 /** Half-opacity split circle standing in for "inherit the brand fill" —
  *  echoes ModuleMark's own full/45%-opacity quadrant motif. */
@@ -52,26 +27,6 @@ function InkDefaultSwatch({ fill }: { fill: string }) {
     <svg viewBox="0 0 20 20" aria-hidden className="size-full">
       <path d="M10 1a9 9 0 0 1 0 18z" fill={fill} />
       <path d="M10 1a9 9 0 0 0 0 18z" fill={fill} opacity="0.4" />
-    </svg>
-  );
-}
-
-function EyeSwatch({ frame }: { frame: (typeof EYE_FRAMES)[number] }) {
-  const rx = frame === "circle" ? 50 : frame === "rounded" ? 30 : frame === "leaf" ? 30 : 0;
-  return (
-    <svg viewBox="0 0 100 100" className="size-5" aria-hidden>
-      <rect
-        x={6}
-        y={6}
-        width={88}
-        height={88}
-        rx={rx === 30 ? 26 : rx === 50 ? 44 : 0}
-        fill="none"
-        stroke="currentColor"
-        strokeWidth={13}
-        {...(frame === "leaf" ? { style: { clipPath: "none" } } : {})}
-      />
-      <rect x={34} y={34} width={32} height={32} rx={rx === 50 ? 16 : rx === 30 ? 8 : 0} fill="currentColor" />
     </svg>
   );
 }

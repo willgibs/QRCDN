@@ -1,5 +1,6 @@
 "use server";
 
+import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { PLAN_LIMITS, type Plan } from "@/lib/entitlements";
 import {
@@ -205,6 +206,17 @@ export async function deleteBrandKit(id: string): Promise<ActionResult<{ id: str
   }
 
   return { ok: true, data: { id: data.id } };
+}
+
+/**
+ * Studio top-bar sign-out. Bound directly to a `<form action={signOutAction}>`
+ * so it works with zero client JS. `redirect()` throws internally — nothing
+ * after it runs, and the client is navigated to /login in the same roundtrip.
+ */
+export async function signOutAction(): Promise<void> {
+  const supabase = await createClient();
+  await supabase.auth.signOut();
+  redirect("/login");
 }
 
 export async function setDefaultBrandKit(id: string): Promise<ActionResult<BrandKit>> {

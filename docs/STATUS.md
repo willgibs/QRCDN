@@ -6,7 +6,7 @@ _Last updated: 2026-07-21 (session 2, checkpoint-A v3 shipped). Update this file
 
 **Checkpoint A — CLOSED (2026-07-21).** Precision locked; the v4.2 hero is the codified quality floor (see design-system guide). The /explore canvas persists as the landing-page seed for P9 (founder chose product-spine-first sequencing).
 
-**P3 (auth + schema + RLS) — in progress.** Schema + RLS applied to cloud project (advisors clean), 18 pgTAP assertions validated against live DB, @supabase/ssr auth plumbing + login + guarded /studio landed. Awaiting founder dashboard config: Google OAuth credentials + Resend SMTP (magic links throttle on built-in SMTP until then).
+**P3 — code-complete (2026-07-22).** Migrations 001-004 applied to cloud (advisors clean); 18 pgTAP RLS assertions green in CI against a fresh stack AND validated against live cloud; @supabase/ssr auth (magic link + Google routes), floor-styled /login, getClaims-guarded /studio, entitlements module. **Founder actions open:** (1) Supabase dashboard → Auth → enable Google provider with OAuth credentials; (2) configure Resend custom SMTP (built-in throttles at ~2 emails/hr); (3) supply SUPABASE_SECRET_KEY in apps/web/.env.local + later Vercel env. Next: P4 studio + generator.
 
 Historical:
 Founder reviewed the three explorations and chose "Precision instrument" as the anchor, refined toward an Apple-esque register per references lazy.so / genie.io / stellar.work. The reference formula (already extracted): one enormous plain-spoken headline owning the viewport · extreme restraint (single accent, hierarchy from scale/space) · quiet gray subcopy · one strong CTA · eyebrow-labeled benefit sections · product visuals in soft frames.
@@ -24,7 +24,8 @@ In flight:
 | P1 qr-engine (renderer + adversarially-verified guardrails, 35 tests) | ✅ | `73d663e` |
 | P2 Three-way exploration at `/explore/[brand]` | ✅ | `5a74f86` |
 | Checkpoint A — direction lock | ✅ closed | hero floor in design guide |
-| P3 Auth + schema + RLS + pgTAP | 🔄 | migrations 001-003 applied |
+| P3 Auth + schema + RLS + pgTAP | ✅ code-complete (founder config pending) | `003545b`, `1f29d47` |
+| P4 Studio + generator | ⏭ next | — |
 | P4 Studio + generator | — | — |
 | P5 Redirect Worker + KV + DNS cutover | — | — |
 | P6 Dashboard + analytics rollups | — | — |

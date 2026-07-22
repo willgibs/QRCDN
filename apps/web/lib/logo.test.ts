@@ -5,6 +5,7 @@ import {
   LOGO_SIZE_RATIO_DEFAULT,
   LOGO_SIZE_RATIO_MAX,
   LOGO_SIZE_RATIO_MIN,
+  MAX_LOGO_ASSET_ID_LENGTH,
   MAX_LOGO_BYTES,
   isLogoDataUri,
   logoValidationMessage,
@@ -71,6 +72,25 @@ describe("isLogoDataUri", () => {
 
   it("rejects an empty string", () => {
     expect(isLogoDataUri("")).toBe(false);
+  });
+});
+
+describe("MAX_LOGO_ASSET_ID_LENGTH", () => {
+  // P4-U4 red-team: proves the cap actually admits a real MAX_LOGO_BYTES-sized
+  // upload (base64-encoded, with a realistic data URI prefix) — a guard that
+  // rejects legitimate max-size logos would just be a different bug.
+  it("fits a base64-encoded MAX_LOGO_BYTES file plus its data URI prefix", () => {
+    const rawBytes = new Uint8Array(MAX_LOGO_BYTES);
+    const base64 = Buffer.from(rawBytes).toString("base64");
+    const dataUri = `data:image/png;base64,${base64}`;
+    expect(dataUri.length).toBeLessThanOrEqual(MAX_LOGO_ASSET_ID_LENGTH);
+  });
+
+  it("rejects something meaningfully larger than a MAX_LOGO_BYTES upload could ever encode", () => {
+    // A 10MB file's base64 form is far past the cap — anything this size
+    // reaching validateBrandKitInput did not come from validateLogoFile.
+    const encodedFor10MB = Math.ceil((10 * 1024 * 1024) / 3) * 4;
+    expect(encodedFor10MB).toBeGreaterThan(MAX_LOGO_ASSET_ID_LENGTH);
   });
 });
 

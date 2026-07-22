@@ -65,6 +65,26 @@ export function isLogoDataUri(value: string): boolean {
   return DATA_URI_RE.test(value);
 }
 
+// P4-U4 red-team finding: `packages/shared/src/style.ts` models `logo.assetId`
+// as a bare, unconstrained `z.string()` — there is no schema-level cap. The
+// Studio always stores the resolved data URI *directly* in that field
+// (studio-shell.tsx), and `updateBrandKit`/`createBrandKit` are server
+// actions — plain POST endpoints a caller can invoke directly with a
+// hand-built `style` payload, bypassing `validateLogoFile`'s 2MB browser-side
+// check entirely. The `brand-logos` Storage bucket enforces its own
+// `file_size_limit` (supabase/migrations/20260722000005_brand_logo_storage.sql),
+// but that only guards the durable-upload path — it says nothing about what
+// can be written into the `brand_kits.style` jsonb column itself. Without a
+// guard here, a forged request could embed an arbitrarily large string (data
+// URI or not) in `style.logo.assetId` and have it persisted forever (DB
+// bloat, bandwidth on every future read/render). Base64 inflates by 4/3
+// (rounded up to a multiple of 4); `"data:image/jpeg;base64,"` is the longest
+// accepted MIME prefix — both folded in so a real MAX_LOGO_BYTES-sized upload
+// still fits under this cap with no headroom lost.
+const LONGEST_DATA_URI_PREFIX_LENGTH = "data:image/jpeg;base64,".length;
+export const MAX_LOGO_ASSET_ID_LENGTH =
+  Math.ceil(MAX_LOGO_BYTES / 3) * 4 + LONGEST_DATA_URI_PREFIX_LENGTH;
+
 /** Reads a File as a base64 data URI (`FileReader.readAsDataURL`). Browser-only. */
 export function readFileAsDataUri(file: File): Promise<string> {
   return new Promise((resolve, reject) => {

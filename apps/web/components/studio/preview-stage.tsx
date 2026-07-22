@@ -45,11 +45,16 @@ export function PreviewStage({
   svg,
   payload,
   report,
+  renderError,
   className,
 }: {
   svg: string;
   payload: string;
   report: ScannabilityReport;
+  /** Set when `svg` is a placeholder render, not a render of `payload` — see
+   *  lib/preview.ts. Takes over the status-chip slot with an explicit error
+   *  instead of a misleading "Scannable" read on unrelated content. */
+  renderError?: string | null;
   className?: string;
 }) {
   return (
@@ -76,7 +81,16 @@ export function PreviewStage({
               {payload}
             </p>
             <div className="mt-3 flex justify-center">
-              <ScannabilityChip report={report} />
+              {renderError ? (
+                <p
+                  role="alert"
+                  className="max-w-[280px] text-center text-xs text-destructive"
+                >
+                  {renderError}
+                </p>
+              ) : (
+                <ScannabilityChip report={report} />
+              )}
             </div>
           </div>
         </div>

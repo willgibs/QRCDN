@@ -19,6 +19,7 @@ import {
 const DELETE_CONFIRM_TIMEOUT_MS = 4000;
 const LIMIT_NOTE_TIMEOUT_MS = 6000;
 const SAVED_FLASH_TIMEOUT_MS = 1600;
+const ACTION_ERROR_TIMEOUT_MS = 6000;
 
 /**
  * Best-effort upload of a pending logo File to the durable `brand-logos`
@@ -86,16 +87,19 @@ export function KitBar({
   const [limitError, setLimitError] = useState(false);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const [savedFlashId, setSavedFlashId] = useState<string | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
 
   const deleteTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const limitTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const savedFlashTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const actionErrorTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(
     () => () => {
       if (deleteTimer.current) clearTimeout(deleteTimer.current);
       if (limitTimer.current) clearTimeout(limitTimer.current);
       if (savedFlashTimer.current) clearTimeout(savedFlashTimer.current);
+      if (actionErrorTimer.current) clearTimeout(actionErrorTimer.current);
     },
     [],
   );
@@ -133,36 +137,65 @@ export function KitBar({
     savedFlashTimer.current = setTimeout(() => setSavedFlashId(null), SAVED_FLASH_TIMEOUT_MS);
   }
 
+  function showActionError(message: string) {
+    setActionError(message);
+    if (actionErrorTimer.current) clearTimeout(actionErrorTimer.current);
+    actionErrorTimer.current = setTimeout(() => setActionError(null), ACTION_ERROR_TIMEOUT_MS);
+  }
+
+  // Every handler below wraps its server-action call in try/finally: the
+  // action functions themselves never throw (they return an ActionResult —
+  // apps/web/lib/validation.ts), but the *invocation* can still reject at
+  // the network/framework layer (dropped connection, a request-size limit,
+  // an expired session) — without the finally, `busyId` would stay set
+  // forever and the affected control would show a permanent spinner
+  // (P4-U4 red-team finding).
   async function handleCreate() {
     const name = draftName.trim();
     if (!name || busyId) return;
     setBusyId("create");
-    const result = await createBrandKit({ name, style: currentStyle });
-    if (!result.ok) {
+    try {
+      const result = await createBrandKit({ name, style: currentStyle });
+      if (!result.ok) {
+        if (result.error === "kit_limit") {
+          showLimitError();
+        } else {
+          showActionError("Couldn't create that kit — try again.");
+        }
+        return;
+      }
+      if (pendingLogoFile) {
+        await uploadPendingLogo(userId, result.data.id, pendingLogoFile);
+      }
+      onCreated(result.data);
+      setCreating(false);
+      setDraftName("");
+    } catch {
+      showActionError("Couldn't create that kit — try again.");
+    } finally {
       setBusyId(null);
-      if (result.error === "kit_limit") showLimitError();
-      return;
     }
-    if (pendingLogoFile) {
-      await uploadPendingLogo(userId, result.data.id, pendingLogoFile);
-    }
-    setBusyId(null);
-    onCreated(result.data);
-    setCreating(false);
-    setDraftName("");
   }
 
   async function handleSave(id: string) {
     if (busyId) return;
     setBusyId(id);
-    if (pendingLogoFile) {
-      await uploadPendingLogo(userId, id, pendingLogoFile);
+    try {
+      if (pendingLogoFile) {
+        await uploadPendingLogo(userId, id, pendingLogoFile);
+      }
+      const result = await updateBrandKit(id, { style: currentStyle });
+      if (!result.ok) {
+        showActionError("Couldn't save that kit — try again.");
+        return;
+      }
+      onSaved(result.data);
+      flashSaved(id);
+    } catch {
+      showActionError("Couldn't save that kit — try again.");
+    } finally {
+      setBusyId(null);
     }
-    const result = await updateBrandKit(id, { style: currentStyle });
-    setBusyId(null);
-    if (!result.ok) return;
-    onSaved(result.data);
-    flashSaved(id);
   }
 
   async function handleDelete(id: string) {
@@ -173,16 +206,34 @@ export function KitBar({
     if (deleteTimer.current) clearTimeout(deleteTimer.current);
     setConfirmDeleteId(null);
     setBusyId(id);
-    const result = await deleteBrandKit(id);
-    setBusyId(null);
-    if (result.ok) onDeleted(id);
+    try {
+      const result = await deleteBrandKit(id);
+      if (result.ok) {
+        onDeleted(id);
+      } else {
+        showActionError("Couldn't delete that kit — try again.");
+      }
+    } catch {
+      showActionError("Couldn't delete that kit — try again.");
+    } finally {
+      setBusyId(null);
+    }
   }
 
   async function handleSetDefault(id: string) {
     setBusyId(id);
-    const result = await setDefaultBrandKit(id);
-    setBusyId(null);
-    if (result.ok) onDefaultChanged(id);
+    try {
+      const result = await setDefaultBrandKit(id);
+      if (result.ok) {
+        onDefaultChanged(id);
+      } else {
+        showActionError("Couldn't set that kit as default — try again.");
+      }
+    } catch {
+      showActionError("Couldn't set that kit as default — try again.");
+    } finally {
+      setBusyId(null);
+    }
   }
 
   return (
@@ -203,7 +254,7 @@ export function KitBar({
                 onClick={() => onSwitch(kit)}
                 aria-pressed={isActive}
                 className={cn(
-                  "flex items-center gap-2 rounded-full py-1.5 pr-3 pl-2.5 text-sm transition-colors duration-(--duration-fast) ease-(--motion-ease-out)",
+                  "flex items-center gap-2 rounded-full py-1.5 pr-3 pl-2.5 text-sm outline-none transition-colors duration-(--duration-fast) ease-(--motion-ease-out) focus-visible:ring-3 focus-visible:ring-ring/50",
                   !isActive && "text-muted-foreground hover:bg-muted hover:text-foreground",
                 )}
               >
@@ -232,7 +283,7 @@ export function KitBar({
                   disabled={busyId === kit.id}
                   onClick={() => handleSave(kit.id)}
                   className={cn(
-                    "flex size-7 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors duration-(--duration-fast) ease-(--motion-ease-out) hover:bg-background hover:text-foreground disabled:pointer-events-none disabled:opacity-40",
+                    "flex size-7 shrink-0 items-center justify-center rounded-full text-muted-foreground outline-none transition-colors duration-(--duration-fast) ease-(--motion-ease-out) hover:bg-background hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50 disabled:pointer-events-none disabled:opacity-40",
                     savedFlashId === kit.id && "text-primary",
                   )}
                 >
@@ -253,7 +304,7 @@ export function KitBar({
                     aria-label={kit.is_default ? "Default kit" : "Set as default"}
                     disabled={kit.is_default || busyId === kit.id}
                     onClick={() => handleSetDefault(kit.id)}
-                    className="flex size-7 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors duration-(--duration-fast) ease-(--motion-ease-out) hover:bg-background hover:text-foreground disabled:pointer-events-none disabled:opacity-40"
+                    className="flex size-7 shrink-0 items-center justify-center rounded-full text-muted-foreground outline-none transition-colors duration-(--duration-fast) ease-(--motion-ease-out) hover:bg-background hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50 disabled:pointer-events-none disabled:opacity-40"
                   >
                     <Star className={cn("size-3.5", kit.is_default && "fill-current text-primary")} />
                   </button>
@@ -264,7 +315,7 @@ export function KitBar({
                     disabled={busyId === kit.id}
                     onClick={() => handleDelete(kit.id)}
                     className={cn(
-                      "mr-1 flex size-7 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors duration-(--duration-fast) ease-(--motion-ease-out) hover:bg-destructive/10 hover:text-destructive disabled:pointer-events-none disabled:opacity-40",
+                      "mr-1 flex size-7 shrink-0 items-center justify-center rounded-full text-muted-foreground outline-none transition-colors duration-(--duration-fast) ease-(--motion-ease-out) hover:bg-destructive/10 hover:text-destructive focus-visible:ring-3 focus-visible:ring-ring/50 disabled:pointer-events-none disabled:opacity-40",
                       confirmDeleteId === kit.id && "bg-destructive/10 text-destructive",
                     )}
                   >
@@ -343,6 +394,14 @@ export function KitBar({
             className="absolute top-full left-0 z-10 mt-2 w-56 rounded-lg border border-border/60 bg-popover px-3 py-2 text-xs text-muted-foreground shadow-md"
           >
             Free includes 1 brand kit — Pro removes the wait.
+          </div>
+        )}
+        {actionError && (
+          <div
+            role="alert"
+            className="absolute top-full left-0 z-10 mt-2 w-56 rounded-lg border border-destructive/25 bg-popover px-3 py-2 text-xs text-destructive shadow-md"
+          >
+            {actionError}
           </div>
         )}
       </div>

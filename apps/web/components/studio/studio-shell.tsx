@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useMemo, useState } from "react";
-import { renderQr, scannabilityReport } from "@qrcdn/qr-engine";
+import { scannabilityReport } from "@qrcdn/qr-engine";
 import { defaultQrStyle, parseQrStyle, type QrStyle } from "@qrcdn/shared";
 import type { BrandKit } from "@/app/(app)/studio/actions";
 import { downloadBlob, exportFilename, rasterizeSvgToPng } from "@/lib/export";
@@ -11,11 +11,10 @@ import {
   isLogoDataUri,
   readFileAsDataUri,
 } from "@/lib/logo";
+import { PREVIEW_PAYLOAD_DEFAULT, renderPreview } from "@/lib/preview";
 import { TopBar } from "./top-bar";
 import { ControlsRail } from "./controls-rail";
 import { PreviewStage } from "./preview-stage";
-
-const PREVIEW_PAYLOAD_DEFAULT = "HTTPS://QRCDN.COM/PREVIEW";
 
 function styleFromKit(kit: BrandKit | null | undefined): QrStyle {
   if (!kit) return defaultQrStyle;
@@ -161,13 +160,16 @@ export function StudioShell({
   const logoDataUri =
     validStyle.logo && isLogoDataUri(validStyle.logo.assetId) ? validStyle.logo.assetId : undefined;
 
-  const svg = useMemo(() => {
-    try {
-      return renderQr({ data: previewData, style: validStyle, logoDataUri }).svg;
-    } catch {
-      return renderQr({ data: PREVIEW_PAYLOAD_DEFAULT, style: defaultQrStyle }).svg;
-    }
-  }, [previewData, validStyle, logoDataUri]);
+  // Never throws (lib/preview.ts) — when `previewData` can't be encoded
+  // (e.g. over QR capacity), `error` is set and `svg` is an explicitly
+  // placeholder render, never silently passed off as a render of the
+  // attempted payload (P4-U4 red-team finding: this used to swap in the
+  // placeholder with no indication at all, while the scannability chip kept
+  // reporting "Scannable").
+  const { svg, error: renderError } = useMemo(
+    () => renderPreview(previewData, validStyle, logoDataUri),
+    [previewData, validStyle, logoDataUri],
+  );
 
   const report = useMemo(() => scannabilityReport(validStyle), [validStyle]);
 
@@ -220,6 +222,7 @@ export function StudioShell({
           svg={svg}
           payload={previewData}
           report={report}
+          renderError={renderError}
         />
       </main>
     </div>

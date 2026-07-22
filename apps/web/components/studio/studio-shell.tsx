@@ -173,6 +173,13 @@ export function StudioShell({
 
   const report = useMemo(() => scannabilityReport(validStyle), [validStyle]);
 
+  // Same derivation controls-rail.tsx uses for its ink swatch value — feeds
+  // ArtifactStage's ambient bloom (via PreviewStage) so the glow re-hues
+  // live with the kit's own ink color.
+  const inkHex =
+    validStyle.fill.type === "solid" ? validStyle.fill.color : (validStyle.fill.stops[0]?.color ?? "#111111");
+  const paperHex = validStyle.background.color;
+
   const handleExportSvg = useCallback(() => {
     const blob = new Blob([svg], { type: "image/svg+xml" });
     downloadBlob(blob, exportFilename(previewData, "svg"));
@@ -223,6 +230,8 @@ export function StudioShell({
           payload={previewData}
           report={report}
           renderError={renderError}
+          inkHex={inkHex}
+          paperHex={paperHex}
         />
       </main>
     </div>

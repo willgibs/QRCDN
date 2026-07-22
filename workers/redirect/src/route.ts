@@ -8,9 +8,24 @@ export type Route =
   | { kind: "method-not-allowed" }
   | { kind: "robots" }
   | { kind: "slug"; slugUpper: string }
+  | { kind: "kv-sync"; slugUpper: string }
   | { kind: "canonicalize"; pathAndSearch: string };
 
+const KV_SYNC_PREFIX = "/__kv-sync/";
+
 export function decideRoute(method: string, pathname: string, search: string): Route {
+  // First-party write-through endpoint (kv-sync-endpoint.ts) — checked
+  // before the GET/HEAD gate since it's PUT-only. The prefix contains
+  // underscores, which are outside the slug charset, so no scan path can
+  // ever collide with it.
+  if (pathname.startsWith(KV_SYNC_PREFIX)) {
+    const remainder = pathname.slice(KV_SYNC_PREFIX.length);
+    if (method === "PUT" && isSlugShaped(remainder)) {
+      return { kind: "kv-sync", slugUpper: toSlugUpper(remainder) };
+    }
+    return { kind: "method-not-allowed" };
+  }
+
   // Non-GET/HEAD → 405 (spec, bullet 1). Checked before anything else: a
   // POST to /robots.txt or to a slug path is still a 405, not a redirect.
   if (method !== "GET" && method !== "HEAD") {

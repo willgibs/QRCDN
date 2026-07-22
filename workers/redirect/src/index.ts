@@ -16,6 +16,7 @@
 
 import type { KvSlugRecord } from "@qrcdn/shared";
 import { decideRoute } from "./route";
+import { handleKvSync } from "./kv-sync-endpoint";
 import {
   buildKvBackfillRecord,
   decideRedirect,
@@ -46,6 +47,11 @@ export interface Env {
   /** Secret (`wrangler secret put SCAN_SALT`) — combined with the current
    *  UTC date to build the daily-rotating ip-hash salt (scan-hash.ts). */
   SCAN_SALT: string;
+  /** Secret (`wrangler secret put SYNC_SECRET`) — shared with the web app
+   *  (its `KV_SYNC_SECRET` env var) to authenticate the first-party
+   *  write-through endpoint (kv-sync-endpoint.ts). Optional: absent =
+   *  endpoint disabled (404), retargets fall back to the 5-min TTL. */
+  SYNC_SECRET?: string;
 }
 
 export default {
@@ -69,6 +75,9 @@ export default {
     }
     if (route.kind === "canonicalize") {
       return permanentRedirect(route.pathAndSearch);
+    }
+    if (route.kind === "kv-sync") {
+      return handleKvSync(request, env.KV, env.SYNC_SECRET, route.slugUpper);
     }
 
     // route.kind === "slug" — the scan hot path.

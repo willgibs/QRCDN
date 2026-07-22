@@ -5,15 +5,12 @@ import { writeSlugToKv } from "./kv-sync";
 const RECORD: KvSlugRecord = { destination: "https://example.com/landing", paused: false };
 
 function stubConfiguredEnv() {
-  vi.stubEnv("CF_ACCOUNT_ID", "acct_123");
-  vi.stubEnv("CF_KV_NAMESPACE_ID", "ns_456");
-  vi.stubEnv("CF_KV_API_TOKEN", "secret_token");
+  vi.stubEnv("KV_SYNC_SECRET", "shared_secret");
 }
 
 beforeEach(() => {
-  vi.stubEnv("CF_ACCOUNT_ID", undefined);
-  vi.stubEnv("CF_KV_NAMESPACE_ID", undefined);
-  vi.stubEnv("CF_KV_API_TOKEN", undefined);
+  vi.stubEnv("KV_SYNC_SECRET", undefined);
+  vi.stubEnv("KV_SYNC_URL", undefined);
 });
 
 afterEach(() => {
@@ -22,7 +19,7 @@ afterEach(() => {
 });
 
 describe("writeSlugToKv — no-op path", () => {
-  it("never calls fetch and returns kv_unconfigured when every env var is absent", async () => {
+  it("never calls fetch and returns kv_unconfigured when the secret is absent", async () => {
     const fetchMock = vi.fn();
     vi.stubGlobal("fetch", fetchMock);
 
@@ -32,9 +29,8 @@ describe("writeSlugToKv — no-op path", () => {
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
-  it("is still a no-op when only some env vars are set", async () => {
-    vi.stubEnv("CF_ACCOUNT_ID", "acct_123");
-    // CF_KV_NAMESPACE_ID and CF_KV_API_TOKEN left unset.
+  it("a KV_SYNC_URL alone (no secret) is still a no-op", async () => {
+    vi.stubEnv("KV_SYNC_URL", "https://staging.example");
     const fetchMock = vi.fn();
     vi.stubGlobal("fetch", fetchMock);
 
@@ -46,7 +42,7 @@ describe("writeSlugToKv — no-op path", () => {
 });
 
 describe("writeSlugToKv — URL construction", () => {
-  it("PUTs to the expected Cloudflare KV REST endpoint with bearer auth and the JSON record", async () => {
+  it("PUTs to the Worker's first-party sync endpoint with the shared-secret header and JSON record", async () => {
     stubConfiguredEnv();
     const fetchMock = vi.fn().mockResolvedValue({ ok: true });
     vi.stubGlobal("fetch", fetchMock);
@@ -56,17 +52,27 @@ describe("writeSlugToKv — URL construction", () => {
     expect(result).toEqual({ synced: true });
     expect(fetchMock).toHaveBeenCalledTimes(1);
     const [url, init] = fetchMock.mock.calls[0];
-    expect(url).toBe(
-      "https://api.cloudflare.com/client/v4/accounts/acct_123/storage/kv/namespaces/ns_456/values/ABCD234",
-    );
+    expect(url).toBe("https://qrcdn.com/__kv-sync/ABCD234");
     expect(init).toMatchObject({
       method: "PUT",
       headers: {
-        Authorization: "Bearer secret_token",
+        "x-sync-secret": "shared_secret",
         "Content-Type": "application/json",
       },
       body: JSON.stringify(RECORD),
     });
+  });
+
+  it("honors KV_SYNC_URL as the base override", async () => {
+    stubConfiguredEnv();
+    vi.stubEnv("KV_SYNC_URL", "https://staging.qrcdn.dev");
+    const fetchMock = vi.fn().mockResolvedValue({ ok: true });
+    vi.stubGlobal("fetch", fetchMock);
+
+    await writeSlugToKv("ABCD234", RECORD);
+
+    const [url] = fetchMock.mock.calls[0];
+    expect(url).toBe("https://staging.qrcdn.dev/__kv-sync/ABCD234");
   });
 
   it("URL-encodes the slug segment", async () => {
@@ -77,7 +83,7 @@ describe("writeSlugToKv — URL construction", () => {
     await writeSlugToKv("A/B C", RECORD);
 
     const [url] = fetchMock.mock.calls[0];
-    expect(url).toContain(`/values/${encodeURIComponent("A/B C")}`);
+    expect(url).toContain(`/__kv-sync/${encodeURIComponent("A/B C")}`);
   });
 
   it("passes an optional codeId (P5-U2 additive field) straight through in the PUT body", async () => {

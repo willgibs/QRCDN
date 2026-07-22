@@ -115,3 +115,13 @@ Programmatic scrolling doesn't repaint in the hidden pane; use a tall viewport
 - **Known pitfall (verified live):** shadcn variants shipping `transition-all` silently override the press-feedback system — `transition-all` was removed from `button.tsx`/`toggle.tsx` variants; never reintroduce it.
 - **App-phase transition mapping** (P4/P6, from the transitions.dev catalog): Modal open/close (create/edit dialogs), Toast (Sonner already themed), Panel reveal (studio side panels), Success check (code created/saved), Skeleton loader and reveal (analytics loading), Input clear with dissolve + Error state shake (form validation), Tabs sliding (code-type/pricing toggles), Toggle switch (settings), Notification badge (scan alerts), Number pop-in/Spinning counter (dashboard stats).
 - **Reference set for marketing craft** (founder-endorsed): lazy.so, genie.io (framed product windows, alternating sections), withpipeline.com (connective line-art + centered icon hero — our ScanNetwork descends from this), stellar.work (scale + restraint), transitions.dev (micro-interactions).
+
+## The quality floor (founder-set, checkpoint A close)
+
+The v4.2 hero (scan-network artwork + atmosphere + framed product windows + token-clean
+motion) is the **minimum quality floor for every future surface** — marketing sections,
+app screens, emails. A section that "works" but lacks this craft level is not done.
+Verification for design rounds: breakpoint matrix AND a live pass in the founder's
+Chrome (claude-in-chrome MCP — he has authorized this) AND an adversarial
+"reads-as-broken" audit (orphaned decoration, dead space, text orphans, rhythm gaps).
+Review rounds always happen against a production build (`next start`), never dev.

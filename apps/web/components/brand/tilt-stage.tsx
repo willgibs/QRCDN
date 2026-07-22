@@ -122,11 +122,20 @@ function useTiltMotionValues(maxTilt: number) {
 export function TiltStage({
   children,
   className,
+  cardClassName,
   maxTilt = 12,
   glowColor,
 }: {
   children: ReactNode;
+  /** Sizing/placement for the ROOT — which is also the pointer-tracking
+   *  surface. Give it the full stage area (founder round-3: the card faces
+   *  the cursor "when the cursor is in the stage", not merely over the
+   *  card), and center the card within via flex. */
   className?: string;
+  /** Sizing for the inner card anchor (shadow + rotating card live here) —
+   *  e.g. `w-full max-w-[320px]`. Decoupled from the root so the tracking
+   *  region can be much larger than the card itself. */
+  cardClassName?: string;
   /** Maximum rotation on each axis, in degrees. */
   maxTilt?: number;
   /** sRGB hex (or any CSS color) to tint the floor shadow. Falls back to
@@ -162,12 +171,14 @@ export function TiltStage({
   if (reducedMotion) {
     return (
       <div className={cn("relative isolate", className)}>
-        <div
-          aria-hidden
-          className="pointer-events-none absolute inset-x-8 -bottom-5 -z-10 h-8 rounded-[50%] opacity-35 blur-2xl"
-          style={floorShadowStyle}
-        />
-        {children}
+        <div className={cn("relative", cardClassName)}>
+          <div
+            aria-hidden
+            className="pointer-events-none absolute inset-x-8 -bottom-5 -z-10 h-8 rounded-[50%] opacity-35 blur-2xl"
+            style={floorShadowStyle}
+          />
+          {children}
+        </div>
       </div>
     );
   }
@@ -181,42 +192,45 @@ export function TiltStage({
       onPointerUp={handlePointerRest}
       onPointerCancel={handlePointerRest}
     >
-      {/* Floor shadow — anchors the card to the stage floor, tinted from
-       *  the kit's own ink color like ArtifactStage's glow layers, and
-       *  shifted opposite the tilt so the card reads as a real object
-       *  catching light rather than a flat decal. */}
-      <motion.div
-        aria-hidden
-        className="pointer-events-none absolute inset-x-8 -bottom-5 -z-10 h-8 rounded-[50%] opacity-35 blur-2xl"
-        style={{ ...floorShadowStyle, transform: shadowTransform }}
-      />
-      <motion.div
-        style={{ transformStyle: "preserve-3d", transform: cardTransform }}
-        className="relative"
-      >
-        {children}
-        {/* Specular sheen — a moving highlight inside the card bounds, not
-         *  a light source that moves independently: it sweeps WITH the
-         *  tilt direction so the "light" reads fixed while the card turns
-         *  under it, the way a glossy surface catches a room light as it
-         *  rotates. */}
-        <div
+      <div className={cn("relative", cardClassName)}>
+        {/* Floor shadow — anchors the card to the stage floor, tinted from
+         *  the kit's own ink color like ArtifactStage's glow layers, and
+         *  shifted opposite the tilt so the card reads as a real object
+         *  catching light rather than a flat decal. Anchored to the card
+         *  wrapper, not the (much larger) tracking root. */}
+        <motion.div
           aria-hidden
-          className={cn(
-            "pointer-events-none absolute inset-0 overflow-hidden opacity-[0.08] dark:opacity-[0.13]",
-            OVERLAY_ROUNDING,
-          )}
+          className="pointer-events-none absolute inset-x-8 -bottom-5 -z-10 h-8 rounded-[50%] opacity-35 blur-2xl"
+          style={{ ...floorShadowStyle, transform: shadowTransform }}
+        />
+        <motion.div
+          style={{ transformStyle: "preserve-3d", transform: cardTransform }}
+          className="relative"
         >
-          <motion.div
-            className="absolute -inset-1/4 rounded-full"
-            style={{
-              background: "radial-gradient(closest-side, white, transparent)",
-              transform: sheenTransform,
-              opacity: sheenOpacity,
-            }}
-          />
-        </div>
-      </motion.div>
+          {children}
+          {/* Specular sheen — a moving highlight inside the card bounds, not
+           *  a light source that moves independently: it sweeps WITH the
+           *  tilt direction so the "light" reads fixed while the card turns
+           *  under it, the way a glossy surface catches a room light as it
+           *  rotates. */}
+          <div
+            aria-hidden
+            className={cn(
+              "pointer-events-none absolute inset-0 overflow-hidden opacity-[0.08] dark:opacity-[0.13]",
+              OVERLAY_ROUNDING,
+            )}
+          >
+            <motion.div
+              className="absolute -inset-1/4 rounded-full"
+              style={{
+                background: "radial-gradient(closest-side, white, transparent)",
+                transform: sheenTransform,
+                opacity: sheenOpacity,
+              }}
+            />
+          </div>
+        </motion.div>
+      </div>
     </div>
   );
 }

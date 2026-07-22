@@ -133,7 +133,11 @@ export function PreviewStage({
       )}
     >
       <ModuleGridBackdrop />
-      <TiltStage glowColor={inkHex} className="relative z-10 mx-auto w-full max-w-[320px]">
+      <TiltStage
+        glowColor={inkHex}
+        className="relative z-10 flex flex-1 items-center justify-center self-stretch"
+        cardClassName="w-full max-w-[320px]"
+      >
         <div
           className="relative w-full overflow-hidden rounded-2xl p-5 shadow-xl shadow-black/25 ring-1 ring-black/5 transition-[background-color] duration-(--duration-fast) ease-(--motion-ease-out) dark:shadow-black/50 dark:ring-white/10"
           style={{ backgroundColor: paperHex }}
@@ -149,8 +153,10 @@ export function PreviewStage({
       </TiltStage>
       {/* Floor-pinned status layer — see the doc comment above for why this
        *  is absolutely positioned instead of stacked under TiltStage in
-       *  normal flow. */}
-      <div className="absolute inset-x-6 bottom-8 z-10 mx-auto flex w-full max-w-md flex-col items-center gap-3 sm:inset-x-10">
+       *  normal flow. pointer-events-none so the whole stage (including this
+       *  strip) stays one continuous tilt-tracking surface — nothing in the
+       *  block is clickable. */}
+      <div className="pointer-events-none absolute inset-x-6 bottom-8 z-10 mx-auto flex w-full max-w-md flex-col items-center gap-3 sm:inset-x-10">
         <p className="w-full truncate text-center font-mono text-xs text-muted-foreground">
           {payload}
         </p>

@@ -19,7 +19,7 @@ Out of scope: analytics dashboard (P6), rollup job (P6), API (P7), custom domain
 |---|---|---|
 | U1 backend | sonnet | slug util (+tests incl. charset/collision), dynamic-code server actions (create w/ snapshot + entitlement, list, retarget, pause/resume) — retarget also fire-and-forget PUTs KV via Worker admin route? NO: KV write-through happens via Cloudflare REST API from the server action (env-gated, no-op locally without creds); pgTAP already covers qr_codes RLS |
 | U2 worker | sonnet | Worker redirect logic + scan ingest + unit tests (vitest + workers-types v5, wrangler dev harness); hard-rule assertions (302/no-store) as tests |
-| U3 infra | fable (+ Cloudflare MCP) | KV namespace, secrets, deploy, routes, DNS records, Vercel www domain, live cutover verification (curl matrix) |
+| U3 infra | fable (+ Cloudflare MCP) | KV namespace **✅ created: `qrcdn-redirect` id `498cf67ed8f845b8aeef5133698f4041`** (wire this id into wrangler.jsonc binding), secrets, deploy, routes, DNS records, Vercel www domain, live cutover verification (curl matrix) |
 | U4 studio hook | sonnet | create-code UI + codes list at floor register; live review |
 
 Verification bar unchanged. Worker hard rules restated in every unit brief: 302+no-store never 301; no per-scan qr_codes writes; ip hashed never raw.

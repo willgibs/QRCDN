@@ -139,7 +139,7 @@ export function PreviewStage({
         cardClassName="w-full max-w-[320px]"
       >
         <div
-          className="relative w-full overflow-hidden rounded-2xl p-5 shadow-xl shadow-black/25 ring-1 ring-black/5 transition-[background-color] duration-(--duration-fast) ease-(--motion-ease-out) dark:shadow-black/50 dark:ring-white/10"
+          className="relative w-full overflow-hidden rounded-2xl p-5 shadow-xl shadow-black/25 ring-1 ring-black/10 transition-[background-color] duration-(--duration-fast) ease-(--motion-ease-out) dark:shadow-black/50 dark:ring-white/10"
           style={{ backgroundColor: paperHex }}
         >
           {transparentBackground && <TransparencyChecker />}

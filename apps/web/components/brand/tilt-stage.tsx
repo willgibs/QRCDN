@@ -54,8 +54,9 @@ const PERSPECTIVE_PX = 1100;
 /** How far the sheen highlight travels (px) at full tilt. */
 const SHEEN_TRAVEL_PX = 70;
 /** How far the floor shadow shifts (px) at full tilt — smaller than the
- *  sheen's travel since it's a subtle grounding cue, not the focal effect. */
-const SHADOW_TRAVEL_PX = 10;
+ *  sheen's travel since it's a subtle grounding cue, not the focal effect.
+ *  (Raised from 10 in founder round 4: a livelier shadow sells the lift.) */
+const SHADOW_TRAVEL_PX = 18;
 /** The sheen/floor-shadow overlay radius — hardcoded to match the studio
  *  mat card's own `rounded-2xl` (its only current consumer). A second
  *  consumer with a different card radius would need this promoted to a
@@ -94,12 +95,24 @@ function useTiltMotionValues(maxTilt: number) {
   });
 
   // Sheen sweeps WITH the pointer (the "light" reads fixed while the
-  // surface turns under it); the floor shadow shifts OPPOSITE it (grounding
-  // cue — the object leans one way, its shadow the other).
+  // surface turns under it); the shade layer sweeps OPPOSITE it (the side
+  // rotating away from the light darkens); the floor shadow also shifts
+  // opposite (grounding cue — the object leans one way, its shadow the
+  // other). Sheen + shade together form a complete two-sided lighting
+  // model that self-adapts to any paper color with zero luminance
+  // detection (founder round 4): a white highlight is invisible on white
+  // paper but reads on dark mats, a black shade is invisible on dark
+  // paper but reads on light mats — each surface picks up whichever cue
+  // physically works on it.
   const sheenTransform = useTransform(springs, (values: Axes) => {
     const x = clamp(values[0] ?? 0, -1, 1);
     const y = clamp(values[1] ?? 0, -1, 1);
     return `translate(${x * SHEEN_TRAVEL_PX}px, ${y * SHEEN_TRAVEL_PX}px)`;
+  });
+  const shadeTransform = useTransform(springs, (values: Axes) => {
+    const x = clamp(values[0] ?? 0, -1, 1);
+    const y = clamp(values[1] ?? 0, -1, 1);
+    return `translate(${x * -SHEEN_TRAVEL_PX}px, ${y * -SHEEN_TRAVEL_PX}px)`;
   });
   const shadowTransform = useTransform(springs, (values: Axes) => {
     const x = clamp(values[0] ?? 0, -1, 1);
@@ -116,7 +129,15 @@ function useTiltMotionValues(maxTilt: number) {
     clamp(Math.hypot(values[0] ?? 0, values[1] ?? 0), 0, 1),
   );
 
-  return { pointerX, pointerY, cardTransform, sheenTransform, sheenOpacity, shadowTransform };
+  return {
+    pointerX,
+    pointerY,
+    cardTransform,
+    sheenTransform,
+    shadeTransform,
+    sheenOpacity,
+    shadowTransform,
+  };
 }
 
 export function TiltStage({
@@ -146,8 +167,15 @@ export function TiltStage({
 }) {
   const reducedMotion = useReducedMotion();
   const tint = glowColor ?? "var(--primary)";
-  const { pointerX, pointerY, cardTransform, sheenTransform, sheenOpacity, shadowTransform } =
-    useTiltMotionValues(maxTilt);
+  const {
+    pointerX,
+    pointerY,
+    cardTransform,
+    sheenTransform,
+    shadeTransform,
+    sheenOpacity,
+    shadowTransform,
+  } = useTiltMotionValues(maxTilt);
 
   const handlePointerMove = useCallback(
     (event: ReactPointerEvent<HTMLDivElement>) => {
@@ -212,7 +240,7 @@ export function TiltStage({
            *  a light source that moves independently: it sweeps WITH the
            *  tilt direction so the "light" reads fixed while the card turns
            *  under it, the way a glossy surface catches a room light as it
-           *  rotates. */}
+           *  rotates. Reads on dark papers; invisible on white ones. */}
           <div
             aria-hidden
             className={cn(
@@ -225,6 +253,28 @@ export function TiltStage({
               style={{
                 background: "radial-gradient(closest-side, white, transparent)",
                 transform: sheenTransform,
+                opacity: sheenOpacity,
+              }}
+            />
+          </div>
+          {/* Directional shade — the sheen's counterpart, sweeping OPPOSITE
+           *  the tilt: the surface region rotating away from the light
+           *  darkens. This is what makes the rotation read as 3D (not skew)
+           *  on white/light papers, where a white highlight can't show
+           *  (founder round 4). Invisible on dark papers, where the sheen
+           *  carries the effect instead. */}
+          <div
+            aria-hidden
+            className={cn(
+              "pointer-events-none absolute inset-0 overflow-hidden opacity-[0.09]",
+              OVERLAY_ROUNDING,
+            )}
+          >
+            <motion.div
+              className="absolute -inset-1/4 rounded-full"
+              style={{
+                background: "radial-gradient(closest-side, black, transparent)",
+                transform: shadeTransform,
                 opacity: sheenOpacity,
               }}
             />

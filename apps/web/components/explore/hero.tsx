@@ -6,7 +6,7 @@ import { ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { HeroBackdrop } from "./backdrop";
 import { ScanNetwork } from "./network";
-import { ModuleMark, useRevealVariants } from "./magic";
+import { ModuleMark, useRevealVariants } from "@/components/brand/magic";
 import { brandCopy, type Brand } from "@/lib/explore";
 
 export function Hero({ brand }: { brand: Brand }) {

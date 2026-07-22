@@ -5,7 +5,7 @@ import { useEffect, useState } from "react";
 import { QrSvg } from "./qr-svg";
 import { brandQrStyles } from "@/lib/explore";
 import { cn } from "@/lib/utils";
-import { EASE_OUT } from "./magic";
+import { EASE_OUT } from "@/components/brand/magic";
 
 /**
  * The hero artwork: a scan network. One printed code at the center; animated

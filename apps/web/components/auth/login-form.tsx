@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { createClient } from "@/lib/supabase/client";
-import { EASE_OUT } from "@/components/explore/magic";
+import { EASE_OUT } from "@/components/brand/magic";
 
 /** Standard Google "G" mark — official brand colors, as required for
  *  "Continue with Google" buttons per Google's own sign-in branding guidelines. */

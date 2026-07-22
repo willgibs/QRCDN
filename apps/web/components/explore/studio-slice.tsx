@@ -13,7 +13,7 @@ import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { brandQrBackdrop, brandQrStyles, type Brand } from "@/lib/explore";
 import { cn } from "@/lib/utils";
 import { DOT_STYLES, EYE_FRAMES, DotSwatch, EyeSwatch } from "@/components/qr/shape-swatches";
-import { Eyebrow, Reveal } from "./magic";
+import { Eyebrow, Reveal } from "@/components/brand/magic";
 
 const INK_SWATCHES = {
   light: ["#131316", "#312e81", "#1e3a8a", "#0f766e"],

@@ -1,5 +1,5 @@
 import { DashboardWindow } from "./dashboard-window";
-import { Eyebrow, Reveal } from "./magic";
+import { Eyebrow, Reveal } from "@/components/brand/magic";
 
 export function DashboardCard() {
   return (

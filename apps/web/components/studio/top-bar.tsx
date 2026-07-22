@@ -1,7 +1,7 @@
 import Link from "next/link";
 import type { QrStyle } from "@qrcdn/shared";
 import { Button } from "@/components/ui/button";
-import { ModuleMark } from "@/components/explore/magic";
+import { ModuleMark } from "@/components/brand/magic";
 import { signOutAction, type BrandKit } from "@/app/(app)/studio/actions";
 import { KitBar } from "./kit-bar";
 

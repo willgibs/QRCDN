@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { HeroBackdrop } from "@/components/explore/backdrop";
-import { ModuleMark, Reveal } from "@/components/explore/magic";
+import { ModuleMark, Reveal } from "@/components/brand/magic";
 import { LoginForm } from "@/components/auth/login-form";
 
 export const metadata: Metadata = {

@@ -7,7 +7,7 @@ import { StudioSlice } from "@/components/explore/studio-slice";
 import { StudioWindow } from "@/components/explore/studio-window";
 import { DashboardCard } from "@/components/explore/dashboard-card";
 import { PricingPair } from "@/components/explore/pricing-pair";
-import { ModuleMark, Reveal } from "@/components/explore/magic";
+import { ModuleMark, Reveal } from "@/components/brand/magic";
 
 const FOOTER_COLUMNS = [
   { title: "Product", links: ["Studio", "Pricing", "Docs"] },

@@ -9,7 +9,7 @@ import {
   type ChartConfig,
 } from "@/components/ui/chart";
 import { ProductWindow } from "./product-window";
-import { EASE_OUT } from "./magic";
+import { EASE_OUT } from "@/components/brand/magic";
 
 // Same demo dataset as dashboard-card.tsx's AreaChart — kept in sync so both
 // mockups tell one consistent story ("Summer menu" / K7M2X9A).

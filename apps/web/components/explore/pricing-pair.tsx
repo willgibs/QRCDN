@@ -14,7 +14,7 @@ import {
 } from "@/components/ui/card";
 import { brandCopy, type Brand } from "@/lib/explore";
 import { cn } from "@/lib/utils";
-import { EASE_OUT, Eyebrow, ModuleMark, Reveal } from "./magic";
+import { EASE_OUT, Eyebrow, ModuleMark, Reveal } from "@/components/brand/magic";
 
 const freeFeatures = [
   "Unlimited static codes, full studio",

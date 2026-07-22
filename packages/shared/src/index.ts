@@ -14,3 +14,9 @@ export {
   type QrFill,
   type GradientStop,
 } from "./style";
+
+// Generated Postgres types (packages/shared/src/database.types.ts) — the
+// source of truth is the live Supabase schema, regenerated after every
+// migration. Re-exported here so `apps/web` and other workspace packages
+// never import the generated file path directly.
+export type { Database, Tables, TablesInsert, TablesUpdate } from "./database.types";

@@ -20,4 +20,14 @@ jobs:
       - run: pnpm typecheck
       - run: pnpm test
 
-  # RLS (pgTAP via `supabase test db`) job lands in P3; Playwright e2e in P10.
+  rls:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+      - run: supabase start
+      - run: supabase test db
+
+  # Playwright e2e job lands in P10.

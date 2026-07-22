@@ -4,7 +4,11 @@ _Last updated: 2026-07-21 (session 2, checkpoint-A v3 shipped). Update this file
 
 ## Current phase
 
-**Checkpoint A (brand direction lock) — in progress.**
+**Checkpoint A — CLOSED (2026-07-21).** Precision locked; the v4.2 hero is the codified quality floor (see design-system guide). The /explore canvas persists as the landing-page seed for P9 (founder chose product-spine-first sequencing).
+
+**P3 (auth + schema + RLS) — in progress.** Schema + RLS applied to cloud project (advisors clean), 18 pgTAP assertions validated against live DB, @supabase/ssr auth plumbing + login + guarded /studio landed. Awaiting founder dashboard config: Google OAuth credentials + Resend SMTP (magic links throttle on built-in SMTP until then).
+
+Historical:
 Founder reviewed the three explorations and chose "Precision instrument" as the anchor, refined toward an Apple-esque register per references lazy.so / genie.io / stellar.work. The reference formula (already extracted): one enormous plain-spoken headline owning the viewport · extreme restraint (single accent, hierarchy from scale/space) · quiet gray subcopy · one strong CTA · eyebrow-labeled benefit sections · product visuals in soft frames.
 
 Iteration history: v1 (three directions) → founder picked precision + references → v2 (Inter display, restraint) → founder: "far too minimalist, zero design magic, hero looked broken at laptop viewports" → v3 rejected ("still nowhere close" — founder supplied his own broken-viewport screenshot + Genie/Pipeline/Stellar full-page references, mandated precision-only, transitions.dev, and the emilkowalski skills) → v4 reviewed (founder: massive improvement; first two sections appeared broken in his dev-tab view — root-caused to mid-compile HMR states, production build verifies clean; remaining sections needed the same bar) → **v4.1 (current, awaiting review on the PRODUCTION server localhost:3001)**: analytics rebuilt as a framed dashboard window with stat pop-ins + top-codes strip; pricing gained the monthly/annual sliding toggle (annual default, $8/mo framing), trust FAQ accordion (transitions.dev pattern), structured footer. Review each round on `next start -p 3001`, never the dev server. v4 notes: D13 lock executed precision-only; scan-network hero artwork (Pipeline-style traces + cycling destination chips); Genie-style framed product windows (studio + dashboard); taste toolchain installed (9 agent skills under .agents/skills/); motion token system; review-animations gate run and its Block findings fixed (transition-all removal, chip translateY entrances, reduced-motion gaps, token-consistent easings). Superseded v3 notes: atmosphere layer (violet glow + QR-module grid texture), two-column hero fitting the 1440×900 fold, glass gradient-border QR card with a live retargeting demo, motion system (`motion` pkg; entrance stagger + scroll reveals, reduced-motion aware), ModuleMark eyebrow glyphs, functional ink-color studio control, gradient chart fill, glowing Pro pricing card + "never dies" guarantee strip.
@@ -19,8 +23,8 @@ In flight:
 | P0 Foundation (monorepo, Next 16, CI, Supabase project) | ✅ | `c61b5c6` |
 | P1 qr-engine (renderer + adversarially-verified guardrails, 35 tests) | ✅ | `73d663e` |
 | P2 Three-way exploration at `/explore/[brand]` | ✅ | `5a74f86` |
-| Checkpoint A — direction lock | 🔄 | this file |
-| P3 Auth + schema + RLS + pgTAP | ⏭ next | — |
+| Checkpoint A — direction lock | ✅ closed | hero floor in design guide |
+| P3 Auth + schema + RLS + pgTAP | 🔄 | migrations 001-003 applied |
 | P4 Studio + generator | — | — |
 | P5 Redirect Worker + KV + DNS cutover | — | — |
 | P6 Dashboard + analytics rollups | — | — |

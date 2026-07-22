@@ -50,7 +50,12 @@ import { clamp, normalizeStagePointer, tiltDegrees } from "@/lib/tilt-math";
  */
 
 const SPRING = { stiffness: 150, damping: 20 };
-const PERSPECTIVE_PX = 1100;
+/** Camera distance. Founder round 5: 1100px produced almost no
+ *  foreshortening at ±12°, and foreshortening (near edge grows, far edge
+ *  shrinks) is THE cue that separates "3D object" from "skewed rectangle" —
+ *  especially on white paper where surface shading is subtle. 750px makes
+ *  the trapezoid read clearly without fisheye distortion. */
+const PERSPECTIVE_PX = 750;
 /** How far the sheen highlight travels (px) at full tilt. */
 const SHEEN_TRAVEL_PX = 70;
 /** How far the floor shadow shifts (px) at full tilt — smaller than the
@@ -109,11 +114,27 @@ function useTiltMotionValues(maxTilt: number) {
     const y = clamp(values[1] ?? 0, -1, 1);
     return `translate(${x * SHEEN_TRAVEL_PX}px, ${y * SHEEN_TRAVEL_PX}px)`;
   });
-  const shadeTransform = useTransform(springs, (values: Axes) => {
-    const x = clamp(values[0] ?? 0, -1, 1);
-    const y = clamp(values[1] ?? 0, -1, 1);
-    return `translate(${x * -SHEEN_TRAVEL_PX}px, ${y * -SHEEN_TRAVEL_PX}px)`;
-  });
+  // Planar shading (founder round 5, replacing round 4's moving radial
+  // shade which read as "unnoticeable" on white): a tilted PLANE shades as
+  // a linear ramp — the receding edge darkens progressively across the
+  // surface — not as a drifting blob. Four static linear-gradient overlays
+  // (one per edge) whose OPACITY tracks how far that edge is receding.
+  // Sign map (from the rotation conventions above): cursor right → left
+  // edge recedes; cursor down → top edge recedes. Corners compose
+  // naturally: a diagonal tilt lights two ramps at once, darkest in the
+  // receding corner — exactly what a real plane does.
+  const shadeLeftOpacity = useTransform(springs, (values: Axes) =>
+    clamp(Math.max(0, values[0] ?? 0), 0, 1),
+  );
+  const shadeRightOpacity = useTransform(springs, (values: Axes) =>
+    clamp(Math.max(0, -(values[0] ?? 0)), 0, 1),
+  );
+  const shadeTopOpacity = useTransform(springs, (values: Axes) =>
+    clamp(Math.max(0, values[1] ?? 0), 0, 1),
+  );
+  const shadeBottomOpacity = useTransform(springs, (values: Axes) =>
+    clamp(Math.max(0, -(values[1] ?? 0)), 0, 1),
+  );
   const shadowTransform = useTransform(springs, (values: Axes) => {
     const x = clamp(values[0] ?? 0, -1, 1);
     const y = clamp(values[1] ?? 0, -1, 1);
@@ -134,11 +155,25 @@ function useTiltMotionValues(maxTilt: number) {
     pointerY,
     cardTransform,
     sheenTransform,
-    shadeTransform,
     sheenOpacity,
     shadowTransform,
+    shadeLeftOpacity,
+    shadeRightOpacity,
+    shadeTopOpacity,
+    shadeBottomOpacity,
   };
 }
+
+/** Per-edge planar shade ramp recipes — static gradients whose opacity is
+ *  motion-driven. Alpha ceiling lives in the gradient color itself (0.16)
+ *  so the motion value stays a clean 0..1 "how much is this edge receding".
+ *  Ramps span 55% of the card so the advancing half stays clean. */
+const SHADE_RAMPS = {
+  left: "linear-gradient(to right, rgba(0,0,0,0.16), transparent 55%)",
+  right: "linear-gradient(to left, rgba(0,0,0,0.16), transparent 55%)",
+  top: "linear-gradient(to bottom, rgba(0,0,0,0.16), transparent 55%)",
+  bottom: "linear-gradient(to top, rgba(0,0,0,0.16), transparent 55%)",
+} as const;
 
 export function TiltStage({
   children,
@@ -172,9 +207,12 @@ export function TiltStage({
     pointerY,
     cardTransform,
     sheenTransform,
-    shadeTransform,
     sheenOpacity,
     shadowTransform,
+    shadeLeftOpacity,
+    shadeRightOpacity,
+    shadeTopOpacity,
+    shadeBottomOpacity,
   } = useTiltMotionValues(maxTilt);
 
   const handlePointerMove = useCallback(
@@ -244,7 +282,7 @@ export function TiltStage({
           <div
             aria-hidden
             className={cn(
-              "pointer-events-none absolute inset-0 overflow-hidden opacity-[0.08] dark:opacity-[0.13]",
+              "pointer-events-none absolute inset-0 overflow-hidden opacity-[0.11] dark:opacity-[0.16]",
               OVERLAY_ROUNDING,
             )}
           >
@@ -257,26 +295,34 @@ export function TiltStage({
               }}
             />
           </div>
-          {/* Directional shade — the sheen's counterpart, sweeping OPPOSITE
-           *  the tilt: the surface region rotating away from the light
-           *  darkens. This is what makes the rotation read as 3D (not skew)
-           *  on white/light papers, where a white highlight can't show
-           *  (founder round 4). Invisible on dark papers, where the sheen
-           *  carries the effect instead. */}
+          {/* Planar shading — four per-edge linear ramps, each fading in as
+           *  its edge recedes. This (with real foreshortening from the
+           *  closer camera) is what makes white paper read as a turning 3D
+           *  surface instead of a skewed rectangle (founder round 5); on
+           *  dark papers the ramps are invisible and the sheen carries the
+           *  effect. Opacity-only animation on static gradients. */}
           <div
             aria-hidden
             className={cn(
-              "pointer-events-none absolute inset-0 overflow-hidden opacity-[0.09]",
+              "pointer-events-none absolute inset-0 overflow-hidden",
               OVERLAY_ROUNDING,
             )}
           >
             <motion.div
-              className="absolute -inset-1/4 rounded-full"
-              style={{
-                background: "radial-gradient(closest-side, black, transparent)",
-                transform: shadeTransform,
-                opacity: sheenOpacity,
-              }}
+              className="absolute inset-0"
+              style={{ background: SHADE_RAMPS.left, opacity: shadeLeftOpacity }}
+            />
+            <motion.div
+              className="absolute inset-0"
+              style={{ background: SHADE_RAMPS.right, opacity: shadeRightOpacity }}
+            />
+            <motion.div
+              className="absolute inset-0"
+              style={{ background: SHADE_RAMPS.top, opacity: shadeTopOpacity }}
+            />
+            <motion.div
+              className="absolute inset-0"
+              style={{ background: SHADE_RAMPS.bottom, opacity: shadeBottomOpacity }}
             />
           </div>
         </motion.div>

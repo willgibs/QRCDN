@@ -19,6 +19,9 @@ import { Eyebrow } from "@/components/brand/magic";
 import { glowTileOn } from "@/components/brand/glow-tile";
 import { DOT_STYLES, EYE_FRAMES, DotSwatch, EyeSwatch } from "@/components/qr/shape-swatches";
 import { ColorChipRow, ColorField, TransparentPaperChip } from "@/components/studio/color-controls";
+import { CreateCodeControl } from "@/components/studio/create-code";
+import { CodesList } from "@/components/studio/codes-list";
+import type { DynamicCodeSummary, QrCode } from "@/app/(app)/studio/code-actions";
 import { radiansToDegrees } from "@/lib/angle";
 import {
   LOGO_SIZE_RATIO_MAX,
@@ -38,7 +41,12 @@ export function ControlsRail({
   style,
   payload,
   effectiveEcc,
+  codes,
   onPayloadChange,
+  onCodeCreated,
+  onCodeLoad,
+  onCodeRetargeted,
+  onCodePauseToggled,
   onInkChange,
   onPaperChange,
   onFillTypeChange,
@@ -63,7 +71,21 @@ export function ControlsRail({
    *  `effectiveEcc`) — may differ from `style.ecc` when a logo forces it
    *  higher; the Export section's helper text reflects that honestly. */
   effectiveEcc: QrStyle["ecc"];
+  /** The caller's dynamic codes (server-fetched in page.tsx, threaded down
+   *  the same way brand kits are — see studio-shell.tsx). */
+  codes: DynamicCodeSummary[];
   onPayloadChange: (value: string) => void;
+  /** Bubbles a freshly-minted code up alongside its printed short URL —
+   *  studio-shell both appends it to `codes` and swaps the working payload
+   *  to the short URL (the product moment: the QR on stage becomes the
+   *  live code). */
+  onCodeCreated: (code: QrCode, shortUrl: string) => void;
+  /** "Load in studio": swaps the working payload to the code's short URL
+   *  and copies its frozen style into the working editor (a copy, never a
+   *  live binding back to the row — D5). */
+  onCodeLoad: (code: DynamicCodeSummary, style: QrStyle) => void;
+  onCodeRetargeted: (id: string, destinationUrl: string) => void;
+  onCodePauseToggled: (id: string, status: string) => void;
   onInkChange: (hex: string) => void;
   onPaperChange: (hex: string) => void;
   onFillTypeChange: (mode: "solid" | "gradient") => void;
@@ -159,9 +181,17 @@ export function ControlsRail({
             className="font-mono text-xs"
           />
         </div>
-        <p className="text-xs text-muted-foreground">
-          Static preview only — dynamic codes with retargeting land in P5.
-        </p>
+        <CreateCodeControl payload={payload} style={style} onCreated={onCodeCreated} />
+      </section>
+
+      <section className="flex flex-col gap-3">
+        <Eyebrow>Codes</Eyebrow>
+        <CodesList
+          codes={codes}
+          onCodeLoad={onCodeLoad}
+          onRetargeted={onCodeRetargeted}
+          onPauseToggled={onCodePauseToggled}
+        />
       </section>
 
       <section className="flex flex-col gap-4">

@@ -11,7 +11,7 @@ import {
 } from "@/lib/validation";
 import { generateSlug } from "@/lib/slug";
 import { writeSlugToKv } from "@/lib/kv-sync";
-import type { Tables, TablesInsert } from "@qrcdn/shared";
+import { parseQrStyle, type QrStyle, type Tables, type TablesInsert } from "@qrcdn/shared";
 
 // Server actions for dynamic-code CRUD (P5-U1). Every input is zod-parsed
 // (apps/web/lib/validation.ts) before it reaches Supabase, following the
@@ -198,6 +198,56 @@ export async function listDynamicCodes(): Promise<ActionResult<DynamicCodeSummar
   }
 
   return { ok: true, data };
+}
+
+/**
+ * Fetches a single code's frozen style snapshot — added for U4's "Load in
+ * studio" affordance (docs/guides/p5-dynamic.md unit U4). Deliberately NOT
+ * part of `DynamicCodeSummary`/`listDynamicCodes` above: that projection
+ * intentionally excludes `style` (large jsonb, possible logo data URI) so
+ * the list stays cheap to render; this is the one place a single code's
+ * snapshot is pulled, and only on explicit user action.
+ *
+ * Read-only and non-destructive — getClaims() is sufficient, same as
+ * `listDynamicCodes`. "Loading" this into the studio's working style is a
+ * COPY into local editor state (studio-shell.tsx); nothing downstream of
+ * this function ever writes back to the row's `style` column, preserving
+ * the frozen-snapshot hard rule (D5).
+ */
+export async function getDynamicCodeStyle(id: unknown): Promise<ActionResult<QrStyle>> {
+  const idResult = validateQrCodeId(id);
+  if (!idResult.ok) {
+    return idResult;
+  }
+
+  const ctx = await requireClaimsContext();
+  if (!ctx) {
+    return { ok: false, error: "unauthenticated" };
+  }
+  const { supabase } = ctx;
+
+  const { data, error } = await supabase
+    .from("qr_codes")
+    .select("style")
+    .eq("id", idResult.data)
+    .eq("kind", "dynamic")
+    .single();
+
+  if (error || !data) {
+    // Covers both "not found" and "not yours" — RLS makes the two
+    // indistinguishable from here, same as every other lookup in this file.
+    return { ok: false, error: "not_found" };
+  }
+
+  try {
+    const style = parseQrStyle(data.style);
+    return { ok: true, data: style };
+  } catch {
+    // A corrupted/unparseable snapshot never crashes the "Load in studio"
+    // flow — it surfaces as a normal action error instead (studio-shell's
+    // own styleFromKit fallback takes the same stance for brand kits).
+    return { ok: false, error: "invalid_style" };
+  }
 }
 
 export async function retargetCode(

@@ -5,6 +5,7 @@ import { useTheme } from "next-themes";
 import { scannabilityReport } from "@qrcdn/qr-engine";
 import { defaultQrStyle, parseQrStyle, type QrStyle } from "@qrcdn/shared";
 import type { BrandKit } from "@/app/(app)/studio/actions";
+import type { DynamicCodeSummary, QrCode } from "@/app/(app)/studio/code-actions";
 import { useMounted } from "@/hooks/use-mounted";
 import { degreesToRadians } from "@/lib/angle";
 import { downloadBlob, exportFilename, rasterizeSvgToPng } from "@/lib/export";
@@ -17,6 +18,7 @@ import {
 } from "@/lib/logo";
 import { PREVIEW_PAYLOAD_DEFAULT, renderPreview } from "@/lib/preview";
 import { inkHexFromStyle } from "@/lib/qr-style-derive";
+import { printedShortUrl } from "@/lib/short-url";
 import { TopBar } from "./top-bar";
 import { ControlsRail } from "./controls-rail";
 import { PreviewStage } from "./preview-stage";
@@ -52,10 +54,12 @@ function styleFromKit(kit: BrandKit | null | undefined): QrStyle {
  */
 export function StudioShell({
   initialKits,
+  initialCodes,
   userId,
   userEmail,
 }: {
   initialKits: BrandKit[];
+  initialCodes: DynamicCodeSummary[];
   userId: string;
   userEmail: string;
 }) {
@@ -63,6 +67,7 @@ export function StudioShell({
   const [activeKitId, setActiveKitId] = useState<string | null>(initialKits[0]?.id ?? null);
   const [style, setStyle] = useState<QrStyle>(() => styleFromKit(initialKits[0]));
   const [payload, setPayload] = useState(PREVIEW_PAYLOAD_DEFAULT);
+  const [codes, setCodes] = useState<DynamicCodeSummary[]>(initialCodes);
   // The raw File behind a not-yet-persisted style.logo.assetId — kept only
   // so the kit bar's create/save actions can upload it to the brand-logos
   // bucket as the durable source (deliverable #2). Cleared once that upload
@@ -103,6 +108,35 @@ export function StudioShell({
 
   const handleDefaultChanged = useCallback((id: string) => {
     setKits((prev) => prev.map((k) => ({ ...k, is_default: k.id === id })));
+  }, []);
+
+  // Dynamic-code handlers (P5-U4) — same ownership split as the brand-kit
+  // handlers above: CreateCodeControl/CodesList call the P5-U1 server
+  // actions themselves and bubble up only the successful result; this shell
+  // owns the canonical `codes` array plus the working payload/style that a
+  // creation or "Load in studio" swaps.
+  const handleCodeCreated = useCallback((code: QrCode, shortUrl: string) => {
+    setCodes((prev) => [code, ...prev]);
+    // The product moment (P5-U4 spec): the preview payload switches to the
+    // real short URL so the artifact on stage becomes the live, printable
+    // code instead of a preview of the raw destination.
+    setPayload(shortUrl);
+  }, []);
+
+  const handleCodeLoad = useCallback((code: DynamicCodeSummary, loadedStyle: QrStyle) => {
+    setPayload(printedShortUrl(code.slug));
+    // A COPY into the working editor, never a live binding back to the
+    // frozen row (D5) — editing further and saving to a brand kit (or
+    // minting a new code) never touches this code's own `style` column.
+    setStyle(loadedStyle);
+  }, []);
+
+  const handleCodeRetargeted = useCallback((id: string, destinationUrl: string) => {
+    setCodes((prev) => prev.map((c) => (c.id === id ? { ...c, destination_url: destinationUrl } : c)));
+  }, []);
+
+  const handleCodePauseToggled = useCallback((id: string, status: string) => {
+    setCodes((prev) => prev.map((c) => (c.id === id ? { ...c, status } : c)));
   }, []);
 
   const setInk = useCallback((hex: string) => {
@@ -309,7 +343,12 @@ export function StudioShell({
           style={validStyle}
           payload={payload}
           effectiveEcc={report.effectiveEcc}
+          codes={codes}
           onPayloadChange={setPayload}
+          onCodeCreated={handleCodeCreated}
+          onCodeLoad={handleCodeLoad}
+          onCodeRetargeted={handleCodeRetargeted}
+          onCodePauseToggled={handleCodePauseToggled}
           onInkChange={setInk}
           onPaperChange={setPaper}
           onFillTypeChange={setFillType}

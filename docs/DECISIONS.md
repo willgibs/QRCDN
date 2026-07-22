@@ -102,6 +102,11 @@ Auto: 7 chars, uppercase A–Z + 2–9 minus `I L O 0 1` (31 symbols, ~27.5B spa
 insert-on-conflict retry. Worker matches case-insensitively. Vanity (Pro): 4–30 chars,
 reserved blocklist (`api www a u admin ...`), single namespace.
 
+*Amended at P5-U1 (2026-07-22):* charset also drops `U` (V/U print confusion) —
+final set `23456789ABCDEFGHJKMNPQRSTVWXYZ`, 30 symbols, ~21.9B space. Implemented
+in `apps/web/lib/slug.ts` (charset-purity tests pin it); the U1 agent flagged the
+drift between this entry and the P5 spec, spec won.
+
 ## D13 — Design tokens: 3-layer, names locked (product: direction TBD checkpoint A)
 
 Layer 0 primitives + Layer 1 semantic vars (shadcn names verbatim + `--surface-studio`,

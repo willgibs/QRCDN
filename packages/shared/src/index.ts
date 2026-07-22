@@ -15,6 +15,10 @@ export {
   type GradientStop,
 } from "./style";
 
+// Cloudflare KV write-through record shape, shared between the web app
+// (apps/web/lib/kv-sync.ts) and the redirect Worker (P5-U2).
+export type { KvSlugRecord } from "./kv";
+
 // Generated Postgres types (packages/shared/src/database.types.ts) — the
 // source of truth is the live Supabase schema, regenerated after every
 // migration. Re-exported here so `apps/web` and other workspace packages

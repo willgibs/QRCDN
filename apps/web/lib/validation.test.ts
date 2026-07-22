@@ -5,6 +5,10 @@ import {
   validateBrandKitId,
   validateBrandKitInput,
   validateBrandKitPatch,
+  validateDestination,
+  validateDynamicCodeInput,
+  validatePaused,
+  validateQrCodeId,
 } from "./validation";
 
 describe("validateBrandKitInput", () => {
@@ -174,5 +178,136 @@ describe("validateBrandKitId", () => {
   it("rejects a non-string id", () => {
     const result = validateBrandKitId(123);
     expect(result).toEqual({ ok: false, error: "invalid_id" });
+  });
+});
+
+describe("validateDestination", () => {
+  it("accepts a plain https URL", () => {
+    const result = validateDestination("https://example.com/landing");
+    expect(result).toEqual({ ok: true, data: "https://example.com/landing" });
+  });
+
+  it("accepts a plain http URL", () => {
+    const result = validateDestination("http://example.com");
+    expect(result.ok).toBe(true);
+  });
+
+  it("trims surrounding whitespace before validating", () => {
+    const result = validateDestination("  https://example.com  ");
+    expect(result).toEqual({ ok: true, data: "https://example.com" });
+  });
+
+  it("rejects a non-http(s) protocol", () => {
+    const result = validateDestination("ftp://example.com/file");
+    expect(result).toEqual({ ok: false, error: "invalid_destination" });
+  });
+
+  it("rejects a bare IP host (no dotted domain with a letters-only TLD)", () => {
+    const result = validateDestination("http://192.168.1.1");
+    expect(result).toEqual({ ok: false, error: "invalid_destination" });
+  });
+
+  it("rejects a malformed URL", () => {
+    const result = validateDestination("not a url");
+    expect(result).toEqual({ ok: false, error: "invalid_destination" });
+  });
+
+  it("rejects a non-string input", () => {
+    const result = validateDestination(42);
+    expect(result).toEqual({ ok: false, error: "invalid_destination" });
+  });
+
+  it("accepts a URL at exactly the 2048-character boundary", () => {
+    const padding = "a".repeat(2048 - "https://example.com/".length);
+    const url = `https://example.com/${padding}`;
+    expect(url).toHaveLength(2048);
+    const result = validateDestination(url);
+    expect(result).toEqual({ ok: true, data: url });
+  });
+
+  it("rejects a URL over the 2048-character boundary", () => {
+    const padding = "a".repeat(2048 - "https://example.com/".length + 1);
+    const url = `https://example.com/${padding}`;
+    expect(url).toHaveLength(2049);
+    const result = validateDestination(url);
+    expect(result).toEqual({ ok: false, error: "destination_too_long" });
+  });
+});
+
+describe("validateDynamicCodeInput", () => {
+  it("accepts a valid destination and style", () => {
+    const result = validateDynamicCodeInput({
+      destination: "https://example.com",
+      style: { v: 1 },
+    });
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.data.destination).toBe("https://example.com");
+      expect(result.data.style).toEqual(defaultQrStyle);
+    }
+  });
+
+  it("rejects an invalid destination before checking style", () => {
+    const result = validateDynamicCodeInput({ destination: "not a url", style: "garbage" });
+    expect(result).toEqual({ ok: false, error: "invalid_destination" });
+  });
+
+  it("rejects an invalid style payload", () => {
+    const result = validateDynamicCodeInput({
+      destination: "https://example.com",
+      style: { v: 2 },
+    });
+    expect(result).toEqual({ ok: false, error: "invalid_style" });
+  });
+
+  it("rejects an oversized logo assetId", () => {
+    const result = validateDynamicCodeInput({
+      destination: "https://example.com",
+      style: {
+        v: 1,
+        logo: {
+          assetId: "a".repeat(MAX_LOGO_ASSET_ID_LENGTH + 1),
+          sizeRatio: 0.3,
+          padding: 1,
+          knockout: true,
+          shape: "auto",
+        },
+      },
+    });
+    expect(result).toEqual({ ok: false, error: "logo_too_large" });
+  });
+});
+
+describe("validatePaused", () => {
+  it("accepts true", () => {
+    expect(validatePaused(true)).toEqual({ ok: true, data: true });
+  });
+
+  it("accepts false", () => {
+    expect(validatePaused(false)).toEqual({ ok: true, data: false });
+  });
+
+  it("rejects a non-boolean", () => {
+    expect(validatePaused("true")).toEqual({ ok: false, error: "invalid_paused" });
+  });
+
+  it("rejects undefined", () => {
+    expect(validatePaused(undefined)).toEqual({ ok: false, error: "invalid_paused" });
+  });
+});
+
+describe("validateQrCodeId", () => {
+  const validUuid = "3fa85f64-5717-4562-b3fc-2c963f66afa6";
+
+  it("accepts a valid uuid", () => {
+    expect(validateQrCodeId(validUuid)).toEqual({ ok: true, data: validUuid });
+  });
+
+  it("rejects a non-uuid string", () => {
+    expect(validateQrCodeId("not-a-uuid")).toEqual({ ok: false, error: "invalid_id" });
+  });
+
+  it("rejects a non-string id", () => {
+    expect(validateQrCodeId(123)).toEqual({ ok: false, error: "invalid_id" });
   });
 });

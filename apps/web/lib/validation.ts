@@ -30,8 +30,8 @@ export interface ValidatedBrandKitPatch {
   style?: QrStyle;
 }
 
-function nameError(result: z.ZodSafeParseError<string>): string {
-  return result.error.issues[0]?.message ?? "invalid_name";
+function firstIssueMessage(result: z.ZodSafeParseError<string>, fallback: string): string {
+  return result.error.issues[0]?.message ?? fallback;
 }
 
 /**
@@ -53,7 +53,7 @@ export function validateBrandKitInput(input: {
 }): ActionResult<ValidatedBrandKit> {
   const name = brandKitNameSchema.safeParse(input.name);
   if (!name.success) {
-    return { ok: false, error: nameError(name) };
+    return { ok: false, error: firstIssueMessage(name, "invalid_name") };
   }
 
   try {
@@ -81,7 +81,7 @@ export function validateBrandKitPatch(input: {
   if (input.name !== undefined) {
     const name = brandKitNameSchema.safeParse(input.name);
     if (!name.success) {
-      return { ok: false, error: nameError(name) };
+      return { ok: false, error: firstIssueMessage(name, "invalid_name") };
     }
     patch.name = name.data;
   }
@@ -103,6 +103,79 @@ export function validateBrandKitPatch(input: {
 
 export function validateBrandKitId(input: unknown): ActionResult<string> {
   const id = brandKitIdSchema.safeParse(input);
+  if (!id.success) {
+    return { ok: false, error: "invalid_id" };
+  }
+  return { ok: true, data: id.data };
+}
+
+// ---------------------------------------------------------------------------
+// Dynamic-code CRUD (P5-U1, apps/web/app/(app)/studio/code-actions.ts).
+// qr_codes has no `name` column (supabase/migrations/20260721000001_initial_
+// schema.sql) — only destination and the frozen style snapshot are
+// persisted per code. See code-actions.ts's file header for the full note.
+// ---------------------------------------------------------------------------
+
+export const qrCodeIdSchema = z.uuid("invalid_id");
+
+/**
+ * http/https only, ≤2048 chars. `httpUrl()` also requires a dotted hostname
+ * with a letters-only TLD (zod v4's `core.regexes.domain`) — deliberately
+ * rejects bare IPs/`localhost`, which is the right call for a destination a
+ * printed, permanent code redirects to.
+ */
+export const destinationUrlSchema = z.preprocess(
+  (value) => (typeof value === "string" ? value.trim() : value),
+  z.httpUrl("invalid_destination").max(2048, "destination_too_long"),
+);
+
+export const pausedSchema = z.boolean();
+
+export interface ValidatedDynamicCode {
+  destination: string;
+  style: QrStyle;
+}
+
+/** Full validation for create: destination and style are both required. */
+export function validateDynamicCodeInput(input: {
+  destination: unknown;
+  style: unknown;
+}): ActionResult<ValidatedDynamicCode> {
+  const destination = destinationUrlSchema.safeParse(input.destination);
+  if (!destination.success) {
+    return { ok: false, error: firstIssueMessage(destination, "invalid_destination") };
+  }
+
+  try {
+    const style = parseQrStyle(input.style);
+    if (!styleWithinLimits(style)) {
+      return { ok: false, error: "logo_too_large" };
+    }
+    return { ok: true, data: { destination: destination.data, style } };
+  } catch {
+    return { ok: false, error: "invalid_style" };
+  }
+}
+
+/** retargetCode's destination-only input. */
+export function validateDestination(input: unknown): ActionResult<string> {
+  const result = destinationUrlSchema.safeParse(input);
+  if (!result.success) {
+    return { ok: false, error: firstIssueMessage(result, "invalid_destination") };
+  }
+  return { ok: true, data: result.data };
+}
+
+export function validatePaused(input: unknown): ActionResult<boolean> {
+  const result = pausedSchema.safeParse(input);
+  if (!result.success) {
+    return { ok: false, error: "invalid_paused" };
+  }
+  return { ok: true, data: result.data };
+}
+
+export function validateQrCodeId(input: unknown): ActionResult<string> {
+  const id = qrCodeIdSchema.safeParse(input);
   if (!id.success) {
     return { ok: false, error: "invalid_id" };
   }

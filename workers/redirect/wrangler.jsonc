@@ -7,17 +7,22 @@
   // cuts over (apex qrcdn.com orange-clouded + this route, docs/guides/
   // infra.md "DNS / domain topology"). Uncommenting this without the DNS
   // side being ready would just 404/error at the edge; wiring the route and
-  // the actual cutover are infra steps, not this unit's job.
-  // "routes": [{ "pattern": "qrcdn.com/*", "zone_name": "qrcdn.com" }],
+  // Route flipped live at P5-U3 cutover (apex AAAA 100:: proxied + this
+  // route = the Worker owns every qrcdn.com path; www is grey-cloud CNAME
+  // to Vercel per D1).
+  "routes": [{ "pattern": "qrcdn.com/*", "zone_name": "qrcdn.com" }],
+  // Pinned to the account that owns the qrcdn.com zone ("Will Gibson") —
+  // the founder's login also spans a second account (Partyreel Team), and
+  // without this pin wrangler deployed there once, where the zone route
+  // can't attach.
+  "account_id": "7982310e22cd9430e06c34942acf3b9a",
   "kv_namespaces": [
-    { "binding": "KV", "id": "498cf67ed8f845b8aeef5133698f4041" },
+    { "binding": "KV", "id": "1bad31228c81471a912e764aebabbbbe" },
   ],
-  // Non-secret: the Supabase project's REST base URL. Fill in the real
-  // value (https://yklhpbhfowuvxlwlalhf.supabase.co) when wiring this
-  // Worker's environment — left as a placeholder here since env vars in
-  // wrangler.jsonc are committed to the repo.
+  // Non-secret: the Supabase project's REST base URL (public — same value
+  // as NEXT_PUBLIC_SUPABASE_URL in apps/web).
   "vars": {
-    "SUPABASE_URL": "<set-me>",
+    "SUPABASE_URL": "https://yklhpbhfowuvxlwlalhf.supabase.co",
   },
   // SUPABASE_SECRET_KEY (sb_secret_...) and SCAN_SALT are Worker secrets —
   // `wrangler secret put SUPABASE_SECRET_KEY` / `wrangler secret put

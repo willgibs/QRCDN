@@ -12,6 +12,7 @@ import {
   readFileAsDataUri,
 } from "@/lib/logo";
 import { PREVIEW_PAYLOAD_DEFAULT, renderPreview } from "@/lib/preview";
+import { inkHexFromStyle } from "@/lib/qr-style-derive";
 import { TopBar } from "./top-bar";
 import { ControlsRail } from "./controls-rail";
 import { PreviewStage } from "./preview-stage";
@@ -173,11 +174,11 @@ export function StudioShell({
 
   const report = useMemo(() => scannabilityReport(validStyle), [validStyle]);
 
-  // Same derivation controls-rail.tsx uses for its ink swatch value — feeds
-  // ArtifactStage's ambient bloom (via PreviewStage) so the glow re-hues
-  // live with the kit's own ink color.
-  const inkHex =
-    validStyle.fill.type === "solid" ? validStyle.fill.color : (validStyle.fill.stops[0]?.color ?? "#111111");
+  // Shared derivation (lib/qr-style-derive.ts) — feeds ArtifactStage's
+  // ambient bloom (via PreviewStage) so the glow re-hues live with the
+  // kit's own ink color; the same helper also drives controls-rail's Ink
+  // swatch value and kit-bar's pill/menu ModuleMark tint.
+  const inkHex = inkHexFromStyle(validStyle);
   const paperHex = validStyle.background.color;
 
   const handleExportSvg = useCallback(() => {

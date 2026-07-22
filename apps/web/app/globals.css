@@ -177,6 +177,35 @@
   }
 }
 
+/* react-colorful overrides (P4 design-iteration note 2) — the library ships
+   its own injected <style> with hardcoded pixel radii and a black divider
+   between the saturation square and the hue bar; this reskins it to the
+   token radius/border scale. The saturation/hue gradients themselves are
+   the library's computed color output, not decoration — left untouched. */
+@layer components {
+  .react-colorful {
+    width: 100%;
+    height: 160px;
+    gap: 0.625rem;
+  }
+  .react-colorful__saturation {
+    border-bottom: none;
+    border-radius: var(--radius-lg);
+    box-shadow: inset 0 0 0 1px var(--border);
+  }
+  .react-colorful__hue,
+  .react-colorful__last-control {
+    height: 0.875rem;
+    border-radius: var(--radius-lg);
+    box-shadow: inset 0 0 0 1px var(--border);
+  }
+  .react-colorful__pointer {
+    width: 1.125rem;
+    height: 1.125rem;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.35);
+  }
+}
+
 /* Scan-network trace animation (hero artwork). The dash segment is the
    "energy packet" travelling the active path. */
 @keyframes qr-flow {

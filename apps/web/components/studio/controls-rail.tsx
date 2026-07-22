@@ -2,7 +2,7 @@
 
 import { useId, useState, type ChangeEvent } from "react";
 import { Loader2, Upload, X } from "lucide-react";
-import { hexColorSchema, type QrStyle } from "@qrcdn/shared";
+import type { QrStyle } from "@qrcdn/shared";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -16,94 +16,21 @@ import {
 import { Slider } from "@/components/ui/slider";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { Eyebrow } from "@/components/brand/magic";
-import { glowSwatchSelected, glowTileOn } from "@/components/brand/glow-tile";
+import { glowTileOn } from "@/components/brand/glow-tile";
 import { DOT_STYLES, EYE_FRAMES, DotSwatch, EyeSwatch } from "@/components/qr/shape-swatches";
+import { ColorField } from "@/components/studio/color-controls";
 import {
   LOGO_SIZE_RATIO_MAX,
   LOGO_SIZE_RATIO_MIN,
   logoValidationMessage,
   validateLogoFile,
 } from "@/lib/logo";
+import { inkHexFromStyle } from "@/lib/qr-style-derive";
 import { cn } from "@/lib/utils";
 
 const INK_PRESETS = ["#131316", "#312e81", "#1e3a8a", "#0f766e", "#b91c1c"] as const;
 const PAPER_PRESETS = ["#ffffff", "#f4f4f5", "#101013", "#18181b"] as const;
 const EXPORT_SIZES = [512, 1024, 2048, 4096] as const;
-
-function isHex(value: string): boolean {
-  return hexColorSchema.safeParse(value).success;
-}
-
-/** Swatch presets + a free-hex text field, sharing one committed value. The
- *  text field tracks its own draft so a mid-typed, momentarily-invalid hex
- *  never reaches `renderQr` — only a value that passes `hexColorSchema` is
- *  ever pushed up via `onChange`. */
-function ColorField({
-  label,
-  value,
-  onChange,
-  presets,
-}: {
-  label: string;
-  value: string;
-  onChange: (hex: string) => void;
-  presets: readonly string[];
-}) {
-  const inputId = useId();
-  const [draft, setDraft] = useState(value);
-  // Reset the draft when `value` changes for a reason other than our own
-  // `handleDraft` calls (e.g. a kit switch loading a new ink/paper color) —
-  // adjusted during render per the React docs, not in an effect, so this
-  // never trips `react-hooks/set-state-in-effect`.
-  const [syncedValue, setSyncedValue] = useState(value);
-  if (value !== syncedValue) {
-    setSyncedValue(value);
-    setDraft(value);
-  }
-
-  function handleDraft(next: string) {
-    setDraft(next);
-    if (isHex(next)) onChange(next);
-  }
-
-  return (
-    <div className="flex flex-col gap-2">
-      <Label htmlFor={inputId}>{label}</Label>
-      <div className="flex flex-wrap items-center gap-2">
-        {presets.map((hex) => (
-          <button
-            key={hex}
-            type="button"
-            aria-label={`${label} ${hex}`}
-            aria-pressed={value.toLowerCase() === hex}
-            onClick={() => handleDraft(hex)}
-            style={{ backgroundColor: hex }}
-            className={cn(
-              "size-6 shrink-0 rounded-full border border-border/60 transition-shadow duration-(--duration-fast) ease-(--motion-ease-out)",
-              value.toLowerCase() === hex && glowSwatchSelected,
-            )}
-          />
-        ))}
-        <div className="relative w-24 min-w-0 flex-1">
-          <span
-            aria-hidden
-            className="pointer-events-none absolute top-1/2 left-2 size-3.5 -translate-y-1/2 rounded-full border border-border/60"
-            style={{ backgroundColor: isHex(draft) ? draft : value }}
-          />
-          <Input
-            id={inputId}
-            value={draft}
-            onChange={(e) => handleDraft(e.target.value)}
-            aria-invalid={!isHex(draft)}
-            spellCheck={false}
-            maxLength={7}
-            className="h-8 pl-7 font-mono text-xs uppercase"
-          />
-        </div>
-      </div>
-    </div>
-  );
-}
 
 export function ControlsRail({
   style,
@@ -145,7 +72,7 @@ export function ControlsRail({
   const [exporting, setExporting] = useState<"svg" | "png" | null>(null);
   const [exportError, setExportError] = useState<string | null>(null);
 
-  const inkValue = style.fill.type === "solid" ? style.fill.color : (style.fill.stops[0]?.color ?? "#111111");
+  const inkValue = inkHexFromStyle(style);
 
   async function handleLogoInputChange(e: ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];

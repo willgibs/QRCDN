@@ -1,0 +1,32 @@
+# pgTAP / RLS suite — split out of ci.yml (A0) so the expensive Supabase
+# Docker stack only boots when the database layer actually changes. This
+# workflow is the ONLY place pgTAP runs (no local Docker on the dev machine),
+# so for supabase/** changes it stays load-bearing: a red run here blocks the
+# unit exactly like the main CI job does.
+name: RLS
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "supabase/**"
+      - ".github/workflows/rls.yml"
+  pull_request:
+    paths:
+      - "supabase/**"
+      - ".github/workflows/rls.yml"
+
+concurrency:
+  group: rls-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  rls:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+      - run: supabase start
+      - run: supabase test db

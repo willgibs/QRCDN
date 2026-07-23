@@ -3,7 +3,19 @@ name: CI
 on:
   push:
     branches: [main]
+    # Docs-only commits cost zero Actions minutes (A0, board directive on
+    # Actions burn). A push mixing code + docs still runs normally.
+    paths-ignore:
+      - "docs/**"
+      - "**.md"
   pull_request:
+
+# Burst pushes (our per-unit commit cadence) cancel superseded runs instead
+# of finishing them — the local lint/typecheck/test pass before every push is
+# the primary gate; CI is the backstop, so only the newest run matters.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   checks:
@@ -20,14 +32,7 @@ jobs:
       - run: pnpm typecheck
       - run: pnpm test
 
-  rls:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: supabase/setup-cli@v1
-        with:
-          version: latest
-      - run: supabase start
-      - run: supabase test db
-
+  # The pgTAP/RLS job lives in rls.yml, path-gated to supabase/** — it boots
+  # the full local Supabase Docker stack (~5-7 runner-min), which is pure
+  # waste on the ~80% of pushes that never touch SQL.
   # Playwright e2e job lands in P10.

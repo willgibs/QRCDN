@@ -24,7 +24,7 @@ Verified live against the connected Supabase, Cloudflare, and Vercel MCPs at tim
 ## Redirect data path (D2, D3)
 
 - **KV is a cache; Postgres is truth.** Worker does `KV.get(slug, {cacheTtl: 60})`; on a miss it reads through to Supabase REST and backfills KV.
-- Retarget flow: Postgres `UPDATE` first, then a write-through `PUT` to KV (retry once). Worst-case propagation staleness ≈ 60s — surfaced in product UX copy as "live everywhere within ~1 minute."
+- Retarget flow: Postgres `UPDATE` first, then a write-through `PUT` to the Worker's first-party sync endpoint (`/__kv-sync/{slug}`, shared `SYNC_SECRET`/`KV_SYNC_SECRET` pair, retry once) — propagation is **instant** when configured. Fallback if the sync is unconfigured/unavailable: every KV write carries `expirationTtl: 300`, so staleness self-heals within 5 minutes.
 - **Scan redirects are always `302` + `Cache-Control: no-store` — never `301`.** (Restated from the hard-rules list in `CLAUDE.md` because it's the single most load-bearing infra rule — a cached 301 would pin users to a stale destination forever.)
 - Paused / expired / password-protected codes redirect (302) to `www.qrcdn.com/u/{slug}` instead of the real destination.
 - Redirects must keep working even if Supabase is down or paused — that's the entire reason KV sits in front as a cache rather than the Worker calling Postgres directly on every request.
@@ -39,8 +39,21 @@ Convention per D9 (new Supabase API key scheme — `sb_publishable_`/`sb_secret_
 | `NEXT_PUBLIC_SUPABASE_URL` | client + server | Project URL |
 | `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | client + server | `sb_publishable_...` — safe to expose |
 | `SUPABASE_SECRET_KEY` | **server-only** | `sb_secret_...` — never in a `NEXT_PUBLIC_*` var, never sent to the client |
+| `KV_SYNC_SECRET` | **server-only** | shared with the Worker's `SYNC_SECRET`; authenticates the retarget write-through (`apps/web/lib/kv-sync.ts`) |
+| `CRON_SECRET` | **server-only** | guards `/api/cron/purge`; Vercel Cron sends it as `Authorization: Bearer <value>` automatically once set |
 
 Worker secrets (e.g. the Supabase secret key used by the redirect Worker's scan-ingest POST) are set via `wrangler secret put`, not committed config. **Never commit any of these values** — no `.env` files exist in this repo yet (auth/schema work is P3, not yet started as of this doc; there is no live Supabase client code anywhere in `apps/web` yet). When P3 lands, follow `@supabase/ssr`'s standard client/server split: `getClaims()` for page guards, `getUser()` before destructive/billing actions, never trust `getSession()` server-side (hard rule, `CLAUDE.md`).
+
+## Scheduled jobs (P6)
+
+| Job | Where | Schedule | What |
+|---|---|---|---|
+| `rollup_scan_daily_hourly` | pg_cron (in-database; inspect via `cron.job` / `cron.job_run_details`) | `5 * * * *` | `select public.rollup_scan_daily();` — upserts today+yesterday UTC into `scan_daily`, maintains `qr_codes.scan_count` (D8 amendment) |
+| Retention purge | Vercel Cron (`apps/web/vercel.json`) → `GET /api/cron/purge` | `0 9 * * *` daily | Deletes `scan_events` older than the owner-plan retention (entitlements.ts: free 30d / Pro 365d); `CRON_SECRET` bearer auth; Hobby-plan timing looseness is fine — retention is a ceiling, not a promise |
+
+Manual rollup backfill (e.g. after a cron gap): `select public.rollup_scan_daily(N);`
+with `N` = days back. Never exceed the shortest retention window (see p6-dashboard.md
+caveat). `cron.schedule` is upsert-by-name — re-running migration 007 is safe.
 
 ## Cost posture and upgrade triggers (D15, reproduced)
 

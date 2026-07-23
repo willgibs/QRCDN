@@ -77,6 +77,17 @@ embed the *scan* URL, never the image URL. No pre-rendering into storage.
 scan_count update + retention purge: free 30d raw, Pro 365d). No partitioning or
 materialized views until >5–10M rows/month. Free-tier 500MB ≈ 2M raw rows of headroom.
 
+*Amended at P6 (2026-07-22):* two mechanics changed at implementation, intent
+unchanged. (1) `scan_count` updates **hourly, not nightly** — folded into the same
+pg_cron `rollup_scan_daily()` call as one cheap UPDATE scoped to touched codes;
+users testing a fresh code should see numbers move within the hour, not overnight.
+(2) The **retention purge moved off pg_cron** to an app-layer route
+(`apps/web/app/api/cron/purge/route.ts`, Vercel Cron daily, `CRON_SECRET`-guarded):
+the free/pro day-counts it needs are single-sourced in
+`apps/web/lib/entitlements.ts` (hard rule), so a SQL cron job would have had to
+duplicate them. Rollup stays in Postgres; retention enforcement lives where the
+retention constants live.
+
 ## D9 — Auth: Supabase `@supabase/ssr`, new API keys only
 
 `sb_publishable_`/`sb_secret_` keys (legacy anon/service_role die end-2026). Magic link

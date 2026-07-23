@@ -20,7 +20,11 @@ export const config = {
      *   precisely as `u/[^/]+` (exactly one slug segment) rather than a
      *   bare `u`, which would also swallow unrelated future routes like
      *   /upgrade or /unsubscribe.
+     * - /api/v1 (P7-U3 public API — its own bearer-token auth pipeline,
+     *   lib/api-auth.ts; no Supabase cookie session exists on these
+     *   requests, so running updateSession here would be dead work at
+     *   best and couldn't authenticate an API-key caller regardless).
      */
-    "/((?!_next/static|_next/image|favicon\\.ico|explore|u/[^/]+|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico)$).*)",
+    "/((?!_next/static|_next/image|favicon\\.ico|explore|u/[^/]+|api/v1|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico)$).*)",
   ],
 };

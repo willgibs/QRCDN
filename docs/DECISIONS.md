@@ -107,6 +107,15 @@ Portal; customer created and persisted before first session.
 (unique-index O(1) lookup — slow hashes unnecessary at ≥128-bit entropy). Rate limiting:
 Vercel WAF rule + `@vercel/firewall` checkRateLimit per key + Postgres monthly quotas.
 
+*Amended at P7 (2026-07-23):* rate limiting ships in two stages, not one. P7 ships
+**only** the Postgres monthly quota (`api_usage` + `increment_api_usage()`, migration
+008 — the entitlement-bearing cap, free: no API / Pro: 10k/mo, values solely in
+`entitlements.ts`). `@vercel/firewall`'s `checkRateLimit()` and the WAF rule are
+Vercel **Pro**-tier features and this repo runs Hobby until P10 (D15) — burst
+throttling is a P10 line item gated on that upgrade, and `/developers` says so
+honestly rather than promising it. CRC tail concretized at implementation: 6
+zero-padded base62 chars, CRC32 (IEEE 802.3) over prefix+random.
+
 ## D12 — Slugs
 
 Auto: 7 chars, uppercase A–Z + 2–9 minus `I L O 0 1` (31 symbols, ~27.5B space),

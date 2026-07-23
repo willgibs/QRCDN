@@ -56,12 +56,10 @@ export function StudioShell({
   initialKits,
   initialCodes,
   userId,
-  userEmail,
 }: {
   initialKits: BrandKit[];
   initialCodes: DynamicCodeSummary[];
   userId: string;
-  userEmail: string;
 }) {
   const [kits, setKits] = useState<BrandKit[]>(initialKits);
   const [activeKitId, setActiveKitId] = useState<string | null>(initialKits[0]?.id ?? null);
@@ -323,13 +321,12 @@ export function StudioShell({
   );
 
   return (
-    <div className="flex min-h-dvh flex-col bg-background">
+    <>
       <TopBar
         kits={kits}
         activeKitId={activeKitId}
         currentStyle={validStyle}
         userId={userId}
-        userEmail={userEmail}
         pendingLogoFile={pendingLogoFile}
         onSwitch={handleSwitch}
         onCreated={handleCreated}
@@ -367,7 +364,7 @@ export function StudioShell({
           onExportPng={handleExportPng}
         />
         <PreviewStage
-          className="order-1 lg:order-2 lg:sticky lg:top-24 lg:h-[calc(100vh-8rem)] lg:flex-1 lg:self-start"
+          className="order-1 lg:order-2 lg:sticky lg:top-[89px] lg:h-[calc(100vh-121px)] lg:flex-1 lg:self-start"
           svg={svg}
           payload={previewData}
           report={report}
@@ -378,6 +375,6 @@ export function StudioShell({
           paperHex={paperHex}
         />
       </main>
-    </div>
+    </>
   );
 }

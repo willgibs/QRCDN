@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { type Plan } from "@/lib/entitlements";
@@ -88,19 +87,9 @@ export default async function CodeAnalyticsPage(props: PageProps<"/codes/[slug]"
     .limit(10);
 
   return (
-    <div className="min-h-dvh bg-background">
+    <div>
       <header className="border-b border-border/60">
         <div className="mx-auto flex max-w-[1600px] flex-col gap-4 px-4 py-6 lg:px-8">
-          <nav className="flex items-center gap-1.5 font-mono text-xs uppercase tracking-[0.15em] text-muted-foreground">
-            <Link href="/studio" className="transition-colors duration-200 hover:text-foreground">
-              Studio
-            </Link>
-            <span aria-hidden>/</span>
-            <Link href="/codes" className="transition-colors duration-200 hover:text-foreground">
-              Codes
-            </Link>
-          </nav>
-
           <div className="flex flex-wrap items-center gap-3">
             <h1 className="font-display text-2xl font-semibold tracking-tight text-foreground">
               {code.name}

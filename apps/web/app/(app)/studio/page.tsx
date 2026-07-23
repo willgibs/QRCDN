@@ -37,14 +37,11 @@ export default async function StudioPage() {
     .eq("kind", "dynamic")
     .order("created_at", { ascending: false });
 
-  const userEmail = typeof data.claims.email === "string" ? data.claims.email : "";
-
   return (
     <StudioShell
       initialKits={(kits ?? []) as BrandKit[]}
       initialCodes={(codes ?? []) as DynamicCodeSummary[]}
       userId={data.claims.sub}
-      userEmail={userEmail}
     />
   );
 }

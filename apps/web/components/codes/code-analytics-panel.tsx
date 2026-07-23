@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { motion, useReducedMotion } from "motion/react";
 import { Area, AreaChart, CartesianGrid, XAxis } from "recharts";
 import type { Json, Tables } from "@qrcdn/shared";
@@ -11,23 +10,11 @@ import {
   type ChartConfig,
 } from "@/components/ui/chart";
 import { Card, CardContent } from "@/components/ui/card";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
 import { EASE_OUT } from "@/components/brand/magic";
+import { RangeSelector, rangeLabel } from "@/components/codes/range-selector";
 import { useMounted } from "@/hooks/use-mounted";
-import {
-  RANGE_OPTIONS,
-  maxRangeDaysFor,
-  sumBuckets,
-  toChartSeries,
-  type RangeDays,
-} from "@/lib/analytics";
+import { maxRangeDaysFor, sumBuckets, toChartSeries, type RangeDays } from "@/lib/analytics";
 import { PLAN_LIMITS, type Plan } from "@/lib/entitlements";
-import { cn } from "@/lib/utils";
 
 type DailyRow = Pick<
   Tables<"scan_daily">,
@@ -48,10 +35,6 @@ const chartConfig = {
   scans: { label: "Scans", color: "var(--chart-1)" },
   uniques: { label: "Unique (per day)", color: "var(--chart-2)" },
 } satisfies ChartConfig;
-
-function rangeLabel(days: number): string {
-  return days === 365 ? "1y" : `${days}d`;
-}
 
 // scan_rollup.sql's window_events CTE coalesces missing dimensions to fixed
 // sentinels ("unknown" for country/device/city, "direct" for referer)
@@ -156,63 +139,6 @@ function StatTile({
         {caption && <p className="font-mono text-[11px] text-muted-foreground">{caption}</p>}
       </CardContent>
     </Card>
-  );
-}
-
-/**
- * Each option is a plain `<Link href="?range=N">` — a server refetch by
- * navigation, no client refetch machinery (spec). Options above the plan's
- * ceiling render locked: disabled, a subtle "Pro" tag, and a tooltip —
- * upsell affordance, honest not pushy (everyone is free until P8).
- * `TooltipProvider` is scoped locally here (no ancestor one exists in the
- * app yet) rather than touching app/layout.tsx, which is out of this
- * unit's file scope.
- */
-function RangeSelector({ current, maxDays }: { current: RangeDays; maxDays: number }) {
-  return (
-    <TooltipProvider delayDuration={200}>
-      <div className="inline-flex items-center gap-1 rounded-lg border border-border/60 p-1">
-        {RANGE_OPTIONS.map((days) => {
-          const locked = days > maxDays;
-          const active = days === current;
-
-          if (locked) {
-            return (
-              <Tooltip key={days}>
-                <TooltipTrigger asChild>
-                  <span
-                    aria-disabled="true"
-                    className="flex cursor-not-allowed items-center gap-1.5 rounded-md px-2.5 py-1 text-xs text-muted-foreground/40"
-                  >
-                    {rangeLabel(days)}
-                    <span className="rounded-full bg-muted px-1.5 py-px font-mono text-[9px] uppercase tracking-wide text-muted-foreground">
-                      Pro
-                    </span>
-                  </span>
-                </TooltipTrigger>
-                <TooltipContent>Upgrade to Pro for {rangeLabel(days)} of history</TooltipContent>
-              </Tooltip>
-            );
-          }
-
-          return (
-            <Link
-              key={days}
-              href={`?range=${days}`}
-              aria-current={active ? "true" : undefined}
-              className={cn(
-                "rounded-md px-2.5 py-1 text-xs transition-colors duration-200",
-                active
-                  ? "bg-primary/10 text-primary"
-                  : "text-muted-foreground hover:text-foreground",
-              )}
-            >
-              {rangeLabel(days)}
-            </Link>
-          );
-        })}
-      </div>
-    </TooltipProvider>
   );
 }
 

@@ -4,6 +4,7 @@ import {
   rangeWindowUtc,
   resolveRangeDays,
   sumBuckets,
+  sumDailyAcrossCodes,
   toChartSeries,
 } from "./analytics";
 
@@ -110,6 +111,75 @@ describe("toChartSeries", () => {
     const series = toChartSeries([], 7, now);
     expect(series).toHaveLength(7);
     expect(series.every((p) => p.scans === 0 && p.uniques === 0)).toBe(true);
+  });
+});
+
+describe("sumDailyAcrossCodes", () => {
+  it("sums scans and uniques for rows sharing the same day across codes", () => {
+    const rows = [
+      { day: "2026-07-20", scans: 5, uniques: 3 },
+      { day: "2026-07-20", scans: 2, uniques: 1 },
+    ];
+    expect(sumDailyAcrossCodes(rows)).toEqual([{ day: "2026-07-20", scans: 7, uniques: 4 }]);
+  });
+
+  it("leaves rows for distinct days untouched, one output row per day", () => {
+    const rows = [
+      { day: "2026-07-19", scans: 1, uniques: 1 },
+      { day: "2026-07-20", scans: 2, uniques: 2 },
+    ];
+    expect(sumDailyAcrossCodes(rows)).toEqual([
+      { day: "2026-07-19", scans: 1, uniques: 1 },
+      { day: "2026-07-20", scans: 2, uniques: 2 },
+    ]);
+  });
+
+  it("returns [] for empty input", () => {
+    expect(sumDailyAcrossCodes([])).toEqual([]);
+  });
+
+  it("passes a single code's rows through unchanged (no other code to collapse with)", () => {
+    const rows = [
+      { day: "2026-07-18", scans: 4, uniques: 2 },
+      { day: "2026-07-19", scans: 6, uniques: 3 },
+    ];
+    expect(sumDailyAcrossCodes(rows)).toEqual(rows);
+  });
+
+  it("sorts output ascending by day regardless of input order", () => {
+    const rows = [
+      { day: "2026-07-21", scans: 1, uniques: 1 },
+      { day: "2026-07-18", scans: 2, uniques: 2 },
+      { day: "2026-07-20", scans: 3, uniques: 3 },
+    ];
+    expect(sumDailyAcrossCodes(rows).map((r) => r.day)).toEqual([
+      "2026-07-18",
+      "2026-07-20",
+      "2026-07-21",
+    ]);
+  });
+
+  it("composes with toChartSeries into a zero-filled series with per-code rows summed", () => {
+    const now = new Date("2026-07-22T15:30:00Z");
+    const rows = [
+      { day: "2026-07-16", scans: 3, uniques: 2 },
+      { day: "2026-07-16", scans: 4, uniques: 1 },
+      { day: "2026-07-20", scans: 5, uniques: 5 },
+    ];
+
+    const series = toChartSeries(sumDailyAcrossCodes(rows), 7, now);
+
+    expect(series).toHaveLength(7);
+    expect(series.find((p) => p.day === "2026-07-16")).toEqual({
+      day: "2026-07-16",
+      scans: 7,
+      uniques: 3,
+    });
+    expect(series.find((p) => p.day === "2026-07-15")).toEqual({
+      day: "2026-07-15",
+      scans: 0,
+      uniques: 0,
+    });
   });
 });
 

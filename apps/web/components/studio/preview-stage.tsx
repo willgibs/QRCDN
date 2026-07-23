@@ -78,14 +78,32 @@ function TransparencyChecker() {
  * block to the floor independently means it can grow as tall as it needs
  * to without ever moving the artifact above it.
  *
- * The outer `<section>` picks up `lg:sticky lg:top-24 lg:h-[calc(100vh-8rem)]`
- * from its caller (studio-shell.tsx): at lg+ the stage pins below the sticky
- * top bar while `ControlsRail` scrolls past it — the page (not the rail) is
- * still the scrolling element, `lg:top-24` (6rem) is the top bar's own
- * rendered height (~4rem) plus `<main>`'s `lg:py-8` top padding (2rem), and
- * the height mirrors that same padding on the bottom edge so the stage
- * never crowds the viewport edges. Below `lg` the column stacks normally
- * (no sticky, no fixed height). `items-center justify-center` here centers
+ * The outer `<section>` picks up
+ * `lg:sticky lg:top-[89px] lg:h-[calc(100vh-121px)]` from its caller
+ * (studio-shell.tsx): at lg+ the stage pins below the sticky app nav while
+ * `ControlsRail` scrolls past it — the page (not the rail) is still the
+ * scrolling element.
+ *
+ * Sticky-offset derivation (P6.5-U1, re-derived after `AppNav` replaced
+ * `TopBar` as the shell's one sticky bar): `top-[89px]` is `AppNav`'s own
+ * rendered height (57px, measured via `getBoundingClientRect()` at the `lg`
+ * breakpoint in a live dev-server render, NOT eyeballed — `AppNav`'s row is
+ * a single line of nav links/wordmark/account cluster, so its height is
+ * stable regardless of page content) plus `<main>`'s `lg:py-8` top padding
+ * (32px) — same "sticky bar height + one padding unit" convention the
+ * original `top-24` derivation used, just re-measured because `TopBar`'s
+ * old combined wordmark+account+KitBar row (~64px) no longer exists as one
+ * sticky bar: `TopBar` now renders only the KitBar row, in normal flow
+ * below `AppNav`, so it scrolls away and contributes nothing to this offset
+ * — only `AppNav`, the thing that stays fixed above this stage once stuck,
+ * matters here. `h-[calc(100vh-121px)]` mirrors the same 32px padding unit
+ * on the bottom edge (89 + 32 = 121) so the stage never crowds the viewport
+ * edges, exactly as the original height math did. Verified scrolled, not
+ * just at rest: stuck, `AppNav` bottom sits at 57px and this stage's sticky
+ * top sits at 89px, a clean 32px gap — the same gap the layout shows at
+ * rest, so nothing jumps or tightens up when the sticky boundary engages.
+ * Below `lg` the column stacks normally (no sticky, no fixed height).
+ * `items-center justify-center` here centers
  * the artifact within whatever height the section ends up with, sticky or
  * stacked (P4-U3 deliverable #5; P4 design-iteration note 1 replaced the
  * old `lg:self-stretch` contract with this one).

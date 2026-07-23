@@ -119,6 +119,53 @@ export function toChartSeries(
   return series;
 }
 
+/**
+ * Collapses N rows-per-day (one per code, from a code_id-less `scan_daily`
+ * query — see app/(app)/codes/page.tsx, which queries the whole owner scope
+ * instead of a single code) into one row per day, summing `scans`/`uniques`
+ * across every code that had activity that day. Output is sorted ascending
+ * by `day`, matching `toChartSeries`'s own row shape, so it composes
+ * directly: `toChartSeries(sumDailyAcrossCodes(rows), range)`.
+ *
+ * This still sums `uniques` for future callers, but the `/codes` overview
+ * UI must NOT chart `uniques`: `scan_daily.uniques` is already a per-code
+ * approximation salted by a daily-rotating IP hash (see
+ * code-analytics-panel.tsx's "Unique (per day)" comment — only a single
+ * day's value means anything, cross-day comparisons don't). Summing that
+ * per-code approximation ACROSS codes compounds the problem further — a
+ * visitor who scans two of the caller's codes on the same day gets counted
+ * twice, so a cross-code "uniques" total isn't just noisy, it's actively
+ * wrong in a way `scans` (a plain count, no salt involved) is not.
+ *
+ * Perf/correctness note: a code-id-less `scan_daily` query returns one row
+ * per (code, day) pair, not one row per day — at Pro scale that's up to
+ * 250 codes × 365 days = 91,250 rows for a full-year window, which exceeds
+ * PostgREST's default `max_rows` (1000) and gets truncated SILENTLY (no
+ * error, just a short result), producing an undercounted chart with no
+ * indication anything was dropped. Fine at current scale; revisit at P8 by
+ * moving the per-day sum into a security-definer RPC (so Postgres, not
+ * PostgREST, returns one row per day) or paginating the query.
+ */
+export function sumDailyAcrossCodes(
+  rows: Pick<Tables<"scan_daily">, "day" | "scans" | "uniques">[],
+): Pick<Tables<"scan_daily">, "day" | "scans" | "uniques">[] {
+  const totals = new Map<string, { scans: number; uniques: number }>();
+
+  for (const row of rows) {
+    const existing = totals.get(row.day);
+    if (existing) {
+      existing.scans += row.scans;
+      existing.uniques += row.uniques;
+    } else {
+      totals.set(row.day, { scans: row.scans, uniques: row.uniques });
+    }
+  }
+
+  return Array.from(totals, ([day, { scans, uniques }]) => ({ day, scans, uniques })).sort(
+    (a, b) => (a.day < b.day ? -1 : a.day > b.day ? 1 : 0),
+  );
+}
+
 export interface BucketCount {
   key: string;
   count: number;

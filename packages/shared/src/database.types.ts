@@ -80,6 +80,32 @@ export type Database = {
           },
         ]
       }
+      api_usage: {
+        Row: {
+          count: number
+          key_id: string
+          month: string
+        }
+        Insert: {
+          count?: number
+          key_id: string
+          month: string
+        }
+        Update: {
+          count?: number
+          key_id?: string
+          month?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "api_usage_key_id_fkey"
+            columns: ["key_id"]
+            isOneToOne: false
+            referencedRelation: "api_keys"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       brand_kits: {
         Row: {
           created_at: string
@@ -372,6 +398,13 @@ export type Database = {
     }
     Functions: {
       _cap_top_n_jsonb: { Args: { cap?: number; tally: Json }; Returns: Json }
+      increment_api_usage: {
+        Args: { p_cap: number; p_key_id: string }
+        Returns: {
+          count: number
+          over_cap: boolean
+        }[]
+      }
       rollup_scan_daily: { Args: { window_days?: number }; Returns: undefined }
     }
     Enums: {

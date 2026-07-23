@@ -50,6 +50,9 @@ export function TopBar({
         </Link>
 
         <div className="order-2 ml-auto flex shrink-0 items-center gap-3 lg:order-3 lg:ml-0">
+          <Button asChild variant="ghost" size="sm">
+            <Link href="/codes">Codes</Link>
+          </Button>
           {userEmail && (
             <span
               className="hidden max-w-[180px] truncate font-mono text-xs text-muted-foreground sm:inline"

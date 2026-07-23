@@ -3,6 +3,7 @@ import {
   maxRangeDaysFor,
   rangeWindowUtc,
   resolveRangeDays,
+  sumBuckets,
   toChartSeries,
 } from "./analytics";
 
@@ -109,5 +110,47 @@ describe("toChartSeries", () => {
     const series = toChartSeries([], 7, now);
     expect(series).toHaveLength(7);
     expect(series.every((p) => p.scans === 0 && p.uniques === 0)).toBe(true);
+  });
+});
+
+describe("sumBuckets", () => {
+  it("sums matching keys across multiple day buckets and sorts descending", () => {
+    const buckets = [
+      { US: 10, CA: 3 },
+      { US: 5, GB: 2 },
+    ];
+    expect(sumBuckets(buckets)).toEqual([
+      { key: "US", count: 15 },
+      { key: "CA", count: 3 },
+      { key: "GB", count: 2 },
+    ]);
+  });
+
+  it("folds keys beyond top-N plus any pre-existing 'other' key into one final Other entry", () => {
+    const buckets = [{ US: 10, CA: 8, GB: 6, DE: 4, FR: 2, JP: 1, other: 3 }];
+    // top 3 -> US/CA/GB kept; DE+FR+JP (tail) + other (pre-existing) fold together.
+    expect(sumBuckets(buckets, 3)).toEqual([
+      { key: "US", count: 10 },
+      { key: "CA", count: 8 },
+      { key: "GB", count: 6 },
+      { key: "Other", count: 4 + 2 + 1 + 3 },
+    ]);
+  });
+
+  it("respects a custom top-N and skips malformed entries", () => {
+    const buckets: unknown[] = [{ a: 1, b: 5, c: 3 }, null, "not an object", { d: "not a number" }];
+    expect(sumBuckets(buckets as Parameters<typeof sumBuckets>[0], 2)).toEqual([
+      { key: "b", count: 5 },
+      { key: "c", count: 3 },
+      { key: "Other", count: 1 },
+    ]);
+  });
+
+  it("returns an empty array for empty input, with no Other entry when nothing overflows", () => {
+    expect(sumBuckets([])).toEqual([]);
+    expect(sumBuckets([{ a: 1, b: 2 }], 5)).toEqual([
+      { key: "b", count: 2 },
+      { key: "a", count: 1 },
+    ]);
   });
 });

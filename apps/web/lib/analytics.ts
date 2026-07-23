@@ -1,4 +1,4 @@
-import type { Tables } from "@qrcdn/shared";
+import type { Json, Tables } from "@qrcdn/shared";
 import { PLAN_LIMITS, type Plan } from "./entitlements";
 
 // Pure analytics math — no I/O, no Supabase import. Consumers (dashboard
@@ -117,4 +117,61 @@ export function toChartSeries(
     series.push({ day, scans: row?.scans ?? 0, uniques: row?.uniques ?? 0 });
   }
   return series;
+}
+
+export interface BucketCount {
+  key: string;
+  count: number;
+}
+
+const OTHER_LABEL = "Other";
+
+/**
+ * Sums `{ [key: string]: number }`-shaped `Json` buckets — scan_daily's
+ * by_country/by_device/by_referer/by_city columns, one bucket per fetched
+ * day — into totals across the whole range, then collapses to the top
+ * `top` entries by count (descending). Everything else — both the tail
+ * beyond `top` AND any pre-existing "other" key each day's own rollup may
+ * already carry (Postgres's `_cap_top_n_jsonb`, a 50-key-per-day cap —
+ * supabase/migrations/20260723000007_scan_rollup.sql — emits a lowercase
+ * "other" bucket for anything past its own top 50) — folds into one final
+ * "Other" entry, matched case-insensitively so it's never double-counted
+ * or double-listed. Malformed entries (a non-object bucket, a non-numeric
+ * value) are skipped rather than thrown on: this is display aggregation
+ * for the dashboard, not a schema validation boundary. Empty input, or
+ * input with no numeric values at all, returns `[]`.
+ */
+export function sumBuckets(buckets: Json[], top = 5): BucketCount[] {
+  const totals = new Map<string, number>();
+
+  for (const bucket of buckets) {
+    if (typeof bucket !== "object" || bucket === null || Array.isArray(bucket)) {
+      continue;
+    }
+    for (const [key, value] of Object.entries(bucket)) {
+      if (typeof value !== "number") continue;
+      totals.set(key, (totals.get(key) ?? 0) + value);
+    }
+  }
+
+  let otherTotal = 0;
+  const named: BucketCount[] = [];
+  for (const [key, count] of totals) {
+    if (key.toLowerCase() === "other") {
+      otherTotal += count;
+    } else {
+      named.push({ key, count });
+    }
+  }
+
+  named.sort((a, b) => b.count - a.count);
+
+  const head = named.slice(0, top);
+  otherTotal += named.slice(top).reduce((sum, entry) => sum + entry.count, 0);
+
+  if (otherTotal > 0) {
+    head.push({ key: OTHER_LABEL, count: otherTotal });
+  }
+
+  return head;
 }

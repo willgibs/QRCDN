@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import Link from "next/link";
 import { Check, Loader2, MoreHorizontal, X } from "lucide-react";
 import type { QrStyle } from "@qrcdn/shared";
 import { Button } from "@/components/ui/button";
@@ -200,6 +201,9 @@ export function CodesList({
                   <DropdownMenuItem onSelect={() => startRetarget(code)}>Retarget…</DropdownMenuItem>
                   <DropdownMenuItem onSelect={() => handlePauseToggle(code)}>
                     {code.status === "paused" ? "Resume" : "Pause"}
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link href={`/codes/${code.slug}`}>View analytics</Link>
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>

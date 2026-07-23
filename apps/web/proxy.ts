@@ -24,7 +24,9 @@ export const config = {
      *   lib/api-auth.ts; no Supabase cookie session exists on these
      *   requests, so running updateSession here would be dead work at
      *   best and couldn't authenticate an API-key caller regardless).
+     * - /developers (P7-U5 public API reference page — static, no auth
+     *   cookie work to do, same reasoning as /explore).
      */
-    "/((?!_next/static|_next/image|favicon\\.ico|explore|u/[^/]+|api/v1|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico)$).*)",
+    "/((?!_next/static|_next/image|favicon\\.ico|explore|developers|u/[^/]+|api/v1|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico)$).*)",
   ],
 };

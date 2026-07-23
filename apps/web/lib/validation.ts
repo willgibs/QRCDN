@@ -190,3 +190,46 @@ export function validateQrCodeId(input: unknown): ActionResult<string> {
   }
   return { ok: true, data: id.data };
 }
+
+export interface ValidatedCodePatch {
+  destination?: string;
+  paused?: boolean;
+}
+
+/**
+ * Partial validation for the public API's PATCH surface (P7): only the
+ * fields the caller supplied are validated/returned, mirroring
+ * `validateBrandKitPatch`'s style above. Unlike the studio's `retargetCode`/
+ * `setCodePaused` actions (which are single-field, one-endpoint-per-field),
+ * the API exposes one PATCH endpoint that accepts either or both fields —
+ * so "the caller sent an empty object" is its own rejected case rather than
+ * a no-op.
+ */
+export function validateCodePatchInput(input: {
+  destination?: unknown;
+  paused?: unknown;
+}): ActionResult<ValidatedCodePatch> {
+  if (input.destination === undefined && input.paused === undefined) {
+    return { ok: false, error: "empty_patch" };
+  }
+
+  const patch: ValidatedCodePatch = {};
+
+  if (input.destination !== undefined) {
+    const destination = destinationUrlSchema.safeParse(input.destination);
+    if (!destination.success) {
+      return { ok: false, error: firstIssueMessage(destination, "invalid_destination") };
+    }
+    patch.destination = destination.data;
+  }
+
+  if (input.paused !== undefined) {
+    const paused = pausedSchema.safeParse(input.paused);
+    if (!paused.success) {
+      return { ok: false, error: "invalid_paused" };
+    }
+    patch.paused = paused.data;
+  }
+
+  return { ok: true, data: patch };
+}

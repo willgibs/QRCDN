@@ -5,6 +5,7 @@ import {
   validateBrandKitId,
   validateBrandKitInput,
   validateBrandKitPatch,
+  validateCodePatchInput,
   validateDestination,
   validateDynamicCodeInput,
   validatePaused,
@@ -319,6 +320,44 @@ describe("validatePaused", () => {
 
   it("rejects undefined", () => {
     expect(validatePaused(undefined)).toEqual({ ok: false, error: "invalid_paused" });
+  });
+});
+
+describe("validateCodePatchInput", () => {
+  it("rejects a patch with both fields absent", () => {
+    const result = validateCodePatchInput({});
+    expect(result).toEqual({ ok: false, error: "empty_patch" });
+  });
+
+  it("validates only destination when paused is omitted", () => {
+    const result = validateCodePatchInput({ destination: "https://example.com" });
+    expect(result).toEqual({ ok: true, data: { destination: "https://example.com" } });
+  });
+
+  it("validates only paused when destination is omitted", () => {
+    const result = validateCodePatchInput({ paused: true });
+    expect(result).toEqual({ ok: true, data: { paused: true } });
+  });
+
+  it("validates both fields when both are supplied", () => {
+    const result = validateCodePatchInput({
+      destination: "https://example.com",
+      paused: false,
+    });
+    expect(result).toEqual({
+      ok: true,
+      data: { destination: "https://example.com", paused: false },
+    });
+  });
+
+  it("rejects an invalid destination in a patch", () => {
+    const result = validateCodePatchInput({ destination: "not a url" });
+    expect(result).toEqual({ ok: false, error: "invalid_destination" });
+  });
+
+  it("rejects an invalid paused value in a patch", () => {
+    const result = validateCodePatchInput({ paused: "true" });
+    expect(result).toEqual({ ok: false, error: "invalid_paused" });
   });
 });
 

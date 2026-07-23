@@ -191,6 +191,39 @@ export function validateQrCodeId(input: unknown): ActionResult<string> {
   return { ok: true, data: id.data };
 }
 
+// ---------------------------------------------------------------------------
+// API key management (P7-U4, apps/web/app/(app)/api-keys/actions.ts). Mirrors
+// the brand-kit name/id validators above — same shape, different DB check
+// constraint: api_keys.name is `check (char_length(name) between 1 and 80)`
+// (supabase/migrations/20260721000001_initial_schema.sql), wider than
+// brand_kits/qr_codes' 60-char cap, so this gets its own schema rather than
+// reusing brandKitNameSchema.
+// ---------------------------------------------------------------------------
+
+export const apiKeyNameSchema = z
+  .string()
+  .trim()
+  .min(1, "name_required")
+  .max(80, "name_too_long");
+
+export const apiKeyIdSchema = z.uuid("invalid_id");
+
+export function validateApiKeyName(input: unknown): ActionResult<string> {
+  const name = apiKeyNameSchema.safeParse(input);
+  if (!name.success) {
+    return { ok: false, error: firstIssueMessage(name, "invalid_name") };
+  }
+  return { ok: true, data: name.data };
+}
+
+export function validateApiKeyId(input: unknown): ActionResult<string> {
+  const id = apiKeyIdSchema.safeParse(input);
+  if (!id.success) {
+    return { ok: false, error: "invalid_id" };
+  }
+  return { ok: true, data: id.data };
+}
+
 export interface ValidatedCodePatch {
   destination?: string;
   paused?: boolean;

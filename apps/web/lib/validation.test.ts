@@ -2,6 +2,8 @@ import { describe, expect, it } from "vitest";
 import { defaultQrStyle } from "@qrcdn/shared";
 import { MAX_LOGO_ASSET_ID_LENGTH } from "./logo";
 import {
+  validateApiKeyId,
+  validateApiKeyName,
   validateBrandKitId,
   validateBrandKitInput,
   validateBrandKitPatch,
@@ -374,5 +376,32 @@ describe("validateQrCodeId", () => {
 
   it("rejects a non-string id", () => {
     expect(validateQrCodeId(123)).toEqual({ ok: false, error: "invalid_id" });
+  });
+});
+
+describe("validateApiKeyName", () => {
+  // api_keys.name's DB check constraint is 1..80 chars (initial_schema.sql)
+  // — wider than brand_kits/qr_codes' 60-char cap, so the 80-char boundary
+  // is the one worth asserting here rather than re-testing the 60-char case
+  // validateBrandKitInput's own suite already covers.
+  it("accepts a name at exactly the 80-character boundary", () => {
+    const name = "a".repeat(80);
+    expect(validateApiKeyName(name)).toEqual({ ok: true, data: name });
+  });
+
+  it("rejects a name over 80 characters", () => {
+    expect(validateApiKeyName("a".repeat(81))).toEqual({ ok: false, error: "name_too_long" });
+  });
+});
+
+describe("validateApiKeyId", () => {
+  const validUuid = "3fa85f64-5717-4562-b3fc-2c963f66afa6";
+
+  it("accepts a valid uuid", () => {
+    expect(validateApiKeyId(validUuid)).toEqual({ ok: true, data: validUuid });
+  });
+
+  it("rejects a non-uuid string", () => {
+    expect(validateApiKeyId("not-a-uuid")).toEqual({ ok: false, error: "invalid_id" });
   });
 });

@@ -216,24 +216,30 @@ export type Database = {
       }
       scan_daily: {
         Row: {
+          by_city: Json
           by_country: Json
           by_device: Json
+          by_referer: Json
           code_id: string
           day: string
           scans: number
           uniques: number
         }
         Insert: {
+          by_city?: Json
           by_country?: Json
           by_device?: Json
+          by_referer?: Json
           code_id: string
           day: string
           scans?: number
           uniques?: number
         }
         Update: {
+          by_city?: Json
           by_country?: Json
           by_device?: Json
+          by_referer?: Json
           code_id?: string
           day?: string
           scans?: number
@@ -365,7 +371,8 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      _cap_top_n_jsonb: { Args: { cap?: number; tally: Json }; Returns: Json }
+      rollup_scan_daily: { Args: { window_days?: number }; Returns: undefined }
     }
     Enums: {
       [_ in never]: never

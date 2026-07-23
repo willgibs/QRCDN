@@ -51,7 +51,7 @@ In flight:
 
 ## Environment quick refs
 
-Supabase project `qrcdn` = `yklhpbhfowuvxlwlalhf` (free tier) · Vercel team `willgibs` · GitHub `willgibs/QRCDN` · DNS on Cloudflare (2 unrelated Workers already in account). Costs: $0 while building; $25/mo at launch (details: `docs/guides/infra.md`).
+Supabase project `qrcdn` = `yklhpbhfowuvxlwlalhf` (free tier, org `mmfclcuvgwdmpwtnzgvw`, region `us-east-1`) · Vercel team `willgibs`, project `qrcdn` (a stray CLI-created project `web` was deleted 2026-07-22 — always confirm `.vercel/project.json` says `qrcdn` before env/deploy operations) · GitHub `willgibs/QRCDN` · DNS on Cloudflare, Worker `qrcdn-redirect` (same account also runs two unrelated Workers `partyreel-export`/`partyreel-backup` — never touch those). Costs: $0 while building; $25/mo at launch (details: `docs/guides/infra.md`).
 
 ## Operating model (from founder, session 2)
 

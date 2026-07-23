@@ -50,6 +50,7 @@ Worker secrets (e.g. the Supabase secret key used by the redirect Worker's scan-
 |---|---|---|---|
 | `rollup_scan_daily_hourly` | pg_cron (in-database; inspect via `cron.job` / `cron.job_run_details`) | `5 * * * *` | `select public.rollup_scan_daily();` — upserts today+yesterday UTC into `scan_daily`, maintains `qr_codes.scan_count` (D8 amendment) |
 | Retention purge | Vercel Cron (`apps/web/vercel.json`) → `GET /api/cron/purge` | `0 9 * * *` daily | Deletes `scan_events` older than the owner-plan retention (entitlements.ts: free 30d / Pro 365d); `CRON_SECRET` bearer auth; Hobby-plan timing looseness is fine — retention is a ceiling, not a promise |
+| Nightly DB backup | GitHub Actions (`.github/workflows/backup.yml`) | `17 7 * * *` daily | `supabase db dump --db-url` → private-repo artifact, 14-day retention. Needs the `SUPABASE_DB_URL` repo secret (session-mode `:5432` connection string). Stopgap until Supabase Pro; unencrypted, repo-access-gated — see the workflow header. Breaks silently if Supabase network restrictions are ever enabled |
 
 Manual rollup backfill (e.g. after a cron gap): `select public.rollup_scan_daily(N);`
 with `N` = days back. Never exceed the shortest retention window (see p6-dashboard.md
@@ -60,7 +61,7 @@ caveat). `cron.schedule` is upsert-by-name — re-running migration 007 is safe.
 > Building: $0 (Vercel Hobby + Supabase Free `yklhpbhfowuvxlwlalhf` + CF Free).
 > Launch: $25/mo — Vercel Pro $20 + **Workers Paid $5 (mandatory: free tier's 100k req/day cap would dead-end every printed code on one viral day)**. Supabase Pro $25 at first real customers (free tier has no backups — nightly pg_dump cron until then).
 
-Operationally: don't upgrade anything preemptively while still building. Workers Paid is a hard launch-blocker, not optional, because of the request-cap dead-end risk. Supabase Pro's trigger is "first real customers," not a fixed date — until then, protect against data loss with a nightly `pg_dump` cron (free tier has no automatic backups).
+Operationally: don't upgrade anything preemptively while still building. Workers Paid is a hard launch-blocker, not optional, because of the request-cap dead-end risk. Supabase Pro's trigger is "first real customers," not a fixed date — until then, the nightly `pg_dump` protection is **implemented**: `.github/workflows/backup.yml` (see Scheduled jobs above).
 
 ## CI (`.github/workflows/ci.yml`)
 

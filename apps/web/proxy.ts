@@ -15,7 +15,12 @@ export const config = {
      * - _next/image (image optimization)
      * - favicon.ico and other public static files (svg/png/jpg/etc.)
      * - /explore (public marketing canvas — no auth cookie needed)
+     * - /u/{slug} (public fallback for paused/unknown codes, P6.5-U2 — an
+     *   anonymous, no-lookup page with no auth cookie work to do). Matched
+     *   precisely as `u/[^/]+` (exactly one slug segment) rather than a
+     *   bare `u`, which would also swallow unrelated future routes like
+     *   /upgrade or /unsubscribe.
      */
-    "/((?!_next/static|_next/image|favicon\\.ico|explore|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico)$).*)",
+    "/((?!_next/static|_next/image|favicon\\.ico|explore|u/[^/]+|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico)$).*)",
   ],
 };

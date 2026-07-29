@@ -91,12 +91,6 @@ const ERRORS: { status: string; error: string; meaning: string }[] = [
   { status: "401", error: "unauthorized", meaning: "Missing, malformed, unknown, or revoked API key." },
   { status: "403", error: "api_not_available", meaning: "Your plan does not include API access (Pro only)." },
   { status: "403", error: "code_limit_reached", meaning: "You have reached your plan's dynamic code limit." },
-  { status: "403", error: "vanity_slugs_not_available", meaning: "Custom vanity slugs require a Pro plan." },
-  {
-    status: "403",
-    error: "plan_required",
-    meaning: "Your plan does not include access controls — setting expiresAt requires Pro.",
-  },
   { status: "404", error: "not_found", meaning: "The code does not exist, or is not owned by this key." },
   {
     status: "422",

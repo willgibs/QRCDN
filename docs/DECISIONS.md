@@ -127,6 +127,18 @@ final set `23456789ABCDEFGHJKMNPQRSTVWXYZ`, 30 symbols, ~21.9B space. Implemente
 in `apps/web/lib/slug.ts` (charset-purity tests pin it); the U1 agent flagged the
 drift between this entry and the P5 spec, spec won.
 
+*Amended at P7.5-U3 (2026-07-23) — vanity slugs shipped:* `validateVanitySlug`
+(`lib/slug.ts`) reuses the **narrow auto-gen charset**, not the wider set the DB
+constraint alone would allow — the print-misread rationale for dropping
+`0/O/1/I/L/U` applies to a human's pick as much as a random draw (`SALE2026` is
+rejected; the Studio input's helper text lists the allowed characters). Vanity
+inserts take a single attempt (collision → `slug_taken`, no silent retry). The
+`RESERVED_SLUGS` blocklist is implemented (`lib/slug.ts`), but note: since
+`isValidSlug` runs before the blocklist and every currently-listed reserved word
+is either <4 chars or contains an excluded letter, `isValidSlug` already rejects
+them all — the blocklist is a **tripwire** for a future charset/length widening,
+pinned by a test, not a live gate today. Deliberate, documented at the code.
+
 ## D13 — Design tokens: 3-layer, names locked (product: direction TBD checkpoint A)
 
 Layer 0 primitives + Layer 1 semantic vars (shadcn names verbatim + `--surface-studio`,
@@ -142,6 +154,15 @@ dynamic (soft cap), unlimited kits, full analytics + city geo, API 10k/mo, expir
 password/bulk/vanity. Downgrade: codes keep redirecting, read-only beyond free 3.
 "Your code never dies" is the core positioning; ToS carve-out for malicious use only.
 Abuse controls: Turnstile signup, Safe Browsing on destination changes, retarget rate limits.
+
+*Implementation note (P7.5, 2026-07-23):* every Pro row this entry sells now
+exists — API 10k/mo (P7), expiry + password + vanity + bulk (P7.5) — so the
+pricing page can be built from `entitlements.ts` at P9 with no vaporware. Two
+deliberate carve-outs, both documented at their code: password protection is
+Studio-only (not exposed via the API until plaintext-in-request-body hygiene
+gets its own review), and bulk creation is Studio-only (no API endpoint yet).
+The abuse controls in the last line above remain unimplemented and are P10's
+scope — they gate launch, not this phase.
 
 ## D15 — Cost posture
 

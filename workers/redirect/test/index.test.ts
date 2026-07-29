@@ -103,6 +103,29 @@ describe("fetch handler — KV hit", () => {
     expect(response.headers.get("Cache-Control")).toBe("no-store");
     expect(response.headers.get("Location")).toBe("https://www.qrcdn.com/u/K7M2X9A");
   });
+
+  // P7.5-U1: proves the whole wiring path (index.ts → decideRedirect →
+  // buildRedirectResponse) needs zero changes to enforce the password wall —
+  // the KV record alone drives the branch.
+  it("redirects a passwordProtected KV record to the password wall, still 302 no-store, and still ingests", async () => {
+    const { kv } = fakeKv({
+      K7M2X9A: { destination: "https://example.com", paused: false, codeId: "code-1", passwordProtected: true },
+    });
+    const { ctx, flush } = fakeCtx();
+    const fetchMock = vi.fn().mockResolvedValue({ ok: true });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const response = await worker.fetch(request("/K7M2X9A"), makeEnv(kv), ctx);
+    await flush();
+
+    expect(response.status).toBe(302);
+    expect(response.headers.get("Cache-Control")).toBe("no-store");
+    expect(response.headers.get("Location")).toBe("https://www.qrcdn.com/p/K7M2X9A");
+    // Scan ingest still fires (deliberate — the scan happened even though
+    // the redirect routed to the password wall, not the destination).
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(fetchMock.mock.calls[0]![0]).toContain("/scan_events");
+  });
 });
 
 describe("fetch handler — KV miss", () => {
@@ -111,7 +134,18 @@ describe("fetch handler — KV miss", () => {
     const { ctx, flush } = fakeCtx();
     const fetchMock = vi.fn(async (url: string) => {
       if (url.includes("/qr_codes")) {
-        return { ok: true, json: async () => [{ id: "code-9", destination_url: "https://dest.example", status: "active" }] };
+        return {
+          ok: true,
+          json: async () => [
+            {
+              id: "code-9",
+              destination_url: "https://dest.example",
+              status: "active",
+              expires_at: null,
+              password_hash: null,
+            },
+          ],
+        };
       }
       return { ok: true };
     });

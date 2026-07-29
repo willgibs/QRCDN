@@ -21,4 +21,21 @@ export interface KvSlugRecord {
    * scan ingest for that request rather than guessing an id.
    */
   codeId?: string;
+  /**
+   * qr_codes.expires_at (ISO-8601 UTC) — added additively at P7.5-U1.
+   * Optional/absent means "never expires," which is true of every record
+   * written before this field existed as well as every code without an
+   * expiry set today (additive-only evolution, same discipline as codeId
+   * above): both sides must tolerate its absence rather than treating a
+   * missing value as already-expired.
+   */
+  expiresAt?: string;
+  /**
+   * Derived from qr_codes.password_hash (`password_hash !== null`) — added
+   * additively at P7.5-U1. Optional/absent means "not protected," true of
+   * every pre-existing entry. The hash itself never reaches KV, only this
+   * boolean: KV is a read-through cache the Worker uses to decide whether to
+   * show the password wall, never the place a credential gets checked.
+   */
+  passwordProtected?: boolean;
 }

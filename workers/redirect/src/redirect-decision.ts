@@ -6,13 +6,23 @@ import type { KvSlugRecord } from "@qrcdn/shared";
 // constructing these plain inputs directly.
 
 /** Shape of a qr_codes row as selected over the Supabase REST read-through
- *  (`select=id,destination_url,status`). `id` is included specifically so
- *  scan ingest (D3) can populate scan_events.code_id and so the KV backfill
- *  can carry codeId forward (see kv-backfill.ts). */
+ *  (`select=id,destination_url,status,expires_at,password_hash`). `id` is
+ *  included specifically so scan ingest (D3) can populate
+ *  scan_events.code_id and so the KV backfill can carry codeId forward (see
+ *  kv-backfill.ts). `expires_at`/`password_hash` were added additively at
+ *  P7.5-U1 so the redirect decision below can enforce expiry and the
+ *  password wall on a KV miss, not just on a KV hit. */
 export interface RestQrCodeRow {
   id: string;
   destination_url: string | null;
   status: string;
+  /** ISO-8601 UTC, or null when the code never expires. */
+  expires_at: string | null;
+  /** Present (non-null) when the code is password-protected. The hash
+   *  itself is never forwarded past this module — decideRedirect only ever
+   *  checks `!== null`, and buildKvBackfillRecord below only ever derives
+   *  the boolean `passwordProtected`, never carries the hash into KV. */
+  password_hash: string | null;
 }
 
 /** Outcome of consulting Supabase REST on a KV miss. Three states, not two —
@@ -27,33 +37,52 @@ export type RestLookupResult =
 
 export type RedirectDecision =
   | { kind: "destination"; destination: string }
+  | { kind: "password" }
   | { kind: "unclaimed" };
 
 /**
  * Decision table (verified facts, see final report):
  *
- * | kvRecord           | restResult         | decision                     |
- * |--------------------|---------------------|-------------------------------|
- * | hit, paused=false  | (not consulted)     | destination (kvRecord.dest)  |
- * | hit, paused=true   | (not consulted)     | unclaimed                     |
- * | miss               | found, active       | destination (row.dest)       |
- * | miss               | found, non-active   | unclaimed                     |
- * | miss               | not-found           | unclaimed                     |
- * | miss               | unreachable         | unclaimed (degraded, D2)      |
+ * | kvRecord                        | restResult          | decision                      |
+ * |----------------------------------|----------------------|--------------------------------|
+ * | hit, paused=true                 | (not consulted)      | unclaimed                      |
+ * | hit, expired (now >= expiresAt)  | (not consulted)      | unclaimed (outranks password)  |
+ * | hit, passwordProtected=true      | (not consulted)      | password                       |
+ * | hit, none of the above           | (not consulted)      | destination (kvRecord.dest)   |
+ * | miss                             | found, non-active    | unclaimed                      |
+ * | miss                             | found, expired        | unclaimed (outranks password)  |
+ * | miss                             | found, password_hash  | password                       |
+ * | miss                             | found, active, plain  | destination (row.dest)        |
+ * | miss                             | not-found             | unclaimed                      |
+ * | miss                             | unreachable            | unclaimed (degraded, D2)      |
  *
  * "non-active" covers 'paused' and 'archived' (and any future status) —
  * the hard rule is "never stop redirecting," which this satisfies by always
  * returning a live 302, just not to the merchant's destination when the
  * code isn't in good standing.
+ *
+ * Within each branch, evaluation order is paused/non-active → expired →
+ * protected → destination, and it's symmetric across the KV-hit and
+ * REST-found branches. Expiry deliberately outranks password protection: an
+ * expired-and-protected code reads as gone (unclaimed), so it never invites
+ * a guess at a password for a code that isn't coming back regardless.
  */
 export function decideRedirect(
   kvRecord: KvSlugRecord | null,
   restResult: RestLookupResult | null,
+  now: Date = new Date(),
 ): RedirectDecision {
   if (kvRecord) {
-    return kvRecord.paused
-      ? { kind: "unclaimed" }
-      : { kind: "destination", destination: kvRecord.destination };
+    if (kvRecord.paused) {
+      return { kind: "unclaimed" };
+    }
+    if (kvRecord.expiresAt && now >= new Date(kvRecord.expiresAt)) {
+      return { kind: "unclaimed" };
+    }
+    if (kvRecord.passwordProtected === true) {
+      return { kind: "password" };
+    }
+    return { kind: "destination", destination: kvRecord.destination };
   }
 
   // KV miss: restResult should always be present (index.ts always consults
@@ -63,22 +92,36 @@ export function decideRedirect(
     return { kind: "unclaimed" };
   }
 
-  if (restResult.row.status !== "active") {
+  const { row } = restResult;
+  if (row.status !== "active") {
     return { kind: "unclaimed" };
   }
-  return { kind: "destination", destination: restResult.row.destination_url ?? "" };
+  if (row.expires_at && now >= new Date(row.expires_at)) {
+    return { kind: "unclaimed" };
+  }
+  if (row.password_hash !== null) {
+    return { kind: "password" };
+  }
+  return { kind: "destination", destination: row.destination_url ?? "" };
 }
 
 /** The KV record to backfill after a REST read-through finds a row —
  *  written regardless of status (active or not) so the next request for
  *  this slug is a KV hit either way, avoiding a repeat Postgres read just to
- *  learn "still paused." */
+ *  learn "still paused." `expiresAt`/`passwordProtected` are conditional
+ *  assigns (same additive style as `codeId`, see packages/shared/src/kv.ts)
+ *  so a row with no expiry/no password produces a byte-identical record to
+ *  before P7.5-U1 — `password_hash` itself is never carried into KV, only
+ *  the derived boolean. */
 export function buildKvBackfillRecord(row: RestQrCodeRow): KvSlugRecord {
-  return {
+  const record: KvSlugRecord = {
     destination: row.destination_url ?? "",
     paused: row.status !== "active",
     codeId: row.id,
   };
+  if (row.expires_at) record.expiresAt = row.expires_at;
+  if (row.password_hash !== null) record.passwordProtected = true;
+  return record;
 }
 
 /**

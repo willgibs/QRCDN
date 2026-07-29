@@ -22,6 +22,16 @@ export function parseSyncBody(body: unknown): KvSlugRecord | null {
   if (typeof rec.codeId === "string" && rec.codeId.length > 0 && rec.codeId.length <= 64) {
     out.codeId = rec.codeId;
   }
+  // expiresAt/passwordProtected (P7.5-U1) — same precedent as codeId above:
+  // a malformed value is silently dropped rather than rejecting the whole
+  // body, since these are optional additive fields and the caller's other
+  // (valid) fields shouldn't be held hostage to one bad one.
+  if (typeof rec.expiresAt === "string" && !Number.isNaN(Date.parse(rec.expiresAt))) {
+    out.expiresAt = rec.expiresAt;
+  }
+  if (typeof rec.passwordProtected === "boolean") {
+    out.passwordProtected = rec.passwordProtected;
+  }
   return out;
 }
 

@@ -66,6 +66,27 @@ describe("parseSyncBody", () => {
   ])("rejects %s", (_label, body) => {
     expect(parseSyncBody(body)).toBeNull();
   });
+
+  it("accepts a valid expiresAt and a valid passwordProtected", () => {
+    expect(
+      parseSyncBody({ ...VALID_BODY, expiresAt: "2030-01-01T00:00:00.000Z", passwordProtected: true }),
+    ).toEqual({
+      ...VALID_BODY,
+      expiresAt: "2030-01-01T00:00:00.000Z",
+      passwordProtected: true,
+    });
+  });
+
+  it.each([
+    ["not a date string", "not-a-date"],
+    ["a number", 12345],
+  ])("drops a malformed expiresAt (%s) while the rest of the record stays valid", (_label, expiresAt) => {
+    expect(parseSyncBody({ ...VALID_BODY, expiresAt })).toEqual(VALID_BODY);
+  });
+
+  it("drops a malformed passwordProtected (string \"true\") while the rest of the record stays valid", () => {
+    expect(parseSyncBody({ ...VALID_BODY, passwordProtected: "true" })).toEqual(VALID_BODY);
+  });
 });
 
 describe("secretsMatch", () => {

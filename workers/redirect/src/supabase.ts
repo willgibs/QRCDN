@@ -32,7 +32,7 @@ export async function lookupSlugInSupabase(
   env: SupabaseRestEnv,
   slugUpper: string,
 ): Promise<RestLookupResult> {
-  const url = `${env.supabaseUrl}/rest/v1/qr_codes?slug=eq.${encodeURIComponent(slugUpper)}&select=id,destination_url,status`;
+  const url = `${env.supabaseUrl}/rest/v1/qr_codes?slug=eq.${encodeURIComponent(slugUpper)}&select=id,destination_url,status,expires_at,password_hash`;
   try {
     const response = await fetch(url, { headers: restHeaders(env.secretKey) });
     if (!response.ok) {

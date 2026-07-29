@@ -36,6 +36,13 @@ describe("scan redirects are 302 no-store, never 301", () => {
     );
     expect(response.headers.get("Referrer-Policy")).toBe("no-referrer-when-downgrade");
   });
+
+  it("the password decision also responds 302 with Cache-Control: no-store, to the password wall", () => {
+    const response = buildRedirectResponse({ kind: "password" }, "K7M2X9A");
+    expect(response.status).toBe(302);
+    expect(response.headers.get("Cache-Control")).toBe("no-store");
+    expect(response.headers.get("Location")).toBe("https://www.qrcdn.com/p/K7M2X9A");
+  });
 });
 
 // Exhaustively drive every REST/KV combination through decideRedirect →
@@ -44,7 +51,13 @@ describe("scan redirects are 302 no-store, never 301", () => {
 // exercised separately below) is allowed to.
 describe("no code path returns 301 for a valid slug", () => {
   const SLUG = "K7M2X9A";
-  const ACTIVE_ROW = { id: "code-1", destination_url: "https://example.com", status: "active" };
+  const ACTIVE_ROW = {
+    id: "code-1",
+    destination_url: "https://example.com",
+    status: "active",
+    expires_at: null,
+    password_hash: null,
+  };
   const PAUSED_ROW = { ...ACTIVE_ROW, status: "paused" };
   const ARCHIVED_ROW = { ...ACTIVE_ROW, status: "archived" };
 
@@ -56,6 +69,11 @@ describe("no code path returns 301 for a valid slug", () => {
     { name: "KV miss, REST found archived", kv: null, rest: { status: "found", row: ARCHIVED_ROW } },
     { name: "KV miss, REST not-found", kv: null, rest: { status: "not-found" } },
     { name: "KV miss, REST unreachable", kv: null, rest: { status: "unreachable" } },
+    {
+      name: "KV miss, REST found protected",
+      kv: null,
+      rest: { status: "found", row: { ...ACTIVE_ROW, password_hash: "$2b$hashed" } },
+    },
   ];
 
   it.each(cases)("$name → never 301", ({ kv, rest }) => {

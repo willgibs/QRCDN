@@ -8,22 +8,26 @@ afterEach(() => {
 });
 
 describe("lookupSlugInSupabase", () => {
-  it("queries the qr_codes REST endpoint with id, destination_url, status selected", async () => {
+  it("queries the qr_codes REST endpoint with id, destination_url, status, expires_at, password_hash selected", async () => {
+    const row = {
+      id: "code-1",
+      destination_url: "https://example.com",
+      status: "active",
+      expires_at: null,
+      password_hash: null,
+    };
     const fetchMock = vi.fn().mockResolvedValue({
       ok: true,
-      json: async () => [{ id: "code-1", destination_url: "https://example.com", status: "active" }],
+      json: async () => [row],
     });
     vi.stubGlobal("fetch", fetchMock);
 
     const result = await lookupSlugInSupabase(ENV, "K7M2X9A");
 
-    expect(result).toEqual({
-      status: "found",
-      row: { id: "code-1", destination_url: "https://example.com", status: "active" },
-    });
+    expect(result).toEqual({ status: "found", row });
     const [url, init] = fetchMock.mock.calls[0]!;
     expect(url).toBe(
-      "https://proj.supabase.co/rest/v1/qr_codes?slug=eq.K7M2X9A&select=id,destination_url,status",
+      "https://proj.supabase.co/rest/v1/qr_codes?slug=eq.K7M2X9A&select=id,destination_url,status,expires_at,password_hash",
     );
     expect(init.headers).toMatchObject({ apikey: "sb_secret_x", Authorization: "Bearer sb_secret_x" });
   });

@@ -34,12 +34,24 @@ function scanRedirectToUnclaimed(slugUpper: string): Response {
   return scanRedirect(`${WWW_ORIGIN}/u/${slugUpper}`);
 }
 
+/** Password-protected, unexpired code (P7.5-U1) — same 302+no-store
+ *  contract as scanRedirectToUnclaimed (no extra headers), just routed to
+ *  the password-entry page instead. The hash never travels through this
+ *  Worker; this Response only tells the browser where to go next. */
+function scanRedirectToPasswordWall(slugUpper: string): Response {
+  return scanRedirect(`${WWW_ORIGIN}/p/${slugUpper}`);
+}
+
 /** Turns a redirect decision (redirect-decision.ts) into the actual
- *  Response. The only two cases; no code path here can produce a 301. */
+ *  Response. No code path here can produce a 301. */
 export function buildRedirectResponse(decision: RedirectDecision, slugUpper: string): Response {
-  return decision.kind === "destination"
-    ? scanRedirectToDestination(decision.destination)
-    : scanRedirectToUnclaimed(slugUpper);
+  if (decision.kind === "destination") {
+    return scanRedirectToDestination(decision.destination);
+  }
+  if (decision.kind === "password") {
+    return scanRedirectToPasswordWall(slugUpper);
+  }
+  return scanRedirectToUnclaimed(slugUpper);
 }
 
 /** Host canonicalization — 301 is correct HERE (not a scan): apex paths that

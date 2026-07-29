@@ -56,6 +56,18 @@ Manual rollup backfill (e.g. after a cron gap): `select public.rollup_scan_daily
 with `N` = days back. Never exceed the shortest retention window (see p6-dashboard.md
 caveat). `cron.schedule` is upsert-by-name — re-running migration 007 is safe.
 
+## Repo visibility + fork-PR posture (P7.5-A, 2026-07-23)
+
+The repo is **public** (board decision: free unmetered Actions while building; flip
+back private before launch — on the P10 checklist, with a re-audit of every
+visibility-dependent assumption at that point). Standing posture: GitHub does not
+expose repo secrets to fork-PR workflow runs; `backup.yml` triggers only on
+schedule/`workflow_dispatch` (never `pull_request`); first-time-contributor runs
+require maintainer approval (GitHub default). Backup artifacts are AES-256-CBC
+encrypted (`BACKUP_PASSPHRASE` repo secret; decrypt one-liner in the workflow
+header) because public-repo artifacts are downloadable by any logged-in GitHub
+user. Never add a secret-consuming job to a `pull_request` trigger while public.
+
 ## Cost posture and upgrade triggers (D15, reproduced)
 
 > Building: $0 (Vercel Hobby + Supabase Free `yklhpbhfowuvxlwlalhf` + CF Free).

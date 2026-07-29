@@ -9,6 +9,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { cn } from "@/lib/utils";
+import { codeState } from "@/lib/access";
 
 /**
  * Labeled status → pill styling. Mirrors the "Active" pill in the
@@ -26,18 +27,33 @@ import { cn } from "@/lib/utils";
  * product-window.tsx/top-bar.tsx already set (leaf components staying
  * directive-free, safely importable from either side of the RSC boundary).
  */
-export function statusMeta(status: string): { label: string; className: string } {
-  if (status === "paused") {
-    return { label: "Paused", className: "bg-muted text-muted-foreground" };
+export function statusMeta(
+  status: string,
+  expiresAt?: string | null,
+): { label: string; className: string } {
+  // `codeState` folds expiry into the label — a code whose expires_at has
+  // passed still has status "active" in the DB but no longer reaches its
+  // destination, so labeling it "Active" would be a lie (see lib/access.ts).
+  switch (codeState(status, expiresAt)) {
+    case "paused":
+      return { label: "Paused", className: "bg-muted text-muted-foreground" };
+    case "archived":
+      return { label: "Archived", className: "bg-muted/60 text-muted-foreground/70" };
+    case "expired":
+      return { label: "Expired", className: "bg-destructive/10 text-destructive" };
+    default:
+      return { label: "Active", className: "bg-primary/10 text-primary" };
   }
-  if (status === "archived") {
-    return { label: "Archived", className: "bg-muted/60 text-muted-foreground/70" };
-  }
-  return { label: "Active", className: "bg-primary/10 text-primary" };
 }
 
-export function StatusPill({ status }: { status: string }) {
-  const meta = statusMeta(status);
+export function StatusPill({
+  status,
+  expiresAt,
+}: {
+  status: string;
+  expiresAt?: string | null;
+}) {
+  const meta = statusMeta(status, expiresAt);
   return (
     <span
       className={cn(
@@ -46,6 +62,17 @@ export function StatusPill({ status }: { status: string }) {
       )}
     >
       {meta.label}
+    </span>
+  );
+}
+
+/** Shown beside the status pill when a code sits behind a password, so the
+ *  list answers "which of my codes are protected?" without opening each one's
+ *  Access dialog. Labeled text, never a bare icon (founder rule). */
+export function ProtectedTag() {
+  return (
+    <span className="inline-flex w-fit items-center rounded-full bg-muted px-2 py-0.5 text-[11px] font-medium text-muted-foreground">
+      Protected
     </span>
   );
 }
@@ -75,7 +102,10 @@ export function CodesTable({ codes }: { codes: DynamicCodeSummary[] }) {
             <TableCell className="font-medium text-foreground">{code.name}</TableCell>
             <TableCell className="font-mono text-xs text-muted-foreground">/{code.slug}</TableCell>
             <TableCell>
-              <StatusPill status={code.status} />
+              <span className="flex flex-wrap items-center gap-1.5">
+                <StatusPill status={code.status} expiresAt={code.expiresAt} />
+                {code.passwordProtected ? <ProtectedTag /> : null}
+              </span>
             </TableCell>
             <TableCell className="text-right font-mono tabular-nums">
               {code.scan_count.toLocaleString()}

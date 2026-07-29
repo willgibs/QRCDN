@@ -13,6 +13,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
+import { codeState } from "@/lib/access";
 import { validateDestination } from "@/lib/validation";
 import type { Plan } from "@/lib/entitlements";
 import {
@@ -34,14 +35,23 @@ type RowNotice = { id: string; kind: "error" | "propagating"; message: string };
  *  unit (qr_codes has no delete/archive path yet) but handled honestly
  *  anyway, matching the codebase's stance on defensively reading persisted
  *  rows rather than assuming only the states the UI itself can produce. */
-function statusMeta(status: string): { label: string; dotClassName: string; textClassName: string } {
-  if (status === "paused") {
-    return { label: "Paused", dotClassName: "bg-muted-foreground/50", textClassName: "text-muted-foreground" };
+function statusMeta(
+  status: string,
+  expiresAt?: string | null,
+): { label: string; dotClassName: string; textClassName: string } {
+  // Expiry folded in via lib/access.ts: a code past its expires_at keeps
+  // status "active" in the DB but no longer reaches its destination, so
+  // labeling it "Active" here would misreport a dead code as live.
+  switch (codeState(status, expiresAt)) {
+    case "paused":
+      return { label: "Paused", dotClassName: "bg-muted-foreground/50", textClassName: "text-muted-foreground" };
+    case "archived":
+      return { label: "Archived", dotClassName: "bg-muted-foreground/30", textClassName: "text-muted-foreground" };
+    case "expired":
+      return { label: "Expired", dotClassName: "bg-destructive", textClassName: "text-destructive" };
+    default:
+      return { label: "Active", dotClassName: "bg-emerald-500", textClassName: "text-foreground" };
   }
-  if (status === "archived") {
-    return { label: "Archived", dotClassName: "bg-muted-foreground/30", textClassName: "text-muted-foreground" };
-  }
-  return { label: "Active", dotClassName: "bg-emerald-500", textClassName: "text-foreground" };
 }
 
 /**
@@ -183,7 +193,7 @@ export function CodesList({
   return (
     <div className="flex flex-col gap-2">
       {codes.map((code) => {
-        const status = statusMeta(code.status);
+        const status = statusMeta(code.status, code.expiresAt);
         const isRetargeting = retargetingId === code.id;
         const isBusy = busyId === code.id;
         const rowNotice = notice?.id === code.id ? notice : null;
@@ -248,6 +258,9 @@ export function CodesList({
                 <span className="inline-flex items-center gap-1.5 text-xs">
                   <span aria-hidden className={cn("size-1.5 shrink-0 rounded-full", status.dotClassName)} />
                   <span className={status.textClassName}>{status.label}</span>
+                  {code.passwordProtected ? (
+                    <span className="text-muted-foreground">· Protected</span>
+                  ) : null}
                 </span>
                 <span className="font-mono text-xs tabular-nums text-muted-foreground">
                   {code.scan_count.toLocaleString()} scans

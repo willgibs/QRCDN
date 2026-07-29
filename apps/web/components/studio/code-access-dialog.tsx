@@ -25,6 +25,23 @@ import type { DynamicCodeSummary } from "@/lib/codes-core";
 
 const GENERIC_ERROR = "Couldn't save that — try again.";
 
+// Map the server's error codes to copy the user can act on. Without this every
+// failure read "try again", which is actively misleading for a validation
+// problem: an empty save or a too-short password isn't transient, and retrying
+// the same input can only fail again. (Red-teaming also showed the generic
+// string masking a genuine 500 — see lib/use-server-contract.test.ts.)
+const ERROR_COPY: Record<string, string> = {
+  empty_patch: "Set an expiry or a password first.",
+  invalid_expiry: "That expiry date isn't valid.",
+  invalid_password: "Passwords must be 4–128 characters.",
+  plan_required: "Access controls are a Pro feature.",
+  not_found: "That code no longer exists — refresh and try again.",
+};
+
+function errorCopy(code: string): string {
+  return ERROR_COPY[code] ?? GENERIC_ERROR;
+}
+
 /**
  * ISO-8601 UTC <-> the `<input type="datetime-local">` value shape
  * (`YYYY-MM-DDTHH:mm`, LOCAL time, no timezone/seconds). Conversion happens
@@ -116,7 +133,7 @@ export function CodeAccessDialog({
       }
       const result = await setCodeAccess(code.id, input);
       if (!result.ok) {
-        setError(GENERIC_ERROR);
+        setError(errorCopy(result.error));
         return;
       }
       onSaved(code.id, {

@@ -94,7 +94,7 @@ export default async function CodeAnalyticsPage(props: PageProps<"/codes/[slug]"
               {code.name}
             </h1>
             <span className="font-mono text-sm text-muted-foreground">/{code.slug}</span>
-            <StatusPill status={code.status} />
+            <StatusPill status={code.status} expiresAt={code.expiresAt} />
           </div>
 
           <p className="truncate text-sm text-muted-foreground">

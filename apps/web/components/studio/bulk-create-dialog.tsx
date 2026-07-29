@@ -24,6 +24,7 @@ import { cn } from "@/lib/utils";
 import { PLAN_LIMITS, type Plan } from "@/lib/entitlements";
 import { suggestCodeName } from "@/lib/code-name";
 import { downloadBlob } from "@/lib/export";
+import { buildResultsCsv } from "@/lib/csv";
 import { createDynamicCodesBulk, listDynamicCodes } from "@/app/(app)/studio/code-actions";
 import type { BulkItemOutcome, DynamicCodeSummary } from "@/lib/codes-core";
 
@@ -87,19 +88,8 @@ function parseBulkDraft(raw: string): BulkDraftItem[] {
     });
 }
 
-function csvField(value: string): string {
-  return /[",\n]/.test(value) ? `"${value.replace(/"/g, '""')}"` : value;
-}
-
-function buildResultsCsv(results: BulkItemOutcome[]): string {
-  const header = "name,url,status,error";
-  const rows = results.map((r) =>
-    [r.name, r.ok ? r.url : "", r.ok ? "created" : "failed", r.ok ? "" : r.error]
-      .map(csvField)
-      .join(","),
-  );
-  return [header, ...rows].join("\n");
-}
+// csvField/buildResultsCsv live in lib/csv.ts — unit-testable there, and they
+// carry a spreadsheet-formula-injection guard (see that file).
 
 /**
  * The studio rail's "Bulk create" affordance (P7.5-U4) — a Dialog (the

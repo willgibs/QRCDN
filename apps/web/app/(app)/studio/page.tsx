@@ -3,7 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { listDynamicCodesCore } from "@/lib/codes-core";
 import { type Plan } from "@/lib/entitlements";
 import { StudioShell } from "@/components/studio/studio-shell";
-import type { BrandKit } from "./actions";
+import type { BrandKit } from "@/lib/brand-kits";
 
 // D9: all (app) routes are force-dynamic so the getClaims() guard below runs
 // fresh on every request rather than riding a cached response.

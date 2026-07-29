@@ -1,5 +1,5 @@
 import Link from "next/link";
-import type { DynamicCodeSummary } from "@/app/(app)/studio/code-actions";
+import type { DynamicCodeSummary } from "@/lib/codes-core";
 import {
   Table,
   TableBody,

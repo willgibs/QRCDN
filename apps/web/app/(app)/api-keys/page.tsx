@@ -2,7 +2,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { type Plan } from "@/lib/entitlements";
 import { ApiKeysPanel } from "@/components/api-keys/api-keys-panel";
-import type { ApiKeySummary } from "@/app/(app)/api-keys/actions";
+import type { ApiKeySummary } from "@/lib/api-keys";
 
 // D9: all (app) routes are force-dynamic so the getClaims() guard below runs
 // fresh on every request rather than riding a cached response.

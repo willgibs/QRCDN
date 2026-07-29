@@ -21,14 +21,8 @@ import type { TablesInsert } from "@qrcdn/shared";
 // notes), and this file, unlike those two, has a direct test
 // (actions.test.ts) that needs its imports to resolve under plain Vitest.
 
-export interface ApiKeySummary {
-  id: string;
-  name: string;
-  key_prefix: string;
-  created_at: string;
-  last_used_at: string | null;
-  revoked_at: string | null;
-}
+// `ApiKeySummary` lives in lib/api-keys.ts, not here: a "use server" file may
+// export async functions ONLY (see lib/use-server-contract.test.ts).
 
 type SupabaseServerClient = Awaited<ReturnType<typeof createClient>>;
 

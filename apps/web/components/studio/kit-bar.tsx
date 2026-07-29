@@ -22,8 +22,8 @@ import {
   deleteBrandKit,
   setDefaultBrandKit,
   updateBrandKit,
-  type BrandKit,
 } from "@/app/(app)/studio/actions";
+import type { BrandKit } from "@/lib/brand-kits";
 
 const DELETE_CONFIRM_TIMEOUT_MS = 4000;
 const LIMIT_NOTE_TIMEOUT_MS = 6000;

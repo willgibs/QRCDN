@@ -1,5 +1,5 @@
 import type { QrStyle } from "@qrcdn/shared";
-import type { BrandKit } from "@/app/(app)/studio/actions";
+import type { BrandKit } from "@/lib/brand-kits";
 import { KitBar } from "./kit-bar";
 
 /**

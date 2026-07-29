@@ -24,12 +24,8 @@ import { cn } from "@/lib/utils";
 import { PLAN_LIMITS, type Plan } from "@/lib/entitlements";
 import { suggestCodeName } from "@/lib/code-name";
 import { downloadBlob } from "@/lib/export";
-import {
-  createDynamicCodesBulk,
-  listDynamicCodes,
-  type BulkItemOutcome,
-  type DynamicCodeSummary,
-} from "@/app/(app)/studio/code-actions";
+import { createDynamicCodesBulk, listDynamicCodes } from "@/app/(app)/studio/code-actions";
+import type { BulkItemOutcome, DynamicCodeSummary } from "@/lib/codes-core";
 
 const COPY_FLASH_TIMEOUT_MS = 1600;
 

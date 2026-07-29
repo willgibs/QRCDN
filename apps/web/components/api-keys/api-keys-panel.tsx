@@ -16,11 +16,8 @@ import {
 } from "@/components/ui/table";
 import { PLAN_LIMITS, type Plan } from "@/lib/entitlements";
 import { cn } from "@/lib/utils";
-import {
-  createApiKeyAction,
-  revokeApiKeyAction,
-  type ApiKeySummary,
-} from "@/app/(app)/api-keys/actions";
+import { createApiKeyAction, revokeApiKeyAction } from "@/app/(app)/api-keys/actions";
+import type { ApiKeySummary } from "@/lib/api-keys";
 
 const REVOKE_CONFIRM_TIMEOUT_MS = 4000;
 const COPY_FLASH_TIMEOUT_MS = 1600;

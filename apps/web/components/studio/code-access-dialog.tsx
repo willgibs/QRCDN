@@ -21,7 +21,7 @@ import {
 } from "@/components/ui/tooltip";
 import { PLAN_LIMITS, type Plan } from "@/lib/entitlements";
 import { setCodeAccess } from "@/app/(app)/studio/code-actions";
-import type { DynamicCodeSummary } from "@/app/(app)/studio/code-actions";
+import type { DynamicCodeSummary } from "@/lib/codes-core";
 
 const GENERIC_ERROR = "Couldn't save that — try again.";
 

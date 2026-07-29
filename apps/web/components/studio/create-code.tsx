@@ -17,7 +17,8 @@ import { suggestCodeName } from "@/lib/code-name";
 import { printedShortUrl } from "@/lib/short-url";
 import { SLUG_CHARSET } from "@/lib/slug";
 import { PLAN_LIMITS, type Plan } from "@/lib/entitlements";
-import { createDynamicCode, type QrCode } from "@/app/(app)/studio/code-actions";
+import { createDynamicCode } from "@/app/(app)/studio/code-actions";
+import type { QrCode } from "@/lib/codes-core";
 
 const COPY_FLASH_TIMEOUT_MS = 1600;
 const CODE_LIMIT_MESSAGE = "Free includes 3 dynamic codes — Pro raises it to 250.";

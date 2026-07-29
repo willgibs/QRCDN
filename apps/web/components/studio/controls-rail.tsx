@@ -22,7 +22,7 @@ import { ColorChipRow, ColorField, TransparentPaperChip } from "@/components/stu
 import { CreateCodeControl } from "@/components/studio/create-code";
 import { BulkCreateDialog } from "@/components/studio/bulk-create-dialog";
 import { CodesList } from "@/components/studio/codes-list";
-import type { DynamicCodeSummary, QrCode } from "@/app/(app)/studio/code-actions";
+import type { DynamicCodeSummary, QrCode } from "@/lib/codes-core";
 import type { Plan } from "@/lib/entitlements";
 import { radiansToDegrees } from "@/lib/angle";
 import {

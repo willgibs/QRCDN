@@ -153,3 +153,16 @@ export async function hashApiKey(key: string): Promise<string> {
   const hex = [...new Uint8Array(digest)].map((byte) => byte.toString(16).padStart(2, "0")).join("");
   return `\\x${hex}`;
 }
+
+/** An api_keys row as the management UI displays it — never includes
+ *  `key_hash`. Defined here rather than in app/(app)/api-keys/actions.ts
+ *  because that is a "use server" file, which may export async functions only
+ *  (see lib/use-server-contract.test.ts). */
+export interface ApiKeySummary {
+  id: string;
+  name: string;
+  key_prefix: string;
+  created_at: string;
+  last_used_at: string | null;
+  revoked_at: string | null;
+}

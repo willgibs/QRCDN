@@ -19,8 +19,8 @@ import {
   getDynamicCodeStyle,
   retargetCode,
   setCodePaused,
-  type DynamicCodeSummary,
 } from "@/app/(app)/studio/code-actions";
+import type { DynamicCodeSummary } from "@/lib/codes-core";
 import { CodeAccessDialog } from "@/components/studio/code-access-dialog";
 
 const ROW_NOTICE_TIMEOUT_MS = 6000;

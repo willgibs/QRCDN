@@ -32,7 +32,16 @@ import type { QrStyle } from "@qrcdn/shared";
 // initial_schema.sql): qr_codes has NO `name` column originally scoped —
 // see codes-core.ts's own header for the full note; unchanged by this unit.
 
-export type { QrCode, DynamicCodeSummary, BulkItemOutcome };
+// NO type re-exports from this file. A "use server" module's exports become a
+// runtime server-action registry, and the bundler emits a runtime binding for
+// every exported name — including ones TypeScript erases. Re-exporting
+// `QrCode`/`DynamicCodeSummary`/`BulkItemOutcome` here (P7-U2, b6f18fe) shipped
+// a production `ReferenceError: QrCode is not defined` that 500'd every server
+// action POST to /studio: typecheck, `next build`, and the unit suites all
+// passed because the failure only exists in the bundled server chunk at
+// runtime. Consumers import these types from `@/lib/codes-core` directly —
+// always as `import type`, so no client bundle pulls codes-core's node:crypto
+// dependency chain. Keep this file's exports to async functions only.
 
 type SupabaseServerClient = Awaited<ReturnType<typeof createClient>>;
 

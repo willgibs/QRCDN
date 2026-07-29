@@ -10,6 +10,7 @@ import {
   type ActionResult,
 } from "@/lib/validation";
 import type { Tables, TablesInsert, TablesUpdate } from "@qrcdn/shared";
+import type { BrandKit } from "@/lib/brand-kits";
 
 // Server actions for Studio brand-kit CRUD (P4-U1). Every input is
 // zod-parsed (apps/web/lib/validation.ts) before it reaches Supabase.
@@ -18,7 +19,8 @@ import type { Tables, TablesInsert, TablesUpdate } from "@qrcdn/shared";
 // owner_id filters beyond what INSERT requires, since RLS already scopes
 // every select/update/delete to the caller.
 
-export type BrandKit = Tables<"brand_kits">;
+// `BrandKit` lives in lib/brand-kits.ts, not here: a "use server" file may
+// export async functions ONLY (see lib/use-server-contract.test.ts).
 
 type SupabaseServerClient = Awaited<ReturnType<typeof createClient>>;
 

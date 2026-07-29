@@ -9,11 +9,17 @@
 # incompatible with pg_dump-style operations). Dumps land as private-repo
 # Actions artifacts with 14-day retention.
 #
-# Honest exposure note: artifacts are unencrypted and gated only by repo read
-# access (repo is private). Acceptable as a stopgap; retire this whole file
-# when Supabase Pro lands. If [db.network_restrictions] is ever enabled in
-# the Supabase project, GH runner IPs will be blocked and this job will start
-# failing — that's the first place to look.
+# Encryption (P7.5-A1): the repo is PUBLIC (board decision, 2026-07-23 — free
+# Actions while building; private again before launch), and public-repo
+# artifacts are downloadable by any logged-in GitHub user. Dumps are therefore
+# encrypted before upload: AES-256-CBC via openssl with PBKDF2, passphrase in
+# the BACKUP_PASSPHRASE repo secret (a copy also lives in apps/web/.env.local
+# so restores never depend on GitHub). Decrypt a downloaded artifact with:
+#   openssl enc -d -aes-256-cbc -pbkdf2 -pass env:BACKUP_PASSPHRASE \
+#     -in qrcdn-backup-YYYYMMDD.sql.enc -out qrcdn-backup-YYYYMMDD.sql
+# Retire this whole file when Supabase Pro's managed backups land. If
+# [db.network_restrictions] is ever enabled in the Supabase project, GH runner
+# IPs will be blocked and this job will start failing — first place to look.
 
 name: Nightly DB backup
 
@@ -30,19 +36,25 @@ jobs:
       - uses: supabase/setup-cli@v1
         with:
           version: latest
-      - name: Dump database
+      - name: Dump and encrypt database
         env:
           SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+          BACKUP_PASSPHRASE: ${{ secrets.BACKUP_PASSPHRASE }}
         run: |
-          if [ -z "$SUPABASE_DB_URL" ]; then
-            echo "SUPABASE_DB_URL secret is not set — backup cannot run." >&2
+          if [ -z "$SUPABASE_DB_URL" ] || [ -z "$BACKUP_PASSPHRASE" ]; then
+            echo "SUPABASE_DB_URL / BACKUP_PASSPHRASE secret missing — backup cannot run." >&2
             exit 1
           fi
-          supabase db dump --db-url "$SUPABASE_DB_URL" -f "qrcdn-backup-$(date -u +%Y%m%d).sql"
-          ls -lh qrcdn-backup-*.sql
+          STAMP="$(date -u +%Y%m%d)"
+          supabase db dump --db-url "$SUPABASE_DB_URL" -f "qrcdn-backup-$STAMP.sql"
+          openssl enc -aes-256-cbc -pbkdf2 -salt -pass env:BACKUP_PASSPHRASE \
+            -in "qrcdn-backup-$STAMP.sql" -out "qrcdn-backup-$STAMP.sql.enc"
+          # Never let the plaintext dump reach the artifact step.
+          rm "qrcdn-backup-$STAMP.sql"
+          ls -lh qrcdn-backup-*.sql.enc
       - uses: actions/upload-artifact@v4
         with:
           name: qrcdn-db-backup-${{ github.run_id }}
-          path: qrcdn-backup-*.sql
+          path: qrcdn-backup-*.sql.enc
           retention-days: 14
           if-no-files-found: error

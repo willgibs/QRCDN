@@ -1,6 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { KvSlugRecord } from "@qrcdn/shared";
 import {
+  defaultQrStyle,
   parseQrStyle,
   type Database,
   type QrStyle,
@@ -12,6 +13,7 @@ import { PLAN_LIMITS, type Plan } from "./entitlements";
 import { generateSlug, validateVanitySlug } from "./slug";
 import { writeSlugToKv } from "./kv-sync";
 import { hashCodePassword } from "./passwords";
+import { SHORT_URL_HOST } from "./short-url";
 import {
   validateCodeAccessInput,
   validateDestination,
@@ -319,6 +321,165 @@ export async function createDynamicCodeCore(
     style: validated.data.style,
     slug,
   });
+}
+
+/**
+ * The lowercase, API-style short URL for a slug (`https://qrcdn.com/{slug}`)
+ * — deliberately NOT `lib/short-url.ts`'s `printedShortUrl` (the uppercase,
+ * QR-alphanumeric-mode print form `CreateCodeControl` uses for its "this is
+ * now the live artifact on stage" moment). A bulk result set is a list of
+ * codes to scan/copy/export, the same shape `app/api/v1/_lib/to-api-code.ts`'s
+ * `toApiCode` already serves its callers — so this reuses that exact
+ * construction (same `SHORT_URL_HOST` constant, same `.toLowerCase()`),
+ * producing a byte-identical string to what `toApiCode` would return for the
+ * same slug, rather than hand-rolling a new URL shape for bulk results.
+ * `lib/short-url.ts` itself is outside this unit's file scope, so this stays
+ * a private helper here instead of a new export added there.
+ */
+function bulkResultUrl(slug: string): string {
+  return `https://${SHORT_URL_HOST.toLowerCase()}/${slug}`;
+}
+
+/** Best-effort display name for a failed bulk-item outcome. `item.name`
+ *  hasn't necessarily passed `validateDynamicCodeInput` yet — that's often
+ *  WHY the item failed — so this never throws: a string is trimmed and used
+ *  as-is even if it still violates the 1..60 length rule; anything else
+ *  (missing, wrong type) falls back to `""` rather than surfacing `undefined`
+ *  in a result the caller may render or put in a CSV. */
+function bestEffortItemName(name: unknown): string {
+  return typeof name === "string" ? name.trim() : "";
+}
+
+export const BULK_MAX = 50;
+
+export type BulkItemOutcome =
+  | { name: string; ok: true; slug: string; url: string }
+  | { name: string; ok: false; error: string };
+
+/**
+ * Bulk dynamic-code creation (P7.5-U4, Pro-gated via `PLAN_LIMITS[plan].bulk`).
+ * Two distinct failure tiers, deliberately:
+ *
+ * - BATCH-level gates fail the whole call before a single row is touched:
+ *   empty input, over `BULK_MAX`, no profile, the plan doesn't allow bulk, or
+ *   the whole batch would push the caller over their `dynamicCodes` cap
+ *   (checked ONCE up front via `dynamicCodeCountFor` — never per item, and
+ *   never re-checked mid-loop, so a caller never ends up "some codes over the
+ *   limit" from a single call — same check-then-insert-race stance
+ *   `createDynamicCodeCore`'s own count check takes above).
+ * - PER-ITEM outcomes are partial-success: one bad destination, one taken
+ *   vanity slug, or one item's own vanity-slug plan violation never aborts
+ *   the rest of the batch — every item gets its own `BulkItemOutcome` and the
+ *   loop always continues. This mirrors `createDynamicCodeCore`'s own
+ *   validate -> (vanity slug) -> insert sequence per item, just without that
+ *   function's own plan/limit checks (already done once, above, for the
+ *   whole batch) and without ever throwing partway through.
+ *
+ * `style` is resolved ONCE up front and shared byte-identical across every
+ * insert — `qr_codes.style` is a frozen snapshot per code (D5 hard rule), and
+ * every code minted from one pasted batch is meant to look like the studio
+ * state the caller had open when they pasted it, so sharing one parsed
+ * object across inserts is correct, not a shortcut. Absent or malformed
+ * input falls back to `defaultQrStyle` — the same try/parse/catch-to-default
+ * shape `studio-shell.tsx`'s own `styleFromKit`/`validStyle` already use —
+ * so a bad `style` value degrades to a sane default instead of failing every
+ * item in the batch with an error the caller has no per-item way to fix.
+ *
+ * No `writeSlugToKv` call anywhere in this function: creation never writes
+ * KV (see `insertDynamicCode` above, and D2) — the Worker's own read-through
+ * covers the first scan of a brand-new slug.
+ */
+export async function createDynamicCodesBulkCore(
+  ctx: CodesCoreCtx,
+  items: { name: unknown; destination: unknown; slug?: unknown }[],
+  style: unknown,
+): Promise<ActionResult<BulkItemOutcome[]>> {
+  if (items.length === 0) {
+    return { ok: false, error: "empty_batch" };
+  }
+  if (items.length > BULK_MAX) {
+    return { ok: false, error: "batch_too_large" };
+  }
+
+  const { data: profile, error: profileError } = await ctx.db
+    .from("profiles")
+    .select("plan")
+    .eq("id", ctx.ownerId)
+    .single();
+  if (profileError || !profile) {
+    return { ok: false, error: "profile_not_found" };
+  }
+
+  const plan = profile.plan as Plan;
+  if (!PLAN_LIMITS[plan].bulk) {
+    return { ok: false, error: "bulk_not_available" };
+  }
+
+  const existingCount = await dynamicCodeCountFor(ctx);
+  if (existingCount === null) {
+    return { ok: false, error: "code_count_failed" };
+  }
+  // Single check for the WHOLE batch, before any insert — never per item.
+  if (existingCount + items.length > PLAN_LIMITS[plan].dynamicCodes) {
+    return { ok: false, error: "code_limit" };
+  }
+
+  let parsedStyle: QrStyle;
+  try {
+    parsedStyle = style === undefined ? defaultQrStyle : parseQrStyle(style);
+  } catch {
+    parsedStyle = defaultQrStyle;
+  }
+
+  const outcomes: BulkItemOutcome[] = [];
+
+  for (const item of items) {
+    const validated = validateDynamicCodeInput({
+      name: item.name,
+      destination: item.destination,
+      style: parsedStyle,
+    });
+    if (!validated.ok) {
+      outcomes.push({ name: bestEffortItemName(item.name), ok: false, error: validated.error });
+      continue;
+    }
+
+    // Per-item vanity slug (P7.5-U3's same gate, re-checked per line — one
+    // row in a pasted batch may carry a custom slug while the next doesn't).
+    let slug: string | undefined;
+    if (item.slug !== undefined) {
+      if (!PLAN_LIMITS[plan].vanitySlugs) {
+        outcomes.push({ name: validated.data.name, ok: false, error: "vanity_slugs_not_available" });
+        continue;
+      }
+      const slugResult = validateVanitySlug(item.slug);
+      if (!slugResult.ok) {
+        outcomes.push({ name: validated.data.name, ok: false, error: slugResult.error });
+        continue;
+      }
+      slug = slugResult.data;
+    }
+
+    const insertResult = await insertDynamicCode(ctx, {
+      name: validated.data.name,
+      destination: validated.data.destination,
+      style: parsedStyle,
+      slug,
+    });
+    if (!insertResult.ok) {
+      outcomes.push({ name: validated.data.name, ok: false, error: insertResult.error });
+      continue;
+    }
+
+    outcomes.push({
+      name: validated.data.name,
+      ok: true,
+      slug: insertResult.data.slug,
+      url: bulkResultUrl(insertResult.data.slug),
+    });
+  }
+
+  return { ok: true, data: outcomes };
 }
 
 export async function listDynamicCodesCore(

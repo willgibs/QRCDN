@@ -3,11 +3,13 @@
 import { createClient } from "@/lib/supabase/server";
 import {
   createDynamicCodeCore,
+  createDynamicCodesBulkCore,
   getDynamicCodeStyleCore,
   listDynamicCodesCore,
   retargetCodeCore,
   setCodeAccessCore,
   setCodePausedCore,
+  type BulkItemOutcome,
   type CodesCoreCtx,
   type DynamicCodeSummary,
   type QrCode,
@@ -30,7 +32,7 @@ import type { QrStyle } from "@qrcdn/shared";
 // initial_schema.sql): qr_codes has NO `name` column originally scoped —
 // see codes-core.ts's own header for the full note; unchanged by this unit.
 
-export type { QrCode, DynamicCodeSummary };
+export type { QrCode, DynamicCodeSummary, BulkItemOutcome };
 
 type SupabaseServerClient = Awaited<ReturnType<typeof createClient>>;
 
@@ -168,4 +170,28 @@ export async function setCodeAccess(
   }
 
   return setCodeAccessCore(ctxFrom(ctx), idResult.data, input);
+}
+
+/**
+ * Bulk dynamic-code creation (P7.5-U4). Thin wrapper only, same shape as
+ * every other action in this file: no per-item validation here (that's
+ * `createDynamicCodesBulkCore`'s job) — this does exactly auth + delegate.
+ *
+ * `requireUserContext`, not `requireClaimsContext`: a bulk paste mints up to
+ * `BULK_MAX` printed, live codes in one call, the same "changes what a
+ * printed code does" territory as `retargetCode`/`setCodePaused`/
+ * `setCodeAccess` above, so it gets the same getUser() re-verification
+ * (CLAUDE.md destructive-adjacent hard rule) rather than the lighter
+ * getClaims() `createDynamicCode` (a single code) uses.
+ */
+export async function createDynamicCodesBulk(
+  items: { name: unknown; destination: unknown; slug?: unknown }[],
+  style: unknown,
+): Promise<ActionResult<BulkItemOutcome[]>> {
+  const ctx = await requireUserContext();
+  if (!ctx) {
+    return { ok: false, error: "unauthenticated" };
+  }
+
+  return createDynamicCodesBulkCore(ctxFrom(ctx), items, style);
 }

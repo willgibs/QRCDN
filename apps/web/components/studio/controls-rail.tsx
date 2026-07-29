@@ -20,6 +20,7 @@ import { glowTileOn } from "@/components/brand/glow-tile";
 import { DOT_STYLES, EYE_FRAMES, DotSwatch, EyeSwatch } from "@/components/qr/shape-swatches";
 import { ColorChipRow, ColorField, TransparentPaperChip } from "@/components/studio/color-controls";
 import { CreateCodeControl } from "@/components/studio/create-code";
+import { BulkCreateDialog } from "@/components/studio/bulk-create-dialog";
 import { CodesList } from "@/components/studio/codes-list";
 import type { DynamicCodeSummary, QrCode } from "@/app/(app)/studio/code-actions";
 import type { Plan } from "@/lib/entitlements";
@@ -50,6 +51,7 @@ export function ControlsRail({
   onCodeRetargeted,
   onCodePauseToggled,
   onCodeAccessUpdated,
+  onCodesRefreshed,
   onInkChange,
   onPaperChange,
   onFillTypeChange,
@@ -94,6 +96,10 @@ export function ControlsRail({
   onCodeRetargeted: (id: string, destinationUrl: string) => void;
   onCodePauseToggled: (id: string, status: string) => void;
   onCodeAccessUpdated: (id: string, patch: { expiresAt: string | null; passwordProtected: boolean }) => void;
+  /** P7.5-U4: bulk create's dialog-close list sync — see bulk-create-
+   *  dialog.tsx's own doc comment for why a refetch (not an append) is the
+   *  correct mechanism for a `BulkItemOutcome[]` result. */
+  onCodesRefreshed: (codes: DynamicCodeSummary[]) => void;
   onInkChange: (hex: string) => void;
   onPaperChange: (hex: string) => void;
   onFillTypeChange: (mode: "solid" | "gradient") => void;
@@ -190,6 +196,12 @@ export function ControlsRail({
           />
         </div>
         <CreateCodeControl payload={payload} style={style} plan={plan} onCreated={onCodeCreated} />
+        <BulkCreateDialog
+          plan={plan}
+          style={style}
+          codeCount={codes.length}
+          onCodesRefreshed={onCodesRefreshed}
+        />
       </section>
 
       <section className="flex flex-col gap-3">

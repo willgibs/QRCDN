@@ -171,6 +171,15 @@ export function StudioShell({
     [],
   );
 
+  // P7.5-U4: bulk create's dialog-close sync — a full replace, not a merge,
+  // since bulk-create-dialog.tsx refetches the caller's whole list right
+  // before calling this (see its own doc comment for why a refetch is
+  // correct here instead of the append handleCodeCreated does for a single
+  // create).
+  const handleCodesRefreshed = useCallback((refreshed: DynamicCodeSummary[]) => {
+    setCodes(refreshed);
+  }, []);
+
   const setInk = useCallback((hex: string) => {
     setStyle((s) => ({ ...s, fill: { type: "solid", color: hex } }));
   }, []);
@@ -382,6 +391,7 @@ export function StudioShell({
           onCodeRetargeted={handleCodeRetargeted}
           onCodePauseToggled={handleCodePauseToggled}
           onCodeAccessUpdated={handleCodeAccessUpdated}
+          onCodesRefreshed={handleCodesRefreshed}
           onInkChange={setInk}
           onPaperChange={setPaper}
           onFillTypeChange={setFillType}

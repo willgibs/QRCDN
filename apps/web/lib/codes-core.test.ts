@@ -3,6 +3,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@qrcdn/shared";
 import {
   createDynamicCodeCore,
+  createDynamicCodesBulkCore,
   getCodeAnalyticsCore,
   getCodeBySlugCore,
   getDynamicCodeStyleCore,
@@ -334,6 +335,153 @@ describe("createDynamicCodeCore — vanity slugs (P7.5-U3)", () => {
     });
 
     expect(result).toEqual({ ok: true, data: { id: "code-2", slug: "EFGH567" } });
+  });
+});
+
+// P7.5-U4: bulk creation. `insertDynamicCode` stays private — exercised only
+// through `createDynamicCodesBulkCore` here, same stance as the vanity-slug
+// suite above.
+describe("createDynamicCodesBulkCore", () => {
+  const STYLE = { v: 1 };
+
+  it("free plan: bulk_not_available, zero inserts", async () => {
+    const { db, from, builders } = createDb([
+      { table: "profiles", result: { data: { plan: "free" }, error: null } },
+    ]);
+
+    const result = await createDynamicCodesBulkCore(
+      ctxWith(db),
+      [{ name: "Menu", destination: "https://example.com" }],
+      STYLE,
+    );
+
+    expect(result).toEqual({ ok: false, error: "bulk_not_available" });
+    expect(from).toHaveBeenCalledTimes(1);
+    expect(builders.every((b) => !b.calls.insert)).toBe(true);
+  });
+
+  it("empty batch: empty_batch, no queries at all", async () => {
+    const { db, from } = createDb([]);
+
+    const result = await createDynamicCodesBulkCore(ctxWith(db), [], STYLE);
+
+    expect(result).toEqual({ ok: false, error: "empty_batch" });
+    expect(from).not.toHaveBeenCalled();
+  });
+
+  it("51 items: batch_too_large, no queries at all", async () => {
+    const { db, from } = createDb([]);
+    const items = Array.from({ length: 51 }, (_, i) => ({
+      name: `Code ${i}`,
+      destination: "https://example.com",
+    }));
+
+    const result = await createDynamicCodesBulkCore(ctxWith(db), items, STYLE);
+
+    expect(result).toEqual({ ok: false, error: "batch_too_large" });
+    expect(from).not.toHaveBeenCalled();
+  });
+
+  it("existingCount + items.length over the plan limit: code_limit, zero inserts", async () => {
+    const { db, from, builders } = createDb([
+      { table: "profiles", result: { data: { plan: "pro" }, error: null } },
+      { table: "qr_codes", result: { count: 248, error: null } }, // pro limit is 250
+    ]);
+    const items = Array.from({ length: 5 }, (_, i) => ({
+      name: `Code ${i}`,
+      destination: "https://example.com",
+    }));
+
+    const result = await createDynamicCodesBulkCore(ctxWith(db), items, STYLE);
+
+    expect(result).toEqual({ ok: false, error: "code_limit" });
+    expect(from).toHaveBeenCalledTimes(2);
+    expect(builders.every((b) => !b.calls.insert)).toBe(true);
+  });
+
+  it("mixed batch: one invalid destination + one valid — both outcomes reported, insert called exactly once", async () => {
+    const { db, builders } = createDb([
+      { table: "profiles", result: { data: { plan: "pro" }, error: null } },
+      { table: "qr_codes", result: { count: 0, error: null } },
+      { table: "qr_codes", result: { data: { id: "code-2", slug: "GOOD1234" }, error: null } },
+    ]);
+
+    const result = await createDynamicCodesBulkCore(
+      ctxWith(db),
+      [
+        { name: "Bad", destination: "not-a-url" },
+        { name: "Good", destination: "https://example.com" },
+      ],
+      STYLE,
+    );
+
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.data).toEqual([
+        { name: "Bad", ok: false, error: "invalid_destination" },
+        { name: "Good", ok: true, slug: "GOOD1234", url: "https://qrcdn.com/GOOD1234" },
+      ]);
+    }
+    expect(builders.filter((b) => b.calls.insert).length).toBe(1);
+  });
+
+  it("a vanity slug collision (23505) mid-batch fails only that item — order preserved, next item still succeeds", async () => {
+    const { db } = createDb([
+      { table: "profiles", result: { data: { plan: "pro" }, error: null } },
+      { table: "qr_codes", result: { count: 0, error: null } },
+      { table: "qr_codes", result: { data: null, error: { code: "23505" } } },
+      { table: "qr_codes", result: { data: { id: "code-2", slug: "EFGH567" }, error: null } },
+    ]);
+
+    const result = await createDynamicCodesBulkCore(
+      ctxWith(db),
+      [
+        { name: "First", destination: "https://a.example.com", slug: "party26" },
+        { name: "Second", destination: "https://b.example.com" },
+      ],
+      STYLE,
+    );
+
+    expect(result).toEqual({
+      ok: true,
+      data: [
+        { name: "First", ok: false, error: "slug_taken" },
+        { name: "Second", ok: true, slug: "EFGH567", url: "https://qrcdn.com/EFGH567" },
+      ],
+    });
+  });
+
+  it("names fall through correctly: best-effort (trimmed string, or \"\" for a non-string) on failure, validated/trimmed name on success", async () => {
+    const { db } = createDb([
+      { table: "profiles", result: { data: { plan: "pro" }, error: null } },
+      { table: "qr_codes", result: { count: 0, error: null } },
+      { table: "qr_codes", result: { data: { id: "code-3", slug: "OKOK234" }, error: null } },
+    ]);
+
+    const result = await createDynamicCodesBulkCore(
+      ctxWith(db),
+      [
+        // Non-string name: validateDynamicCodeInput's name check runs FIRST
+        // (before destination), so this fails on name's own type mismatch —
+        // bestEffortItemName still degrades a non-string to "" rather than
+        // throwing or surfacing `123` in the outcome.
+        { name: 123, destination: "https://example.com" },
+        // Valid name, invalid destination: proves the destination failure
+        // path preserves the trimmed name rather than "".
+        { name: "  Bad Item  ", destination: "not-a-url" },
+        { name: "  Good  ", destination: "https://example.com" },
+      ],
+      STYLE,
+    );
+
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.data).toEqual([
+        { name: "", ok: false, error: "Invalid input: expected string, received number" },
+        { name: "Bad Item", ok: false, error: "invalid_destination" },
+        { name: "Good", ok: true, slug: "OKOK234", url: "https://qrcdn.com/OKOK234" },
+      ]);
+    }
   });
 });
 

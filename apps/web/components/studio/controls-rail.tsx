@@ -22,6 +22,7 @@ import { ColorChipRow, ColorField, TransparentPaperChip } from "@/components/stu
 import { CreateCodeControl } from "@/components/studio/create-code";
 import { CodesList } from "@/components/studio/codes-list";
 import type { DynamicCodeSummary, QrCode } from "@/app/(app)/studio/code-actions";
+import type { Plan } from "@/lib/entitlements";
 import { radiansToDegrees } from "@/lib/angle";
 import {
   LOGO_SIZE_RATIO_MAX,
@@ -42,11 +43,13 @@ export function ControlsRail({
   payload,
   effectiveEcc,
   codes,
+  plan,
   onPayloadChange,
   onCodeCreated,
   onCodeLoad,
   onCodeRetargeted,
   onCodePauseToggled,
+  onCodeAccessUpdated,
   onInkChange,
   onPaperChange,
   onFillTypeChange,
@@ -74,6 +77,11 @@ export function ControlsRail({
   /** The caller's dynamic codes (server-fetched in page.tsx, threaded down
    *  the same way brand kits are — see studio-shell.tsx). */
   codes: DynamicCodeSummary[];
+  /** P7.5-U2: threaded only as far as CodesList's access-controls dialog
+   *  needs it (the Pro-lock affordance) — NOT threaded to CreateCodeControl
+   *  in this unit, since nothing there reads it yet (U3 will thread it
+   *  there when it needs a plan-gated affordance of its own). */
+  plan: Plan;
   onPayloadChange: (value: string) => void;
   /** Bubbles a freshly-minted code up alongside its printed short URL —
    *  studio-shell both appends it to `codes` and swaps the working payload
@@ -86,6 +94,7 @@ export function ControlsRail({
   onCodeLoad: (code: DynamicCodeSummary, style: QrStyle) => void;
   onCodeRetargeted: (id: string, destinationUrl: string) => void;
   onCodePauseToggled: (id: string, status: string) => void;
+  onCodeAccessUpdated: (id: string, patch: { expiresAt: string | null; passwordProtected: boolean }) => void;
   onInkChange: (hex: string) => void;
   onPaperChange: (hex: string) => void;
   onFillTypeChange: (mode: "solid" | "gradient") => void;
@@ -188,9 +197,11 @@ export function ControlsRail({
         <Eyebrow>Codes</Eyebrow>
         <CodesList
           codes={codes}
+          plan={plan}
           onCodeLoad={onCodeLoad}
           onRetargeted={onCodeRetargeted}
           onPauseToggled={onCodePauseToggled}
+          onAccessUpdated={onCodeAccessUpdated}
         />
       </section>
 

@@ -7,17 +7,24 @@ vi.mock("../../../../../lib/api-auth", () => ({
 vi.mock("../../../../../lib/codes-core", () => ({
   getCodeBySlugCore: vi.fn(),
   retargetCodeCore: vi.fn(),
+  setCodeAccessCore: vi.fn(),
   setCodePausedCore: vi.fn(),
 }));
 
 import { authenticateApiRequest } from "../../../../../lib/api-auth";
-import { getCodeBySlugCore, retargetCodeCore, setCodePausedCore } from "../../../../../lib/codes-core";
+import {
+  getCodeBySlugCore,
+  retargetCodeCore,
+  setCodeAccessCore,
+  setCodePausedCore,
+} from "../../../../../lib/codes-core";
 import { GET, PATCH } from "./route";
 
 const authMock = vi.mocked(authenticateApiRequest);
 const getBySlugMock = vi.mocked(getCodeBySlugCore);
 const retargetMock = vi.mocked(retargetCodeCore);
 const setPausedMock = vi.mocked(setCodePausedCore);
+const setAccessMock = vi.mocked(setCodeAccessCore);
 
 const AUTH_CTX = { db: {} as never, ownerId: "owner-1", apiKeyId: "key-1", plan: "pro" as const };
 
@@ -29,6 +36,8 @@ const CODE = {
   status: "active",
   scan_count: 7,
   created_at: "2026-01-01T00:00:00.000Z",
+  expiresAt: null,
+  passwordProtected: false,
 };
 
 function ctxFor(slug: string) {
@@ -54,6 +63,7 @@ beforeEach(() => {
   getBySlugMock.mockReset();
   retargetMock.mockReset();
   setPausedMock.mockReset();
+  setAccessMock.mockReset();
   authMock.mockResolvedValue(AUTH_CTX);
 });
 
@@ -79,6 +89,8 @@ describe("GET /api/v1/codes/[slug]", () => {
       destination: "https://example.com/old",
       status: "active",
       scanCount: 7,
+      expiresAt: null,
+      passwordProtected: false,
       url: "https://qrcdn.com/ABCD234",
       createdAt: "2026-01-01T00:00:00.000Z",
     });
@@ -111,6 +123,7 @@ describe("PATCH /api/v1/codes/[slug]", () => {
       slug: "ABCD234",
       destination: "https://example.com/new",
       status: "active",
+      expiresAt: null,
     });
     expect(retargetMock).toHaveBeenCalledWith(
       { db: AUTH_CTX.db, ownerId: "owner-1" },
@@ -118,6 +131,7 @@ describe("PATCH /api/v1/codes/[slug]", () => {
       "https://example.com/new",
     );
     expect(setPausedMock).not.toHaveBeenCalled();
+    expect(setAccessMock).not.toHaveBeenCalled();
   });
 
   it("pauses paused-only, leaving destination from the looked-up code", async () => {
@@ -134,9 +148,11 @@ describe("PATCH /api/v1/codes/[slug]", () => {
       slug: "ABCD234",
       destination: "https://example.com/old",
       status: "paused",
+      expiresAt: null,
     });
     expect(setPausedMock).toHaveBeenCalledWith({ db: AUTH_CTX.db, ownerId: "owner-1" }, "code-1", true);
     expect(retargetMock).not.toHaveBeenCalled();
+    expect(setAccessMock).not.toHaveBeenCalled();
   });
 
   it("runs both writes sequentially — retarget before pause — and reflects both in the response", async () => {
@@ -160,9 +176,99 @@ describe("PATCH /api/v1/codes/[slug]", () => {
       slug: "ABCD234",
       destination: "https://example.com/new",
       status: "paused",
+      expiresAt: null,
     });
     expect(retargetMock.mock.invocationCallOrder[0]!).toBeLessThan(
       setPausedMock.mock.invocationCallOrder[0]!,
     );
+  });
+});
+
+describe("PATCH /api/v1/codes/[slug] — expiresAt (P7.5-U2)", () => {
+  it("sets expiresAt on a Pro plan and reflects the normalized value in the response", async () => {
+    getBySlugMock.mockResolvedValueOnce({ ok: true, data: CODE });
+    setAccessMock.mockResolvedValueOnce({
+      ok: true,
+      data: {
+        id: "code-1",
+        expiresAt: "2026-08-01T00:00:00.000Z",
+        passwordProtected: false,
+        kvSynced: true,
+      },
+    });
+
+    const response = await PATCH(
+      patchRequest("ABCD234", { expiresAt: "2026-08-01T00:00:00Z" }),
+      ctxFor("ABCD234"),
+    );
+
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toEqual({
+      slug: "ABCD234",
+      destination: "https://example.com/old",
+      status: "active",
+      expiresAt: "2026-08-01T00:00:00.000Z",
+    });
+    // validateCodePatchInput normalizes the raw string to ISO-8601 before
+    // setCodeAccessCore ever sees it.
+    expect(setAccessMock).toHaveBeenCalledWith(
+      { db: AUTH_CTX.db, ownerId: "owner-1" },
+      "code-1",
+      { expiresAt: "2026-08-01T00:00:00.000Z" },
+    );
+    expect(retargetMock).not.toHaveBeenCalled();
+    expect(setPausedMock).not.toHaveBeenCalled();
+  });
+
+  it("403s plan_required on a free plan without touching destination/status", async () => {
+    getBySlugMock.mockResolvedValueOnce({ ok: true, data: CODE });
+    setAccessMock.mockResolvedValueOnce({ ok: false, error: "plan_required" });
+
+    const response = await PATCH(patchRequest("ABCD234", { expiresAt: null }), ctxFor("ABCD234"));
+
+    expect(response.status).toBe(403);
+    await expect(response.json()).resolves.toEqual({
+      error: "plan_required",
+      message: "Access controls are a Pro feature.",
+    });
+  });
+
+  it("expiresAt: null clears the expiry", async () => {
+    const expiring = { ...CODE, expiresAt: "2026-01-01T00:00:00.000Z" };
+    getBySlugMock.mockResolvedValueOnce({ ok: true, data: expiring });
+    setAccessMock.mockResolvedValueOnce({
+      ok: true,
+      data: { id: "code-1", expiresAt: null, passwordProtected: false, kvSynced: true },
+    });
+
+    const response = await PATCH(patchRequest("ABCD234", { expiresAt: null }), ctxFor("ABCD234"));
+
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toEqual({
+      slug: "ABCD234",
+      destination: "https://example.com/old",
+      status: "active",
+      expiresAt: null,
+    });
+    expect(setAccessMock).toHaveBeenCalledWith(
+      { db: AUTH_CTX.db, ownerId: "owner-1" },
+      "code-1",
+      { expiresAt: null },
+    );
+  });
+
+  it("422s invalid_expiry for an unparseable expiresAt, never reaching the code lookup", async () => {
+    const response = await PATCH(
+      patchRequest("ABCD234", { expiresAt: "not a date" }),
+      ctxFor("ABCD234"),
+    );
+
+    expect(response.status).toBe(422);
+    await expect(response.json()).resolves.toEqual({
+      error: "invalid_request",
+      message: "invalid_expiry",
+    });
+    expect(getBySlugMock).not.toHaveBeenCalled();
+    expect(setAccessMock).not.toHaveBeenCalled();
   });
 });

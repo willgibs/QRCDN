@@ -1,8 +1,8 @@
 import { notFound, redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { getCodeBySlugCore } from "@/lib/codes-core";
 import { type Plan } from "@/lib/entitlements";
 import { rangeWindowUtc, resolveRangeDays } from "@/lib/analytics";
-import type { DynamicCodeSummary } from "@/app/(app)/studio/code-actions";
 import { CodeAnalyticsPanel } from "@/components/codes/code-analytics-panel";
 import { StatusPill } from "@/components/codes/codes-table";
 
@@ -35,21 +35,20 @@ export default async function CodeAnalyticsPage(props: PageProps<"/codes/[slug]"
     .single();
   const plan = (profile?.plan as Plan | undefined) ?? "free";
 
-  // RLS-scoped (own qr codes) — no manual owner_id filter needed. .single()
-  // returning no row (wrong slug, wrong kind, or someone else's code — RLS
-  // makes "not found" and "not yours" indistinguishable, same stance as
-  // code-actions.ts's own lookups) means notFound() below.
-  const { data: codeData } = await supabase
-    .from("qr_codes")
-    .select("id, slug, name, destination_url, status, scan_count, created_at")
-    .eq("slug", slug)
-    .eq("kind", "dynamic")
-    .single();
-
-  if (!codeData) {
+  // P7.5-U2: routed through getCodeBySlugCore rather than a raw qr_codes
+  // select (same switch as studio/page.tsx and codes/page.tsx) —
+  // codes-core.ts's toSummary() is the one place DynamicCodeSummary's
+  // derived expiresAt/passwordProtected mapping is defined. RLS-scoped (own
+  // qr codes) under this request-scoped client — the owner_id filter
+  // getCodeBySlugCore always applies is redundant defense-in-depth here,
+  // same stance as every other cookie-authenticated caller of these cores.
+  // "not_found" covers both "wrong slug" and "someone else's code" — RLS
+  // makes the two indistinguishable from here regardless.
+  const codeResult = await getCodeBySlugCore({ db: supabase, ownerId: userId }, slug);
+  if (!codeResult.ok) {
     notFound();
   }
-  const code = codeData as DynamicCodeSummary;
+  const code = codeResult.data;
 
   const range = resolveRangeDays(
     Array.isArray(rangeParam) ? rangeParam[0] : rangeParam,

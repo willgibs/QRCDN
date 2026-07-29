@@ -6,6 +6,7 @@ import { scannabilityReport } from "@qrcdn/qr-engine";
 import { defaultQrStyle, parseQrStyle, type QrStyle } from "@qrcdn/shared";
 import type { BrandKit } from "@/app/(app)/studio/actions";
 import type { DynamicCodeSummary, QrCode } from "@/app/(app)/studio/code-actions";
+import type { Plan } from "@/lib/entitlements";
 import { useMounted } from "@/hooks/use-mounted";
 import { degreesToRadians } from "@/lib/angle";
 import { downloadBlob, exportFilename, rasterizeSvgToPng } from "@/lib/export";
@@ -55,10 +56,17 @@ function styleFromKit(kit: BrandKit | null | undefined): QrStyle {
 export function StudioShell({
   initialKits,
   initialCodes,
+  plan,
   userId,
 }: {
   initialKits: BrandKit[];
   initialCodes: DynamicCodeSummary[];
+  /** P7.5-U2: threaded down to CodesList's access-controls dialog, which
+   *  needs it to render the Pro-lock affordance for free-plan callers
+   *  (mirroring components/codes/range-selector.tsx's own lock pattern).
+   *  Not threaded to CreateCodeControl in this unit — see controls-rail.tsx's
+   *  own comment on that choice. */
+  plan: Plan;
   userId: string;
 }) {
   const [kits, setKits] = useState<BrandKit[]>(initialKits);
@@ -114,7 +122,26 @@ export function StudioShell({
   // owns the canonical `codes` array plus the working payload/style that a
   // creation or "Load in studio" swaps.
   const handleCodeCreated = useCallback((code: QrCode, shortUrl: string) => {
-    setCodes((prev) => [code, ...prev]);
+    // createDynamicCodeCore returns the FULL row (QrCode), including the raw
+    // expires_at/password_hash columns (always null at creation — there's no
+    // create-time access-controls input) — mapped down to the summary shape
+    // explicitly here rather than spread, so the raw password_hash column
+    // name never lands on `codes` state even transiently (P7.5-U2's
+    // DynamicCodeSummary invariant, codes-core.ts).
+    setCodes((prev) => [
+      {
+        id: code.id,
+        slug: code.slug,
+        name: code.name,
+        destination_url: code.destination_url,
+        status: code.status,
+        scan_count: code.scan_count,
+        created_at: code.created_at,
+        expiresAt: code.expires_at,
+        passwordProtected: code.password_hash !== null,
+      },
+      ...prev,
+    ]);
     // The product moment (P5-U4 spec): the preview payload switches to the
     // real short URL so the artifact on stage becomes the live, printable
     // code instead of a preview of the raw destination.
@@ -136,6 +163,13 @@ export function StudioShell({
   const handleCodePauseToggled = useCallback((id: string, status: string) => {
     setCodes((prev) => prev.map((c) => (c.id === id ? { ...c, status } : c)));
   }, []);
+
+  const handleCodeAccessUpdated = useCallback(
+    (id: string, patch: { expiresAt: string | null; passwordProtected: boolean }) => {
+      setCodes((prev) => prev.map((c) => (c.id === id ? { ...c, ...patch } : c)));
+    },
+    [],
+  );
 
   const setInk = useCallback((hex: string) => {
     setStyle((s) => ({ ...s, fill: { type: "solid", color: hex } }));
@@ -341,11 +375,13 @@ export function StudioShell({
           payload={payload}
           effectiveEcc={report.effectiveEcc}
           codes={codes}
+          plan={plan}
           onPayloadChange={setPayload}
           onCodeCreated={handleCodeCreated}
           onCodeLoad={handleCodeLoad}
           onCodeRetargeted={handleCodeRetargeted}
           onCodePauseToggled={handleCodePauseToggled}
+          onCodeAccessUpdated={handleCodeAccessUpdated}
           onInkChange={setInk}
           onPaperChange={setPaper}
           onFillTypeChange={setFillType}

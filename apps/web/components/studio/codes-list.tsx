@@ -14,12 +14,14 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
 import { validateDestination } from "@/lib/validation";
+import type { Plan } from "@/lib/entitlements";
 import {
   getDynamicCodeStyle,
   retargetCode,
   setCodePaused,
   type DynamicCodeSummary,
 } from "@/app/(app)/studio/code-actions";
+import { CodeAccessDialog } from "@/components/studio/code-access-dialog";
 
 const ROW_NOTICE_TIMEOUT_MS = 6000;
 
@@ -64,11 +66,16 @@ function statusMeta(status: string): { label: string; dotClassName: string; text
  */
 export function CodesList({
   codes,
+  plan,
   onCodeLoad,
   onRetargeted,
   onPauseToggled,
+  onAccessUpdated,
 }: {
   codes: DynamicCodeSummary[];
+  /** P7.5-U2: gates the access-controls dialog's Pro-lock affordance —
+   *  threaded down from studio/page.tsx via StudioShell/ControlsRail. */
+  plan: Plan;
   /** Bubbles the loaded (parsed) frozen style up alongside the code whose
    *  short URL should become the working payload — studio-shell sets both
    *  in one place, mirroring `handleSwitch` for brand kits. This is a COPY
@@ -76,11 +83,16 @@ export function CodesList({
   onCodeLoad: (code: DynamicCodeSummary, style: QrStyle) => void;
   onRetargeted: (id: string, destinationUrl: string) => void;
   onPauseToggled: (id: string, status: string) => void;
+  /** Bubbles a successful access-controls save up — studio-shell patches
+   *  the matching row in its canonical `codes` array, same refresh pattern
+   *  as onRetargeted/onPauseToggled. */
+  onAccessUpdated: (id: string, patch: { expiresAt: string | null; passwordProtected: boolean }) => void;
 }) {
   const [busyId, setBusyId] = useState<string | null>(null);
   const [retargetingId, setRetargetingId] = useState<string | null>(null);
   const [retargetDraft, setRetargetDraft] = useState("");
   const [notice, setNotice] = useState<RowNotice | null>(null);
+  const [accessDialogCodeId, setAccessDialogCodeId] = useState<string | null>(null);
 
   const noticeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -202,12 +214,33 @@ export function CodesList({
                   <DropdownMenuItem onSelect={() => handlePauseToggle(code)}>
                     {code.status === "paused" ? "Resume" : "Pause"}
                   </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onSelect={(e) => {
+                      // Keep the dropdown's own close/focus-return from
+                      // racing the Dialog's open transition — the Dialog
+                      // takes over focus management itself once open.
+                      e.preventDefault();
+                      setAccessDialogCodeId(code.id);
+                    }}
+                  >
+                    Access…
+                  </DropdownMenuItem>
                   <DropdownMenuItem asChild>
                     <Link href={`/codes/${code.slug}`}>View analytics</Link>
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
             </div>
+
+            {accessDialogCodeId === code.id && (
+              <CodeAccessDialog
+                code={code}
+                plan={plan}
+                open
+                onOpenChange={(open) => !open && setAccessDialogCodeId(null)}
+                onSaved={onAccessUpdated}
+              />
+            )}
 
             <div className="flex items-center justify-between gap-2">
               <span className="truncate font-mono text-xs text-muted-foreground">{code.slug}</span>

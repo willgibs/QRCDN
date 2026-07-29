@@ -1,12 +1,12 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { listDynamicCodesCore } from "@/lib/codes-core";
 import { PLAN_LIMITS, type Plan } from "@/lib/entitlements";
 import { rangeWindowUtc, resolveRangeDays } from "@/lib/analytics";
 import { CodesTable } from "@/components/codes/codes-table";
 import { CodesOverviewPanel } from "@/components/codes/codes-overview-panel";
 import { Card, CardContent } from "@/components/ui/card";
-import type { DynamicCodeSummary } from "@/app/(app)/studio/code-actions";
 
 // D9: all (app) routes are force-dynamic so the getClaims() guard below runs
 // fresh on every request rather than riding a cached response.
@@ -67,16 +67,12 @@ export default async function CodesOverviewPage(props: PageProps<"/codes">) {
     .lt("day", endIso)
     .order("day");
 
-  // Newest-first, mirroring listDynamicCodes' own query (code-actions.ts) —
-  // fetched directly here rather than by calling that server action, same
-  // pattern studio/page.tsx already uses. No manual owner_id filter: the
-  // "own qr codes" RLS policy already scopes this to the caller.
-  const { data: codesData } = await supabase
-    .from("qr_codes")
-    .select("id, slug, name, destination_url, status, scan_count, created_at")
-    .eq("kind", "dynamic")
-    .order("created_at", { ascending: false });
-  const codes = (codesData ?? []) as DynamicCodeSummary[];
+  // P7.5-U2: routed through listDynamicCodesCore (same switch as
+  // studio/page.tsx, and for the same reason — DynamicCodeSummary now
+  // carries the derived expiresAt/passwordProtected fields, and
+  // codes-core.ts's toSummary() is the one place that mapping is defined).
+  const codesResult = await listDynamicCodesCore({ db: supabase, ownerId: userId });
+  const codes = codesResult.ok ? codesResult.data : [];
 
   // Live "scans today" — raw scan_events, RLS-scoped, no manual owner
   // filter (same convention as code-actions.ts's queries: the "own qr

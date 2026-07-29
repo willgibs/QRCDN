@@ -1,6 +1,11 @@
 import { NextResponse } from "next/server";
 import { authenticateApiRequest, isApiError } from "../../../../../lib/api-auth";
-import { getCodeBySlugCore, retargetCodeCore, setCodePausedCore } from "../../../../../lib/codes-core";
+import {
+  getCodeBySlugCore,
+  retargetCodeCore,
+  setCodeAccessCore,
+  setCodePausedCore,
+} from "../../../../../lib/codes-core";
 import { validateCodePatchInput } from "../../../../../lib/validation";
 import { toApiCode } from "../../_lib/to-api-code";
 import { internalError, invalidRequest, notFound } from "../../_lib/api-errors";
@@ -12,15 +17,19 @@ import { internalError, invalidRequest, notFound } from "../../_lib/api-errors";
 // leak via a distinct error).
 export const dynamic = "force-dynamic";
 
-// retargetCodeCore/setCodePausedCore both re-run their own field-level
-// validation (validateDestination/validatePaused) even though
-// validateCodePatchInput already validated the same input above — that's
-// intentional defense-in-depth in codes-core.ts, not a route bug. The only
-// error the *second* validation pass can realistically produce here is
-// "update_failed" (the DB write itself failed, e.g. the code was archived
-// between the ownership lookup and the write) — a backend failure, not a
-// caller-fixable input problem.
-const UPDATE_INTERNAL_ERRORS = new Set(["update_failed"]);
+// retargetCodeCore/setCodePausedCore/setCodeAccessCore all re-run their own
+// field-level validation (validateDestination/validatePaused/
+// validateCodeAccessInput) even though validateCodePatchInput already
+// validated the same input above — that's intentional defense-in-depth in
+// codes-core.ts, not a route bug. The errors the *second* validation pass
+// can realistically produce here are backend failures, not caller-fixable
+// input problems: "update_failed" (the DB write itself failed, e.g. the
+// code was archived between the ownership lookup and the write) and
+// setCodeAccessCore's own "profile_not_found" (a data-integrity failure,
+// not a bad request — see codes-core.ts). "plan_required" is NOT in this
+// set — it's handled as its own 403 branch below, not folded into either
+// bucket.
+const UPDATE_INTERNAL_ERRORS = new Set(["update_failed", "profile_not_found"]);
 
 export async function GET(request: Request, ctx: RouteContext<"/api/v1/codes/[slug]">) {
   const auth = await authenticateApiRequest(request);
@@ -55,6 +64,7 @@ export async function PATCH(request: Request, ctx: RouteContext<"/api/v1/codes/[
   const parsed = (typeof body === "object" && body !== null ? body : {}) as {
     destination?: unknown;
     paused?: unknown;
+    expiresAt?: unknown;
   };
 
   const patchResult = validateCodePatchInput(parsed);
@@ -75,14 +85,16 @@ export async function PATCH(request: Request, ctx: RouteContext<"/api/v1/codes/[
 
   let destination = codeResult.data.destination_url ?? "";
   let status = codeResult.data.status;
+  let expiresAt = codeResult.data.expiresAt;
 
-  // Sequential, not transactional: codes-core.ts exposes single-field
-  // mutations (retargetCodeCore, setCodePausedCore), so a PATCH supplying
-  // BOTH fields runs two separate writes. If the destination write below
-  // succeeds and the pause write that follows it fails, the destination
-  // change has already committed and is NOT rolled back — accepted for
-  // P7-U3 (this endpoint is the first caller combining both fields in one
-  // request; the studio UI only ever sends one field at a time).
+  // Sequential, not transactional: codes-core.ts exposes single-field(-ish)
+  // mutations (retargetCodeCore, setCodePausedCore, setCodeAccessCore), so a
+  // PATCH supplying multiple fields runs multiple separate writes. If an
+  // earlier write below succeeds and a later one fails, the earlier change
+  // has already committed and is NOT rolled back — accepted for P7-U3 (this
+  // endpoint is the first caller combining fields in one request; the
+  // studio UI only ever sends one field/action at a time) and unchanged in
+  // shape by P7.5-U2's addition of the third branch below.
   if (patchResult.data.destination !== undefined) {
     const retargetResult = await retargetCodeCore(
       codesCoreCtx,
@@ -107,5 +119,26 @@ export async function PATCH(request: Request, ctx: RouteContext<"/api/v1/codes/[
     status = pauseResult.data.status;
   }
 
-  return NextResponse.json({ slug, destination, status });
+  if (patchResult.data.expiresAt !== undefined) {
+    const accessResult = await setCodeAccessCore(codesCoreCtx, codeResult.data.id, {
+      expiresAt: patchResult.data.expiresAt,
+    });
+    if (!accessResult.ok) {
+      // plan_required gets its own 403 — it's neither a caller input error
+      // (422) nor a backend failure (500), so it doesn't fit either bucket
+      // UPDATE_INTERNAL_ERRORS/invalidRequest below already handle.
+      if (accessResult.error === "plan_required") {
+        return NextResponse.json(
+          { error: "plan_required", message: "Access controls are a Pro feature." },
+          { status: 403 },
+        );
+      }
+      return UPDATE_INTERNAL_ERRORS.has(accessResult.error)
+        ? internalError()
+        : invalidRequest(accessResult.error);
+    }
+    expiresAt = accessResult.data.expiresAt;
+  }
+
+  return NextResponse.json({ slug, destination, status, expiresAt });
 }

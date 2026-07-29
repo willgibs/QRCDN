@@ -78,5 +78,24 @@ export async function POST(request: Request) {
     return invalidRequest(result.error);
   }
 
-  return NextResponse.json(toApiCode(result.data), { status: 201 });
+  // createDynamicCodeCore returns the FULL row (QrCode), including the raw
+  // expires_at/password_hash columns (always null right after creation —
+  // there's no create-time access-controls input) — mapped down to the
+  // summary shape explicitly here (P7.5-U2), mirroring studio-shell.tsx's
+  // identical handleCodeCreated fix, rather than widening toApiCode to
+  // accept a raw row and re-derive the mapping in a second place.
+  return NextResponse.json(
+    toApiCode({
+      id: result.data.id,
+      slug: result.data.slug,
+      name: result.data.name,
+      destination_url: result.data.destination_url,
+      status: result.data.status,
+      scan_count: result.data.scan_count,
+      created_at: result.data.created_at,
+      expiresAt: result.data.expires_at,
+      passwordProtected: result.data.password_hash !== null,
+    }),
+    { status: 201 },
+  );
 }

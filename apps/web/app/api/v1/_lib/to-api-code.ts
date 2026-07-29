@@ -12,6 +12,11 @@ export interface ApiCode {
   destination: string;
   status: string;
   scanCount: number;
+  /** ISO-8601 UTC, or `null` when the code never expires (P7.5-U2). */
+  expiresAt: string | null;
+  /** Never the hash itself — see codes-core.ts's DynamicCodeSummary/
+   *  toSummary invariant, which this type inherits from (P7.5-U2). */
+  passwordProtected: boolean;
   url: string;
   createdAt: string;
 }
@@ -33,6 +38,8 @@ export function toApiCode(code: DynamicCodeSummary): ApiCode {
     destination: code.destination_url ?? "",
     status: code.status,
     scanCount: code.scan_count,
+    expiresAt: code.expiresAt,
+    passwordProtected: code.passwordProtected,
     url: `https://${SHORT_URL_HOST.toLowerCase()}/${code.slug}`,
     createdAt: code.created_at,
   };

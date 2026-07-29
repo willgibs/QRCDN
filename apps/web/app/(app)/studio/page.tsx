@@ -1,8 +1,9 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { listDynamicCodesCore } from "@/lib/codes-core";
+import { type Plan } from "@/lib/entitlements";
 import { StudioShell } from "@/components/studio/studio-shell";
 import type { BrandKit } from "./actions";
-import type { DynamicCodeSummary } from "./code-actions";
 
 // D9: all (app) routes are force-dynamic so the getClaims() guard below runs
 // fresh on every request rather than riding a cached response.
@@ -16,6 +17,8 @@ export default async function StudioPage() {
     redirect("/login");
   }
 
+  const userId = data.claims.sub;
+
   // Default-first, then oldest-first — the default kit (if any) is what the
   // shell loads into the working style on first paint.
   const { data: kits } = await supabase
@@ -24,24 +27,30 @@ export default async function StudioPage() {
     .order("is_default", { ascending: false })
     .order("created_at", { ascending: true });
 
-  // Newest-first, mirroring listDynamicCodes' own query (code-actions.ts) —
-  // fetched directly here rather than by calling that server action, same
-  // pattern the brand-kit fetch above already uses (a plain Supabase query,
-  // not a call through actions.ts). No manual owner_id filter: the "own qr
-  // codes" RLS policy already scopes this to the caller. The frozen `style`
-  // snapshot is deliberately excluded — see DynamicCodeSummary's own doc
-  // comment in code-actions.ts.
-  const { data: codes } = await supabase
-    .from("qr_codes")
-    .select("id, slug, name, destination_url, status, scan_count, created_at")
-    .eq("kind", "dynamic")
-    .order("created_at", { ascending: false });
+  // P7.5-U2: the access-controls dialog needs the caller's plan for its
+  // Pro-lock affordance — same profile lookup codes/page.tsx and
+  // codes/[slug]/page.tsx already run.
+  const { data: profile } = await supabase.from("profiles").select("plan").eq("id", userId).single();
+  const plan = (profile?.plan as Plan | undefined) ?? "free";
+
+  // P7.5-U2: routed through listDynamicCodesCore rather than a raw
+  // qr_codes select — required (not just deduped) now that
+  // DynamicCodeSummary carries the derived expiresAt/passwordProtected
+  // fields: codes-core.ts's toSummary() is the one place that mapping (and
+  // its password_hash-stripping invariant) is defined, so every summary-
+  // shaped query in the app, including this one, goes through it rather
+  // than re-deriving the shape inline. No manual owner_id filter needed
+  // under RLS here, but listDynamicCodesCore always applies one anyway
+  // (harmless defense-in-depth — see that file's header comment).
+  const codesResult = await listDynamicCodesCore({ db: supabase, ownerId: userId });
+  const codes = codesResult.ok ? codesResult.data : [];
 
   return (
     <StudioShell
       initialKits={(kits ?? []) as BrandKit[]}
-      initialCodes={(codes ?? []) as DynamicCodeSummary[]}
-      userId={data.claims.sub}
+      initialCodes={codes}
+      plan={plan}
+      userId={userId}
     />
   );
 }

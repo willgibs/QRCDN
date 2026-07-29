@@ -57,6 +57,8 @@ describe("GET /api/v1/codes", () => {
           status: "active",
           scan_count: 5,
           created_at: "2026-01-01T00:00:00.000Z",
+          expiresAt: null,
+          passwordProtected: false,
         },
       ],
     });
@@ -72,6 +74,8 @@ describe("GET /api/v1/codes", () => {
           destination: "https://example.com/menu",
           status: "active",
           scanCount: 5,
+          expiresAt: null,
+          passwordProtected: false,
           // Lowercase scheme+host; slug case preserved as stored — NOT
           // lib/short-url.ts's uppercase printedShortUrl form.
           url: "https://qrcdn.com/ABCD234",
@@ -106,6 +110,8 @@ describe("POST /api/v1/codes", () => {
         status: "active",
         scan_count: 0,
         created_at: "2026-01-01T00:00:00.000Z",
+        expires_at: null,
+        password_hash: null,
       } as never,
     });
 
@@ -118,6 +124,8 @@ describe("POST /api/v1/codes", () => {
       destination: "https://example.com/menu",
       status: "active",
       scanCount: 0,
+      expiresAt: null,
+      passwordProtected: false,
       url: "https://qrcdn.com/ABCD234",
       createdAt: "2026-01-01T00:00:00.000Z",
     });

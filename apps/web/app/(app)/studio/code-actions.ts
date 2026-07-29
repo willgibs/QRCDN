@@ -6,6 +6,7 @@ import {
   getDynamicCodeStyleCore,
   listDynamicCodesCore,
   retargetCodeCore,
+  setCodeAccessCore,
   setCodePausedCore,
   type CodesCoreCtx,
   type DynamicCodeSummary,
@@ -141,4 +142,26 @@ export async function setCodePaused(
   }
 
   return setCodePausedCore(ctxFrom(ctx), idResult.data, paused);
+}
+
+export async function setCodeAccess(
+  id: string,
+  input: { expiresAt?: unknown; password?: unknown },
+): Promise<
+  ActionResult<{ id: string; expiresAt: string | null; passwordProtected: boolean; kvSynced: boolean }>
+> {
+  const idResult = validateQrCodeId(id);
+  if (!idResult.ok) {
+    return idResult;
+  }
+
+  // getUser(), not getClaims(): expiry/password changes what a printed,
+  // live code does when scanned — same destructive-adjacent tier as
+  // retargetCode/setCodePaused above (CLAUDE.md hard rule).
+  const ctx = await requireUserContext();
+  if (!ctx) {
+    return { ok: false, error: "unauthenticated" };
+  }
+
+  return setCodeAccessCore(ctxFrom(ctx), idResult.data, input);
 }

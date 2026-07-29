@@ -1,9 +1,19 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { parseQrStyle, type Database, type QrStyle, type Tables, type TablesInsert } from "@qrcdn/shared";
+import type { KvSlugRecord } from "@qrcdn/shared";
+import {
+  parseQrStyle,
+  type Database,
+  type QrStyle,
+  type Tables,
+  type TablesInsert,
+  type TablesUpdate,
+} from "@qrcdn/shared";
 import { PLAN_LIMITS, type Plan } from "./entitlements";
 import { generateSlug } from "./slug";
 import { writeSlugToKv } from "./kv-sync";
+import { hashCodePassword } from "./passwords";
 import {
+  validateCodeAccessInput,
   validateDestination,
   validateDynamicCodeInput,
   validatePaused,
@@ -54,11 +64,88 @@ export type QrCode = Tables<"qr_codes">;
 
 /** Columns the codes-list UI needs — never the frozen `style` snapshot
  *  (large jsonb, including a possible logo data URI) and never a write path
- *  for `scan_count` (D8: rollup-only). */
+ *  for `scan_count` (D8: rollup-only). `expiresAt`/`passwordProtected`
+ *  (P7.5-U2) are DERIVED from `expires_at`/`password_hash`, not the raw
+ *  columns themselves — see `toSummary` below for THE INVARIANT this
+ *  exists to enforce: the raw `password_hash` string never crosses this
+ *  boundary. */
 export type DynamicCodeSummary = Pick<
   Tables<"qr_codes">,
   "id" | "slug" | "name" | "destination_url" | "status" | "scan_count" | "created_at"
+> & {
+  /** ISO-8601 UTC, or `null` when the code never expires. */
+  expiresAt: string | null;
+  /** Derived from `password_hash !== null` — never the hash itself. */
+  passwordProtected: boolean;
+};
+
+/** Every column a summary-shaped query needs to select — one constant so
+ *  every call site (listDynamicCodesCore, getCodeBySlugCore) stays in sync
+ *  with `toSummary`'s destructuring below. */
+const SUMMARY_SELECT =
+  "id, slug, name, destination_url, status, scan_count, created_at, expires_at, password_hash" as const;
+
+type SummaryRow = Pick<
+  Tables<"qr_codes">,
+  | "id"
+  | "slug"
+  | "name"
+  | "destination_url"
+  | "status"
+  | "scan_count"
+  | "created_at"
+  | "expires_at"
+  | "password_hash"
 >;
+
+/**
+ * THE INVARIANT (P7.5-U2): the raw `password_hash` string never crosses the
+ * codes-core boundary — not into a Server Component prop, not into API
+ * JSON, not anywhere past this function. Every query in this file that
+ * returns a `DynamicCodeSummary` funnels its row through `toSummary`, which
+ * destructures `password_hash` away and keeps only the derived
+ * `passwordProtected` boolean. If you add a new summary-shaped query below,
+ * route it through this function rather than hand-mapping the row.
+ */
+function toSummary(row: SummaryRow): DynamicCodeSummary {
+  const { password_hash, expires_at, ...rest } = row;
+  return { ...rest, expiresAt: expires_at, passwordProtected: password_hash !== null };
+}
+
+/**
+ * The KV write-through record for a row that just changed (retarget, pause,
+ * or access-control update) — the STRUCTURAL FIX for the retarget/pause
+ * KV-wipe bug: before P7.5-U2, `retargetCodeCore`/`setCodePausedCore` each
+ * built their `KvSlugRecord` literal inline with only `destination`/
+ * `paused`/`codeId` set, which meant retargeting or pausing a code SILENTLY
+ * DROPPED its `expiresAt`/`passwordProtected` flags from KV (the write-
+ * through overwrites the whole record) even though Postgres still had them.
+ * Every `writeSlugToKv` call site in this file must build its record via
+ * this function instead of a literal, so the three flags can never drift
+ * apart again. Conditional-assigns mirror packages/shared/src/kv.ts's own
+ * additive-optional style (and workers/redirect/src/redirect-decision.ts's
+ * `buildKvBackfillRecord`, the Worker-side equivalent): a row with no
+ * expiry/no password produces a record with those keys OMITTED, not set to
+ * `false`/`undefined`, so pre-P7.5 KV entries and post-P7.5 unprotected
+ * codes are byte-identical.
+ */
+function toKvRecord(
+  row: Pick<QrCode, "destination_url" | "status" | "expires_at" | "password_hash">,
+  codeId: string,
+): KvSlugRecord {
+  const record: KvSlugRecord = {
+    destination: row.destination_url ?? "",
+    paused: row.status === "paused",
+    codeId,
+  };
+  if (row.expires_at) {
+    record.expiresAt = row.expires_at;
+  }
+  if (row.password_hash !== null) {
+    record.passwordProtected = true;
+  }
+  return record;
+}
 
 type RecentEvent = Pick<
   Tables<"scan_events">,
@@ -176,7 +263,7 @@ export async function listDynamicCodesCore(
 ): Promise<ActionResult<DynamicCodeSummary[]>> {
   const { data, error } = await ctx.db
     .from("qr_codes")
-    .select("id, slug, name, destination_url, status, scan_count, created_at")
+    .select(SUMMARY_SELECT)
     .eq("owner_id", ctx.ownerId)
     .eq("kind", "dynamic")
     .order("created_at", { ascending: false });
@@ -185,7 +272,7 @@ export async function listDynamicCodesCore(
     return { ok: false, error: "list_failed" };
   }
 
-  return { ok: true, data };
+  return { ok: true, data: data.map(toSummary) };
 }
 
 /**
@@ -239,7 +326,7 @@ export async function retargetCodeCore(
     .eq("owner_id", ctx.ownerId)
     .eq("id", id)
     .eq("kind", "dynamic")
-    .select("slug, destination_url, status")
+    .select("slug, destination_url, status, expires_at, password_hash")
     .single();
 
   if (error || !data) {
@@ -249,11 +336,9 @@ export async function retargetCodeCore(
   // Postgres UPDATE already committed above — this is best-effort
   // write-through (D2). A KV failure does NOT fail the action; worst case
   // is ~5min staleness until the Worker's own read-through backfill.
-  const kvResult = await writeSlugToKv(data.slug, {
-    destination: data.destination_url ?? "",
-    paused: data.status === "paused",
-    codeId: id,
-  });
+  // toKvRecord (not a hand-built literal) is the P7.5-U2 fix for the
+  // retarget-wipes-expiry/password-flags bug — see its own doc comment.
+  const kvResult = await writeSlugToKv(data.slug, toKvRecord(data, id));
 
   return {
     ok: true,
@@ -279,22 +364,94 @@ export async function setCodePausedCore(
     .eq("owner_id", ctx.ownerId)
     .eq("id", id)
     .eq("kind", "dynamic")
-    .select("slug, destination_url, status")
+    .select("slug, destination_url, status, expires_at, password_hash")
     .single();
 
   if (error || !data) {
     return { ok: false, error: "update_failed" };
   }
 
-  const kvResult = await writeSlugToKv(data.slug, {
-    destination: data.destination_url ?? "",
-    paused: data.status === "paused",
-    codeId: id,
-  });
+  // toKvRecord (not a hand-built literal) — same P7.5-U2 fix as
+  // retargetCodeCore above, see toKvRecord's doc comment.
+  const kvResult = await writeSlugToKv(data.slug, toKvRecord(data, id));
 
   return {
     ok: true,
     data: { id, status: data.status, kvSynced: kvResult.synced },
+  };
+}
+
+/**
+ * Sets/clears a dynamic code's expiry and/or password protection (P7.5-U2).
+ * Plan-gated (PLAN_LIMITS[plan].accessControls, CLAUDE.md hard rule: limits
+ * live only in entitlements.ts) — checked BEFORE the update runs, so a
+ * free-plan caller's request never reaches the qr_codes table at all.
+ *
+ * The update payload is built sparse: only the keys the caller actually
+ * supplied are set on the Postgres UPDATE, mirroring validateCodeAccessInput
+ * distinguishing "omitted" (leave alone) from "explicitly null" (clear).
+ * `password` hashing happens HERE and ONLY here — `hashCodePassword` is
+ * never called from any other file — so the raw password string's lifetime
+ * is confined to this one function body.
+ */
+export async function setCodeAccessCore(
+  ctx: CodesCoreCtx,
+  id: string,
+  input: { expiresAt?: unknown; password?: unknown },
+): Promise<
+  ActionResult<{ id: string; expiresAt: string | null; passwordProtected: boolean; kvSynced: boolean }>
+> {
+  const validated = validateCodeAccessInput(input);
+  if (!validated.ok) {
+    return validated;
+  }
+
+  const { data: profile, error: profileError } = await ctx.db
+    .from("profiles")
+    .select("plan")
+    .eq("id", ctx.ownerId)
+    .single();
+  if (profileError || !profile) {
+    return { ok: false, error: "profile_not_found" };
+  }
+
+  const plan = profile.plan as Plan;
+  if (!PLAN_LIMITS[plan].accessControls) {
+    return { ok: false, error: "plan_required" };
+  }
+
+  const patch: TablesUpdate<"qr_codes"> = {};
+  if (validated.data.expiresAt !== undefined) {
+    patch.expires_at = validated.data.expiresAt;
+  }
+  if (validated.data.password !== undefined) {
+    patch.password_hash =
+      validated.data.password === null ? null : await hashCodePassword(validated.data.password);
+  }
+
+  const { data, error } = await ctx.db
+    .from("qr_codes")
+    .update(patch)
+    .eq("owner_id", ctx.ownerId)
+    .eq("id", id)
+    .eq("kind", "dynamic")
+    .select("slug, destination_url, status, expires_at, password_hash")
+    .single();
+
+  if (error || !data) {
+    return { ok: false, error: "update_failed" };
+  }
+
+  const kvResult = await writeSlugToKv(data.slug, toKvRecord(data, id));
+
+  return {
+    ok: true,
+    data: {
+      id,
+      expiresAt: data.expires_at,
+      passwordProtected: data.password_hash !== null,
+      kvSynced: kvResult.synced,
+    },
   };
 }
 
@@ -310,7 +467,7 @@ export async function getCodeBySlugCore(
 ): Promise<ActionResult<DynamicCodeSummary>> {
   const { data, error } = await ctx.db
     .from("qr_codes")
-    .select("id, slug, name, destination_url, status, scan_count, created_at")
+    .select(SUMMARY_SELECT)
     .eq("owner_id", ctx.ownerId)
     .eq("slug", slug)
     .eq("kind", "dynamic")
@@ -320,7 +477,7 @@ export async function getCodeBySlugCore(
     return { ok: false, error: "not_found" };
   }
 
-  return { ok: true, data };
+  return { ok: true, data: toSummary(data) };
 }
 
 /**

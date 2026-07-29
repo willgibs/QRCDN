@@ -7,6 +7,7 @@ import {
   validateBrandKitId,
   validateBrandKitInput,
   validateBrandKitPatch,
+  validateCodeAccessInput,
   validateCodePatchInput,
   validateDestination,
   validateDynamicCodeInput,
@@ -326,17 +327,17 @@ describe("validatePaused", () => {
 });
 
 describe("validateCodePatchInput", () => {
-  it("rejects a patch with both fields absent", () => {
+  it("rejects a patch with every field absent", () => {
     const result = validateCodePatchInput({});
     expect(result).toEqual({ ok: false, error: "empty_patch" });
   });
 
-  it("validates only destination when paused is omitted", () => {
+  it("validates only destination when the others are omitted", () => {
     const result = validateCodePatchInput({ destination: "https://example.com" });
     expect(result).toEqual({ ok: true, data: { destination: "https://example.com" } });
   });
 
-  it("validates only paused when destination is omitted", () => {
+  it("validates only paused when the others are omitted", () => {
     const result = validateCodePatchInput({ paused: true });
     expect(result).toEqual({ ok: true, data: { paused: true } });
   });
@@ -360,6 +361,102 @@ describe("validateCodePatchInput", () => {
   it("rejects an invalid paused value in a patch", () => {
     const result = validateCodePatchInput({ paused: "true" });
     expect(result).toEqual({ ok: false, error: "invalid_paused" });
+  });
+
+  it("validates only expiresAt when the others are omitted, normalizing to ISO", () => {
+    const result = validateCodePatchInput({ expiresAt: "2026-08-01T00:00:00Z" });
+    expect(result).toEqual({ ok: true, data: { expiresAt: "2026-08-01T00:00:00.000Z" } });
+  });
+
+  it("accepts expiresAt: null (clears) alongside destination", () => {
+    const result = validateCodePatchInput({ destination: "https://example.com", expiresAt: null });
+    expect(result).toEqual({
+      ok: true,
+      data: { destination: "https://example.com", expiresAt: null },
+    });
+  });
+
+  it("rejects an unparseable expiresAt string in a patch", () => {
+    const result = validateCodePatchInput({ expiresAt: "not a date" });
+    expect(result).toEqual({ ok: false, error: "invalid_expiry" });
+  });
+
+  it("still rejects an empty patch when only unsupported keys are present", () => {
+    // Same "neither field supplied" stance, now with three possible fields
+    // instead of two.
+    const result = validateCodePatchInput({ somethingElse: true } as never);
+    expect(result).toEqual({ ok: false, error: "empty_patch" });
+  });
+});
+
+describe("validateCodeAccessInput", () => {
+  it("rejects a patch with both fields absent", () => {
+    const result = validateCodeAccessInput({});
+    expect(result).toEqual({ ok: false, error: "empty_patch" });
+  });
+
+  it("expiresAt: null clears the expiry", () => {
+    const result = validateCodeAccessInput({ expiresAt: null });
+    expect(result).toEqual({ ok: true, data: { expiresAt: null } });
+  });
+
+  it("a valid expiresAt string normalizes to ISO-8601 UTC", () => {
+    const result = validateCodeAccessInput({ expiresAt: "2026-08-01T00:00:00Z" });
+    expect(result).toEqual({ ok: true, data: { expiresAt: "2026-08-01T00:00:00.000Z" } });
+  });
+
+  it("a past expiresAt is allowed (immediate expiry is legitimate)", () => {
+    const result = validateCodeAccessInput({ expiresAt: "2000-01-01T00:00:00Z" });
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.data.expiresAt).toBe("2000-01-01T00:00:00.000Z");
+    }
+  });
+
+  it("rejects an unparseable expiresAt string", () => {
+    const result = validateCodeAccessInput({ expiresAt: "not a date" });
+    expect(result).toEqual({ ok: false, error: "invalid_expiry" });
+  });
+
+  it("rejects a non-string, non-null expiresAt", () => {
+    const result = validateCodeAccessInput({ expiresAt: 12345 });
+    expect(result).toEqual({ ok: false, error: "invalid_expiry" });
+  });
+
+  it("password: null clears password protection", () => {
+    const result = validateCodeAccessInput({ password: null });
+    expect(result).toEqual({ ok: true, data: { password: null } });
+  });
+
+  it("accepts a password at the 4-char lower boundary", () => {
+    const result = validateCodeAccessInput({ password: "abcd" });
+    expect(result).toEqual({ ok: true, data: { password: "abcd" } });
+  });
+
+  it("accepts a password at the 128-char upper boundary", () => {
+    const password = "a".repeat(128);
+    const result = validateCodeAccessInput({ password });
+    expect(result).toEqual({ ok: true, data: { password } });
+  });
+
+  it("rejects a password under 4 chars", () => {
+    const result = validateCodeAccessInput({ password: "abc" });
+    expect(result).toEqual({ ok: false, error: "invalid_password" });
+  });
+
+  it("rejects a password over 128 chars", () => {
+    const result = validateCodeAccessInput({ password: "a".repeat(129) });
+    expect(result).toEqual({ ok: false, error: "invalid_password" });
+  });
+
+  it("rejects a non-string, non-null password", () => {
+    const result = validateCodeAccessInput({ password: 1234 });
+    expect(result).toEqual({ ok: false, error: "invalid_password" });
+  });
+
+  it("validates both fields when both are supplied", () => {
+    const result = validateCodeAccessInput({ expiresAt: null, password: "letmein1" });
+    expect(result).toEqual({ ok: true, data: { expiresAt: null, password: "letmein1" } });
   });
 });
 

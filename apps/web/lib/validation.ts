@@ -227,22 +227,27 @@ export function validateApiKeyId(input: unknown): ActionResult<string> {
 export interface ValidatedCodePatch {
   destination?: string;
   paused?: boolean;
+  /** ISO-8601 UTC, or `null` to clear the expiry. See `parseExpiresAt` below
+   *  for the normalization/rejection rules — shared verbatim with
+   *  `validateCodeAccessInput`. */
+  expiresAt?: string | null;
 }
 
 /**
- * Partial validation for the public API's PATCH surface (P7): only the
- * fields the caller supplied are validated/returned, mirroring
- * `validateBrandKitPatch`'s style above. Unlike the studio's `retargetCode`/
- * `setCodePaused` actions (which are single-field, one-endpoint-per-field),
- * the API exposes one PATCH endpoint that accepts either or both fields —
- * so "the caller sent an empty object" is its own rejected case rather than
- * a no-op.
+ * Partial validation for the public API's PATCH surface (P7, expiresAt
+ * added P7.5-U2): only the fields the caller supplied are validated/
+ * returned, mirroring `validateBrandKitPatch`'s style above. Unlike the
+ * studio's `retargetCode`/`setCodePaused` actions (which are single-field,
+ * one-endpoint-per-field), the API exposes one PATCH endpoint that accepts
+ * any combination of fields — so "the caller sent an empty object" is its
+ * own rejected case rather than a no-op.
  */
 export function validateCodePatchInput(input: {
   destination?: unknown;
   paused?: unknown;
+  expiresAt?: unknown;
 }): ActionResult<ValidatedCodePatch> {
-  if (input.destination === undefined && input.paused === undefined) {
+  if (input.destination === undefined && input.paused === undefined && input.expiresAt === undefined) {
     return { ok: false, error: "empty_patch" };
   }
 
@@ -262,6 +267,100 @@ export function validateCodePatchInput(input: {
       return { ok: false, error: "invalid_paused" };
     }
     patch.paused = paused.data;
+  }
+
+  if (input.expiresAt !== undefined) {
+    const expiresAt = parseExpiresAt(input.expiresAt);
+    if (!expiresAt.ok) {
+      return expiresAt;
+    }
+    patch.expiresAt = expiresAt.data;
+  }
+
+  return { ok: true, data: patch };
+}
+
+// ---------------------------------------------------------------------------
+// Access controls: expiry + password (P7.5-U2). `validateCodeAccessInput`
+// backs `setCodeAccessCore` (apps/web/lib/codes-core.ts), reachable from
+// both the studio's `setCodeAccess` action and the public API's PATCH
+// `expiresAt`/(future) `password` branches.
+// ---------------------------------------------------------------------------
+
+const MIN_PASSWORD_LENGTH = 4;
+const MAX_PASSWORD_LENGTH = 128;
+
+/**
+ * Shared expiry-parsing rule for both `validateCodeAccessInput` and
+ * `validateCodePatchInput` above: `null` clears the expiry; a string is
+ * accepted only if `Date.parse` can make sense of it, and is normalized to
+ * a canonical ISO-8601 UTC string via `.toISOString()` (so `qr_codes.
+ * expires_at` and `KvSlugRecord.expiresAt` always compare/format
+ * identically regardless of what shape the caller sent). Past dates are
+ * deliberately accepted — "expire this code right now" is a legitimate
+ * request (e.g. killing a leaked/misprinted code immediately), not a
+ * mistake to reject.
+ */
+function parseExpiresAt(value: unknown): ActionResult<string | null> {
+  if (value === null) {
+    return { ok: true, data: null };
+  }
+  if (typeof value === "string") {
+    const ms = Date.parse(value);
+    if (!Number.isNaN(ms)) {
+      return { ok: true, data: new Date(ms).toISOString() };
+    }
+  }
+  return { ok: false, error: "invalid_expiry" };
+}
+
+export interface ValidatedCodeAccess {
+  /** Present only when the caller supplied `expiresAt`; `null` clears it,
+   *  omitted (`undefined`) means "leave the current expiry alone" — codes-
+   *  core.ts's setCodeAccessCore reads presence-in-the-object, not
+   *  truthiness, to build its sparse update payload. */
+  expiresAt?: string | null;
+  /** Present only when the caller supplied `password`; `null` clears
+   *  (removes) password protection, a 4-128 char string sets/replaces it. */
+  password?: string | null;
+}
+
+/**
+ * Both fields optional independently — `{}` (neither supplied) is rejected
+ * as `empty_patch`, same stance as `validateCodePatchInput` above: a caller
+ * who sends nothing meant to change nothing, which is a client bug worth
+ * surfacing rather than a silent no-op.
+ */
+export function validateCodeAccessInput(input: {
+  expiresAt?: unknown;
+  password?: unknown;
+}): ActionResult<ValidatedCodeAccess> {
+  if (input.expiresAt === undefined && input.password === undefined) {
+    return { ok: false, error: "empty_patch" };
+  }
+
+  const patch: ValidatedCodeAccess = {};
+
+  if (input.expiresAt !== undefined) {
+    const expiresAt = parseExpiresAt(input.expiresAt);
+    if (!expiresAt.ok) {
+      return expiresAt;
+    }
+    patch.expiresAt = expiresAt.data;
+  }
+
+  if (input.password !== undefined) {
+    if (input.password === null) {
+      patch.password = null;
+    } else if (
+      typeof input.password === "string" &&
+      input.password.length >= MIN_PASSWORD_LENGTH &&
+      input.password.length <= MAX_PASSWORD_LENGTH
+    ) {
+      patch.password = input.password;
+    } else {
+      return { ok: false, error: "invalid_password" };
+    }
   }
 
   return { ok: true, data: patch };

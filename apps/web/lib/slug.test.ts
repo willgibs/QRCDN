@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { SLUG_CHARSET, SLUG_LENGTH, generateSlug, isValidSlug } from "./slug";
+import { RESERVED_SLUGS, SLUG_CHARSET, SLUG_LENGTH, generateSlug, isValidSlug, validateVanitySlug } from "./slug";
 
 // Characters deliberately excluded from SLUG_CHARSET for confusability at
 // print/scan size (see slug.ts header) — must never appear.
@@ -116,5 +116,83 @@ describe("isValidSlug", () => {
 
   it("rejects a slug containing a non-alphanumeric character", () => {
     expect(isValidSlug("23456-")).toBe(false);
+  });
+});
+
+// P7.5-U3: caller-chosen vanity slugs (Pro-gated in codes-core.ts — this
+// module only validates format/reservation, not plan entitlement).
+describe("validateVanitySlug", () => {
+  it("rejects non-string input", () => {
+    expect(validateVanitySlug(12345)).toEqual({ ok: false, error: "invalid_slug" });
+    expect(validateVanitySlug(null)).toEqual({ ok: false, error: "invalid_slug" });
+    expect(validateVanitySlug(undefined)).toEqual({ ok: false, error: "invalid_slug" });
+  });
+
+  it("normalizes lowercase input to uppercase, trimmed", () => {
+    expect(validateVanitySlug("  party26  ")).toEqual({ ok: true, data: "PARTY26" });
+  });
+
+  it("rejects each confusable character individually (0, O, 1, I, L, U)", () => {
+    for (const char of CONFUSABLES) {
+      expect(validateVanitySlug(`23456${char}`)).toEqual({ ok: false, error: "invalid_slug" });
+      // Lowercase confusables normalize to the same rejected uppercase form.
+      expect(validateVanitySlug(`23456${char.toLowerCase()}`)).toEqual({
+        ok: false,
+        error: "invalid_slug",
+      });
+    }
+  });
+
+  it("rejects one below the minimum length (3)", () => {
+    expect(validateVanitySlug("234")).toEqual({ ok: false, error: "invalid_slug" });
+  });
+
+  it("rejects one above the maximum length (31)", () => {
+    expect(validateVanitySlug(SLUG_CHARSET + "2")).toEqual({ ok: false, error: "invalid_slug" });
+  });
+
+  it("accepts the length boundaries (4 and 30)", () => {
+    expect(validateVanitySlug("2345")).toEqual({ ok: true, data: "2345" });
+    expect(validateVanitySlug(SLUG_CHARSET)).toEqual({ ok: true, data: SLUG_CHARSET });
+  });
+
+  // NOTE (surprising finding, see the dedicated regression test below): "api"
+  // is both too short (3 chars, MIN_SLUG_LENGTH is 4) and charset-invalid
+  // ("I" isn't in SLUG_CHARSET), so validateVanitySlug's isValidSlug() gate
+  // — which runs BEFORE the RESERVED_SLUGS check, per this function's spec —
+  // rejects it as `invalid_slug` without ever consulting RESERVED_SLUGS.
+  // "api"/"Api"/"API" ARE still rejected case-insensitively, as required;
+  // the reserved-word blocklist just isn't the mechanism doing it here.
+  it("rejects 'api' case-insensitively (via invalid_slug — see the RESERVED_SLUGS reachability test)", () => {
+    expect(validateVanitySlug("api")).toEqual({ ok: false, error: "invalid_slug" });
+    expect(validateVanitySlug("API")).toEqual({ ok: false, error: "invalid_slug" });
+    expect(validateVanitySlug("Api")).toEqual({ ok: false, error: "invalid_slug" });
+    expect(RESERVED_SLUGS.has("API")).toBe(true);
+  });
+
+  it("accepts a valid, non-reserved slug", () => {
+    expect(validateVanitySlug("PARTY26")).toEqual({ ok: true, data: "PARTY26" });
+  });
+
+  // Regression pin for a real finding: every word currently in
+  // RESERVED_SLUGS is either shorter than MIN_SLUG_LENGTH (4) or contains a
+  // SLUG_CHARSET-excluded letter (I/L/O/U — e.g. ADMIN, DOCS, LOGIN, AUTH,
+  // STUDIO, CODES, FAVICON all contain at least one), so `isValidSlug`
+  // rejects every one of them as `invalid_slug` before `RESERVED_SLUGS.has()`
+  // is ever reached — per this function's specified check order (isValidSlug
+  // BEFORE the reserved check). The words are still effectively blocked
+  // (callers can never register e.g. "STUDIO" as a slug), just via a
+  // different, less specific error than `slug_reserved` — so this isn't a
+  // trust/security gap, but the reserved-word branch itself is presently
+  // dead code for the whole shipped list. Pinned here so a future charset
+  // widening, MIN_SLUG_LENGTH change, or a newly-added reserved word that
+  // happens to be charset-valid gets this branch exercised for real, rather
+  // than the reserved check staying silently untested.
+  it("[reconcile] every RESERVED_SLUGS entry is already unreachable via isValidSlug (dead reserved-word branch)", () => {
+    for (const word of RESERVED_SLUGS) {
+      const charsetOk = [...word].every((char) => SLUG_CHARSET.includes(char));
+      const lengthOk = word.length >= 4 && word.length <= 30;
+      expect(charsetOk && lengthOk).toBe(false);
+    }
   });
 });

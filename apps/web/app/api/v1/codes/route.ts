@@ -24,6 +24,14 @@ const CREATE_INTERNAL_ERRORS = new Set([
   "slug_exhausted",
 ]);
 
+// vanity_slugs_not_available (P7.5-U3) is a plan-gate failure, same tier as
+// code_limit below — 403, not a 422 the caller could "fix" by resubmitting.
+// slug_taken/slug_reserved/invalid_slug are ordinary input-validation
+// failures (a bad/unavailable slug in the request body), so they fall
+// through to the same 422 invalidRequest passthrough as
+// invalid_destination/invalid_name already do — no special-casing needed
+// beyond keeping them OUT of CREATE_INTERNAL_ERRORS above.
+
 export async function GET(request: Request) {
   const auth = await authenticateApiRequest(request);
   if (isApiError(auth)) {
@@ -62,6 +70,9 @@ export async function POST(request: Request) {
       // same fallback the studio's create flow would produce via its own
       // form defaults.
       style: parsed.style ?? defaultQrStyle,
+      // slug omitted (undefined) -> the core's auto-generated path,
+      // unchanged (P7.5-U3).
+      slug: parsed.slug,
     },
   );
 
@@ -72,9 +83,20 @@ export async function POST(request: Request) {
         { status: 403 },
       );
     }
+    if (result.error === "vanity_slugs_not_available") {
+      return NextResponse.json(
+        {
+          error: "vanity_slugs_not_available",
+          message: "Custom vanity slugs require a Pro plan.",
+        },
+        { status: 403 },
+      );
+    }
     if (CREATE_INTERNAL_ERRORS.has(result.error)) {
       return internalError();
     }
+    // slug_taken / slug_reserved / invalid_slug fall through here, same as
+    // every other validateDynamicCodeInput failure string.
     return invalidRequest(result.error);
   }
 

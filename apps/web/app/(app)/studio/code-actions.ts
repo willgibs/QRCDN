@@ -74,6 +74,10 @@ export async function createDynamicCode(input: {
   name: unknown;
   destination: unknown;
   style: unknown;
+  /** Caller-chosen vanity slug (P7.5-U3, Pro-gated) — optional, omitted
+   *  entirely by existing callers that haven't been updated to offer it.
+   *  Validated/plan-gated inside createDynamicCodeCore, not here. */
+  slug?: unknown;
 }): Promise<ActionResult<QrCode>> {
   const ctx = await requireClaimsContext();
   if (!ctx) {

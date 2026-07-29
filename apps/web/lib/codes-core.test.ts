@@ -193,6 +193,150 @@ describe("createDynamicCodeCore — owner scoping", () => {
   });
 });
 
+// P7.5-U3: vanity slugs. `insertDynamicCode` is private — exercised only
+// through `createDynamicCodeCore` here, same as every other codes-core
+// internal.
+describe("createDynamicCodeCore — vanity slugs (P7.5-U3)", () => {
+  it("free plan + slug: vanity_slugs_not_available, zero insert attempts", async () => {
+    const { db, from, builders } = createDb([
+      { table: "profiles", result: { data: { plan: "free" }, error: null } },
+    ]);
+
+    const result = await createDynamicCodeCore(ctxWith(db), {
+      name: "Menu",
+      destination: "https://example.com",
+      style: { v: 1 },
+      slug: "party26",
+    });
+
+    expect(result).toEqual({ ok: false, error: "vanity_slugs_not_available" });
+    // Only the profile lookup — no count query, no insert attempt.
+    expect(from).toHaveBeenCalledTimes(1);
+    expect(builders.every((b) => !b.calls.insert)).toBe(true);
+  });
+
+  it("pro plan + slug: succeeds with the exact normalized slug, insert called exactly once", async () => {
+    const { db, builders } = createDb([
+      { table: "profiles", result: { data: { plan: "pro" }, error: null } },
+      { table: "qr_codes", result: { count: 0, error: null } },
+      { table: "qr_codes", result: { data: { id: "code-1", slug: "PARTY26" }, error: null } },
+    ]);
+
+    const result = await createDynamicCodeCore(ctxWith(db), {
+      name: "Menu",
+      destination: "https://example.com",
+      style: { v: 1 },
+      slug: "party26",
+    });
+
+    expect(result).toEqual({ ok: true, data: { id: "code-1", slug: "PARTY26" } });
+    expect(builders).toHaveLength(3);
+    expect(builders[2]!.calls.insert).toHaveLength(1);
+    expect(builders[2]!.calls.insert![0]![0]).toMatchObject({ slug: "PARTY26" });
+  });
+
+  it("pro plan + a taken slug (23505): slug_taken, insert called exactly once — no retry", async () => {
+    const { db, builders } = createDb([
+      { table: "profiles", result: { data: { plan: "pro" }, error: null } },
+      { table: "qr_codes", result: { count: 0, error: null } },
+      { table: "qr_codes", result: { data: null, error: { code: "23505" } } },
+    ]);
+
+    const result = await createDynamicCodeCore(ctxWith(db), {
+      name: "Menu",
+      destination: "https://example.com",
+      style: { v: 1 },
+      slug: "PARTY26",
+    });
+
+    expect(result).toEqual({ ok: false, error: "slug_taken" });
+    // Exactly 3 .from() calls total (profiles, count, one insert attempt) —
+    // a 4th would mean insertDynamicCode retried a caller-chosen slug, which
+    // it must never do.
+    expect(builders).toHaveLength(3);
+    expect(builders[2]!.calls.insert).toHaveLength(1);
+  });
+
+  it("normalizes lowercase/whitespace slug input before it reaches the insert payload", async () => {
+    const { db, builders } = createDb([
+      { table: "profiles", result: { data: { plan: "pro" }, error: null } },
+      { table: "qr_codes", result: { count: 0, error: null } },
+      { table: "qr_codes", result: { data: { id: "code-1", slug: "PARTY26" }, error: null } },
+    ]);
+
+    await createDynamicCodeCore(ctxWith(db), {
+      name: "Menu",
+      destination: "https://example.com",
+      style: { v: 1 },
+      slug: "  party26  ",
+    });
+
+    expect(builders[2]!.calls.insert![0]![0]).toMatchObject({ slug: "PARTY26" });
+  });
+
+  // "api" is a RESERVED_SLUGS entry, but — see lib/slug.test.ts's
+  // "[reconcile]" pin — it's also too short/charset-invalid, so
+  // validateVanitySlug rejects it as invalid_slug before RESERVED_SLUGS.has()
+  // is ever consulted. Still blocked, zero inserts either way; the point of
+  // this test is that createDynamicCodeCore returns whatever validateVanitySlug
+  // says verbatim (it doesn't special-case the error string) and never
+  // reaches the count/insert queries for a rejected slug, even on pro.
+  it("a rejected vanity slug ('api'): the validator's error propagates verbatim, zero insert attempts, even on pro", async () => {
+    const { db, from, builders } = createDb([
+      { table: "profiles", result: { data: { plan: "pro" }, error: null } },
+    ]);
+
+    const result = await createDynamicCodeCore(ctxWith(db), {
+      name: "Menu",
+      destination: "https://example.com",
+      style: { v: 1 },
+      slug: "api",
+    });
+
+    expect(result).toEqual({ ok: false, error: "invalid_slug" });
+    expect(from).toHaveBeenCalledTimes(1);
+    expect(builders.every((b) => !b.calls.insert)).toBe(true);
+  });
+
+  it("malformed slug (too short): invalid_slug, zero insert attempts", async () => {
+    const { db, from } = createDb([
+      { table: "profiles", result: { data: { plan: "pro" }, error: null } },
+    ]);
+
+    const result = await createDynamicCodeCore(ctxWith(db), {
+      name: "Menu",
+      destination: "https://example.com",
+      style: { v: 1 },
+      slug: "ab",
+    });
+
+    expect(result).toEqual({ ok: false, error: "invalid_slug" });
+    expect(from).toHaveBeenCalledTimes(1);
+  });
+
+  // Regression pin: `slug` entirely absent (not just falsy) must take
+  // exactly today's auto-generated path — this is the same fixture as the
+  // pre-existing "retries once on a slug collision" test above, proving the
+  // vanity branch above it doesn't get in the way when the caller sends no
+  // slug at all.
+  it("omitting slug takes the auto-generated path, unaffected by the vanity branch", async () => {
+    const { db } = createDb([
+      { table: "profiles", result: { data: { plan: "pro" }, error: null } },
+      { table: "qr_codes", result: { count: 0, error: null } },
+      { table: "qr_codes", result: { data: null, error: { code: "23505" } } },
+      { table: "qr_codes", result: { data: { id: "code-2", slug: "EFGH567" }, error: null } },
+    ]);
+
+    const result = await createDynamicCodeCore(ctxWith(db), {
+      name: "Menu",
+      destination: "https://example.com",
+      style: { v: 1 },
+    });
+
+    expect(result).toEqual({ ok: true, data: { id: "code-2", slug: "EFGH567" } });
+  });
+});
+
 describe("listDynamicCodesCore — owner scoping", () => {
   it("filters by owner_id", async () => {
     const { db, builders } = createDb([{ table: "qr_codes", result: { data: [], error: null } }]);

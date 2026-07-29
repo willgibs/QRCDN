@@ -77,10 +77,9 @@ export function ControlsRail({
   /** The caller's dynamic codes (server-fetched in page.tsx, threaded down
    *  the same way brand kits are — see studio-shell.tsx). */
   codes: DynamicCodeSummary[];
-  /** P7.5-U2: threaded only as far as CodesList's access-controls dialog
-   *  needs it (the Pro-lock affordance) — NOT threaded to CreateCodeControl
-   *  in this unit, since nothing there reads it yet (U3 will thread it
-   *  there when it needs a plan-gated affordance of its own). */
+  /** P7.5-U2: threaded to CodesList's access-controls dialog for its
+   *  Pro-lock affordance. P7.5-U3 additionally threads it to
+   *  CreateCodeControl, which needs it for the vanity-slug Pro lock. */
   plan: Plan;
   onPayloadChange: (value: string) => void;
   /** Bubbles a freshly-minted code up alongside its printed short URL —
@@ -190,7 +189,7 @@ export function ControlsRail({
             className="font-mono text-xs"
           />
         </div>
-        <CreateCodeControl payload={payload} style={style} onCreated={onCodeCreated} />
+        <CreateCodeControl payload={payload} style={style} plan={plan} onCreated={onCodeCreated} />
       </section>
 
       <section className="flex flex-col gap-3">

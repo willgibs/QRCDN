@@ -64,8 +64,8 @@ export function StudioShell({
   /** P7.5-U2: threaded down to CodesList's access-controls dialog, which
    *  needs it to render the Pro-lock affordance for free-plan callers
    *  (mirroring components/codes/range-selector.tsx's own lock pattern).
-   *  Not threaded to CreateCodeControl in this unit — see controls-rail.tsx's
-   *  own comment on that choice. */
+   *  P7.5-U3 threads the same prop on through ControlsRail to
+   *  CreateCodeControl too, for its vanity-slug Pro lock. */
   plan: Plan;
   userId: string;
 }) {

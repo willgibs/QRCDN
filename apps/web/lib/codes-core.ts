@@ -9,7 +9,7 @@ import {
   type TablesUpdate,
 } from "@qrcdn/shared";
 import { PLAN_LIMITS, type Plan } from "./entitlements";
-import { generateSlug } from "./slug";
+import { generateSlug, validateVanitySlug } from "./slug";
 import { writeSlugToKv } from "./kv-sync";
 import { hashCodePassword } from "./passwords";
 import {
@@ -191,9 +191,81 @@ async function dynamicCodeCountFor(ctx: CodesCoreCtx): Promise<number | null> {
   return count ?? 0;
 }
 
+/**
+ * The insert (+ auto-slug retry loop) at the bottom of `createDynamicCodeCore`
+ * — extracted verbatim (P7.5-U3) so a caller-chosen vanity slug and an
+ * auto-generated one can share the same insert shape without duplicating it.
+ *
+ * `args.slug` present (vanity, already validated/normalized by the caller):
+ * a SINGLE insert attempt with that exact slug. A `23505` (Postgres
+ * unique_violation — slug is the table's only unique column) here is a real
+ * collision on a slug the *caller* picked, so it's surfaced as `slug_taken`
+ * for them to resolve — never silently retried with a different slug they
+ * didn't ask for.
+ *
+ * `args.slug` absent (auto path): byte-identical to the pre-extraction
+ * behavior — `generateSlug()` + up to `MAX_SLUG_ATTEMPTS` retries on a
+ * `23505`, `slug_exhausted` if every attempt collides.
+ */
+async function insertDynamicCode(
+  ctx: CodesCoreCtx,
+  args: { name: string; destination: string; style: unknown; slug?: string },
+): Promise<ActionResult<QrCode>> {
+  function payloadFor(slug: string): TablesInsert<"qr_codes"> {
+    return {
+      owner_id: ctx.ownerId,
+      slug,
+      kind: "dynamic",
+      name: args.name,
+      destination_url: args.destination,
+      // Frozen snapshot at creation — never mutated by brand-kit edits
+      // afterward (D5 hard rule). No update path in this file accepts a
+      // style param.
+      style: args.style as TablesInsert<"qr_codes">["style"],
+    };
+  }
+
+  if (args.slug !== undefined) {
+    const { data, error } = await ctx.db
+      .from("qr_codes")
+      .insert(payloadFor(args.slug))
+      .select()
+      .single();
+
+    if (!error && data) {
+      return { ok: true, data };
+    }
+    if (error?.code === "23505") {
+      return { ok: false, error: "slug_taken" };
+    }
+    return { ok: false, error: "insert_failed" };
+  }
+
+  for (let attempt = 0; attempt < MAX_SLUG_ATTEMPTS; attempt++) {
+    const { data, error } = await ctx.db
+      .from("qr_codes")
+      .insert(payloadFor(generateSlug()))
+      .select()
+      .single();
+
+    if (!error && data) {
+      return { ok: true, data };
+    }
+
+    // 23505 = Postgres unique_violation. slug is the table's only unique
+    // column, so any 23505 here is a slug collision — retry with a fresh
+    // draw. Anything else is a real failure; stop immediately.
+    if (error?.code !== "23505") {
+      return { ok: false, error: "insert_failed" };
+    }
+  }
+
+  return { ok: false, error: "slug_exhausted" };
+}
+
 export async function createDynamicCodeCore(
   ctx: CodesCoreCtx,
-  input: { name: unknown; destination: unknown; style: unknown },
+  input: { name: unknown; destination: unknown; style: unknown; slug?: unknown },
 ): Promise<ActionResult<QrCode>> {
   const validated = validateDynamicCodeInput(input);
   if (!validated.ok) {
@@ -214,6 +286,23 @@ export async function createDynamicCodeCore(
   const plan = profile.plan as Plan;
   const limit = PLAN_LIMITS[plan].dynamicCodes;
 
+  // Vanity slug (P7.5-U3, Pro-gated): resolved right after the plan fetch,
+  // before the count/limit check below, so a disallowed or malformed slug
+  // never costs a second query. `input.slug` absent (undefined) takes
+  // exactly today's auto-generated path — `slug` stays undefined and
+  // insertDynamicCode below runs its retry loop unchanged.
+  let slug: string | undefined;
+  if (input.slug !== undefined) {
+    if (!PLAN_LIMITS[plan].vanitySlugs) {
+      return { ok: false, error: "vanity_slugs_not_available" };
+    }
+    const slugResult = validateVanitySlug(input.slug);
+    if (!slugResult.ok) {
+      return slugResult;
+    }
+    slug = slugResult.data;
+  }
+
   const existingCount = await dynamicCodeCountFor(ctx);
   if (existingCount === null) {
     return { ok: false, error: "code_count_failed" };
@@ -224,38 +313,12 @@ export async function createDynamicCodeCore(
     return { ok: false, error: "code_limit" };
   }
 
-  for (let attempt = 0; attempt < MAX_SLUG_ATTEMPTS; attempt++) {
-    const insertPayload: TablesInsert<"qr_codes"> = {
-      owner_id: ctx.ownerId,
-      slug: generateSlug(),
-      kind: "dynamic",
-      name: validated.data.name,
-      destination_url: validated.data.destination,
-      // Frozen snapshot at creation — never mutated by brand-kit edits
-      // afterward (D5 hard rule). No update path in this file accepts a
-      // style param.
-      style: validated.data.style as TablesInsert<"qr_codes">["style"],
-    };
-
-    const { data, error } = await ctx.db
-      .from("qr_codes")
-      .insert(insertPayload)
-      .select()
-      .single();
-
-    if (!error && data) {
-      return { ok: true, data };
-    }
-
-    // 23505 = Postgres unique_violation. slug is the table's only unique
-    // column, so any 23505 here is a slug collision — retry with a fresh
-    // draw. Anything else is a real failure; stop immediately.
-    if (error?.code !== "23505") {
-      return { ok: false, error: "insert_failed" };
-    }
-  }
-
-  return { ok: false, error: "slug_exhausted" };
+  return insertDynamicCode(ctx, {
+    name: validated.data.name,
+    destination: validated.data.destination,
+    style: validated.data.style,
+    slug,
+  });
 }
 
 export async function listDynamicCodesCore(

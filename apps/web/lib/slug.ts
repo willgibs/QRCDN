@@ -1,3 +1,5 @@
+import type { ActionResult } from "./validation";
+
 // Dynamic-code slug generation (P5-U1, docs/guides/p5-dynamic.md). 7 chars
 // drawn from a QR-alphanumeric-mode-safe charset with visually confusable
 // characters removed: no 0/O, 1/I/L, or U — these are the characters most
@@ -51,4 +53,81 @@ export function isValidSlug(input: string): boolean {
     }
   }
   return true;
+}
+
+// ---------------------------------------------------------------------------
+// Vanity slugs (P7.5-U3, Pro-gated — D12's "Vanity (Pro): 4-30 chars,
+// reserved blocklist ... single namespace"). Words blocked from ever being
+// assigned as a caller-chosen slug.
+//
+// Not a technical collision guard: today's routing splits cleanly by host
+// (D1) — printed short codes resolve via workers/redirect on the bare apex
+// (`qrcdn.com/{slug}`), while every word below is a route living under
+// `www.qrcdn.com`, a different host entirely. So no literal collision exists
+// between a vanity slug and an app route right now. Blocked anyway as a
+// trust/UX safeguard: a vanity slug that reads as `qrcdn.com/LOGIN` or
+// `qrcdn.com/ADMIN` is phishing-adjacent regardless of which host actually
+// serves it, and this list is cheap insurance against a future host
+// unification (apex + www collapsing into one namespace) turning today's
+// non-collision into a real one.
+//
+// Reachability note (found during P7.5-U3, pinned by a test in
+// slug.test.ts): every word below is either shorter than MIN_SLUG_LENGTH (4)
+// or contains a SLUG_CHARSET-excluded letter (I/L/O/U) — ADMIN, DOCS, HELP,
+// CODES, STUDIO, LOGIN, AUTH, DEVELOPERS, ROBOTS, EXPLORE, STATIC, and
+// FAVICON all contain at least one; API/APP/DEV/WWW/U/P/A/QR are all under 4
+// chars. That means `isValidSlug` (below, in `validateVanitySlug`) already
+// rejects every one of these as `invalid_slug` before this set is ever
+// consulted — the words stay blocked in practice, just via a less specific
+// error than `slug_reserved`. Not a trust/security gap, but worth
+// reconciling: either this list needs charset-valid replacements, or the
+// intent was for the reserved check to run independent of format.
+export const RESERVED_SLUGS: ReadonlySet<string> = new Set([
+  "API",
+  "APP",
+  "ADMIN",
+  "DEV",
+  "DOCS",
+  "HELP",
+  "WWW",
+  "U",
+  "P",
+  "A",
+  "QR",
+  "CODES",
+  "STUDIO",
+  "LOGIN",
+  "AUTH",
+  "DEVELOPERS",
+  "ROBOTS",
+  "EXPLORE",
+  "STATIC",
+  "FAVICON",
+]);
+
+/**
+ * Validates a caller-chosen vanity slug (the only caller today:
+ * `createDynamicCodeCore`'s vanity branch in codes-core.ts, itself gated on
+ * `PLAN_LIMITS[plan].vanitySlugs` before this ever runs). Lowercase input is
+ * accepted and normalized — friendlier than forcing callers to shout their
+ * own slug — everything else reuses the exact rules the auto-generated path
+ * already satisfies by construction (`isValidSlug`'s charset + 4..30 length
+ * check), plus the reserved-word blocklist above.
+ */
+export function validateVanitySlug(input: unknown): ActionResult<string> {
+  if (typeof input !== "string") {
+    return { ok: false, error: "invalid_slug" };
+  }
+
+  const normalized = input.trim().toUpperCase();
+
+  if (!isValidSlug(normalized)) {
+    return { ok: false, error: "invalid_slug" };
+  }
+
+  if (RESERVED_SLUGS.has(normalized)) {
+    return { ok: false, error: "slug_reserved" };
+  }
+
+  return { ok: true, data: normalized };
 }

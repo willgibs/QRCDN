@@ -171,4 +171,81 @@ describe("POST /api/v1/codes", () => {
       message: "invalid_destination",
     });
   });
+
+  // P7.5-U3: vanity slugs.
+  it("201s and echoes the exact vanity slug the core returned, and forwards it in the payload", async () => {
+    createMock.mockResolvedValueOnce({
+      ok: true,
+      data: {
+        id: "code-1",
+        owner_id: "owner-1",
+        slug: "PARTY26",
+        name: "Menu",
+        destination_url: "https://example.com/menu",
+        status: "active",
+        scan_count: 0,
+        created_at: "2026-01-01T00:00:00.000Z",
+        expires_at: null,
+        password_hash: null,
+      } as never,
+    });
+
+    const response = await POST(
+      postRequest(
+        JSON.stringify({ name: "Menu", destination: "https://example.com/menu", slug: "party26" }),
+      ),
+    );
+
+    expect(response.status).toBe(201);
+    await expect(response.json()).resolves.toMatchObject({
+      slug: "PARTY26",
+      url: "https://qrcdn.com/PARTY26",
+    });
+    expect(createMock).toHaveBeenCalledWith(
+      { db: AUTH_CTX.db, ownerId: "owner-1" },
+      { name: "Menu", destination: "https://example.com/menu", style: defaultQrStyle, slug: "party26" },
+    );
+  });
+
+  it("403s vanity_slugs_not_available when the core reports the plan gate", async () => {
+    createMock.mockResolvedValueOnce({ ok: false, error: "vanity_slugs_not_available" });
+
+    const response = await POST(
+      postRequest(JSON.stringify({ name: "Menu", destination: "https://example.com", slug: "party26" })),
+    );
+
+    expect(response.status).toBe(403);
+    await expect(response.json()).resolves.toEqual({
+      error: "vanity_slugs_not_available",
+      message: "Custom vanity slugs require a Pro plan.",
+    });
+  });
+
+  it("422s invalid_request when the core reports slug_taken", async () => {
+    createMock.mockResolvedValueOnce({ ok: false, error: "slug_taken" });
+
+    const response = await POST(
+      postRequest(JSON.stringify({ name: "Menu", destination: "https://example.com", slug: "PARTY26" })),
+    );
+
+    expect(response.status).toBe(422);
+    await expect(response.json()).resolves.toEqual({
+      error: "invalid_request",
+      message: "slug_taken",
+    });
+  });
+
+  it("422s invalid_request when the core reports slug_reserved", async () => {
+    createMock.mockResolvedValueOnce({ ok: false, error: "slug_reserved" });
+
+    const response = await POST(
+      postRequest(JSON.stringify({ name: "Menu", destination: "https://example.com", slug: "api" })),
+    );
+
+    expect(response.status).toBe(422);
+    await expect(response.json()).resolves.toEqual({
+      error: "invalid_request",
+      message: "slug_reserved",
+    });
+  });
 });

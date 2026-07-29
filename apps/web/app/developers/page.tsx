@@ -91,11 +91,18 @@ const ERRORS: { status: string; error: string; meaning: string }[] = [
   { status: "401", error: "unauthorized", meaning: "Missing, malformed, unknown, or revoked API key." },
   { status: "403", error: "api_not_available", meaning: "Your plan does not include API access (Pro only)." },
   { status: "403", error: "code_limit_reached", meaning: "You have reached your plan's dynamic code limit." },
+  { status: "403", error: "vanity_slugs_not_available", meaning: "Custom vanity slugs require a Pro plan." },
+  {
+    status: "403",
+    error: "plan_required",
+    meaning: "Your plan does not include access controls — setting expiresAt requires Pro.",
+  },
   { status: "404", error: "not_found", meaning: "The code does not exist, or is not owned by this key." },
   {
     status: "422",
     error: "invalid_request",
-    meaning: "The request body failed validation — includes an empty PATCH body.",
+    meaning:
+      "The request body failed validation — includes an empty PATCH body, a taken/reserved/malformed vanity slug, or an unparseable expiresAt.",
   },
   { status: "429", error: "quota_exceeded", meaning: "Monthly request quota exceeded." },
   { status: "500", error: "internal_error", meaning: "Something went wrong on our end. Retry." },
@@ -161,6 +168,8 @@ export default function DevelopersPage() {
       "destination": "https://example.com/promo",
       "status": "active",
       "scanCount": 142,
+      "expiresAt": null,
+      "passwordProtected": false,
       "url": "https://qrcdn.com/8K2QRX",
       "createdAt": "2026-07-01T12:00:00.000Z"
     }
@@ -172,19 +181,21 @@ export default function DevelopersPage() {
                 method="POST"
                 path="/codes"
                 description="Create a dynamic code."
-                note="name and destination are required. style is optional — omit it and the code is created with QRCDN's default style, the same fallback the studio's create flow uses."
+                note="name and destination are required; style is optional and falls back to QRCDN's default, same as the studio's create flow. slug is optional, Pro-only, and case-insensitive (normalized to uppercase): 4–30 characters from 23456789ABCDEFGHJKMNPQRSTVWXYZ — 0, 1, I, L, O, and U are excluded because they misprint on small labels. A taken slug is a 422 error, not a silent reassignment; omit it for the existing auto-generated path."
                 request={`curl -X POST https://www.qrcdn.com/api/v1/codes \\
   -H "Authorization: Bearer qrcdn_live_…" \\
   -H "Content-Type: application/json" \\
-  -d '{"name": "Storefront flyer", "destination": "https://example.com/promo"}'`}
+  -d '{"name": "Storefront flyer", "destination": "https://example.com/promo", "slug": "mybrand26"}'`}
                 response={`// 201 Created
 {
-  "slug": "8K2QRX",
+  "slug": "MYBRAND26",
   "name": "Storefront flyer",
   "destination": "https://example.com/promo",
   "status": "active",
   "scanCount": 0,
-  "url": "https://qrcdn.com/8K2QRX",
+  "expiresAt": null,
+  "passwordProtected": false,
+  "url": "https://qrcdn.com/MYBRAND26",
   "createdAt": "2026-07-23T09:14:02.000Z"
 }`}
               />
@@ -202,6 +213,8 @@ export default function DevelopersPage() {
   "destination": "https://example.com/promo",
   "status": "active",
   "scanCount": 142,
+  "expiresAt": null,
+  "passwordProtected": false,
   "url": "https://qrcdn.com/8K2QRX",
   "createdAt": "2026-07-01T12:00:00.000Z"
 }`}
@@ -210,16 +223,17 @@ export default function DevelopersPage() {
               <Endpoint
                 method="PATCH"
                 path="/codes/{slug}"
-                description="Retarget and/or pause a code."
-                note="Supply destination, paused, or both. At least one field is required — an empty body returns 422 invalid_request."
+                description="Retarget, pause, and/or set a code's expiry."
+                note="Supply destination, paused, expiresAt, or any combination — at least one field is required, an empty body returns 422 invalid_request. expiresAt takes an ISO-8601 timestamp, or null to clear it; past timestamps are allowed, since expiring a code immediately is a legitimate action, not an error."
                 request={`curl -X PATCH https://www.qrcdn.com/api/v1/codes/8K2QRX \\
   -H "Authorization: Bearer qrcdn_live_…" \\
   -H "Content-Type: application/json" \\
-  -d '{"paused": true}'`}
+  -d '{"expiresAt": "2026-08-01T00:00:00.000Z"}'`}
                 response={`{
   "slug": "8K2QRX",
   "destination": "https://example.com/promo",
-  "status": "paused"
+  "status": "active",
+  "expiresAt": "2026-08-01T00:00:00.000Z"
 }`}
               />
 
@@ -238,6 +252,8 @@ export default function DevelopersPage() {
     "destination": "https://example.com/promo",
     "status": "active",
     "scanCount": 142,
+    "expiresAt": null,
+    "passwordProtected": false,
     "url": "https://qrcdn.com/8K2QRX",
     "createdAt": "2026-07-01T12:00:00.000Z"
   },
@@ -267,12 +283,32 @@ export default function DevelopersPage() {
             </div>
           </Section>
 
+          <Section title="Access controls">
+            <ul className="list-disc space-y-2 pl-5 text-sm leading-relaxed text-muted-foreground">
+              <li>A code can carry an expiry, a password, or both — each is independent and optional.</li>
+              <li>
+                Expiry is settable via the API today (<InlineCode>expiresAt</InlineCode>, PATCH above).
+                Password protection is Studio-only in this release — a plaintext password in an API
+                request body needs its own transport and logging review before it&apos;s exposed here,
+                so it isn&apos;t yet.
+              </li>
+              <li>
+                A password-protected code&apos;s scan lands on an unlock page; a correct password
+                forwards the visitor to the destination.
+              </li>
+              <li>
+                An expired code&apos;s scan serves the same unavailable page a paused code does, not the
+                destination. Clearing the expiry brings it straight back — your code never dies.
+              </li>
+            </ul>
+          </Section>
+
           <Section title="Errors">
             <p className="text-sm leading-relaxed text-muted-foreground">
               Every non-2xx response is <InlineCode>{`{ "error": "<code>", "message": "<string>" }`}</InlineCode>.
               For 422s the message is often the same short code as the error field
-              (e.g. <InlineCode>invalid_destination</InlineCode>); for other statuses it is a
-              human-readable sentence.
+              (e.g. <InlineCode>invalid_destination</InlineCode>, <InlineCode>slug_taken</InlineCode>);
+              for other statuses it is a human-readable sentence.
             </p>
             <div className="overflow-x-auto rounded-lg border border-border">
               <table className="w-full min-w-[540px] border-collapse text-left text-sm">

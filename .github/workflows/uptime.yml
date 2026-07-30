@@ -1,0 +1,130 @@
+# Uptime canary for the scan redirect — the one path where downtime breaks the
+# product's core promise ("your code never dies"). Until this existed, a
+# production failure surfaced only when a human happened to notice; the P7.5
+# red-team found a days-old outage by hand, which is what motivated this.
+#
+# What it asserts against a real, live code (the hard-rule contract from
+# CLAUDE.md / workers/redirect/src/responses.ts):
+#   1. HTTP 302              — never 301 (a cached 301 would pin scanners to a
+#                              stale destination forever)
+#   2. Cache-Control: no-store
+#   3. Location is NOT .../u/{slug}  — that fallback is what the Worker serves
+#                              when slug resolution fails (KV miss AND Postgres
+#                              unreachable), so it is the signature of a real
+#                              outage even though the status code still reads 302
+#
+# Deliberately does NOT assert the exact destination: the founder may retarget a
+# code at any time for legitimate business reasons, and a monitor that cries
+# wolf on normal product use gets muted. This survives retargeting and still
+# catches every failure mode that matters. It DOES alarm if the watched code is
+# paused — acceptable, and immediately self-explanatory to whoever paused it.
+#
+# The watched slug is a repo variable, not hardcoded: today it points at an
+# existing code (costing no free-plan slot); pointing it at a dedicated canary
+# later is a one-variable change with no edit here.
+#
+# Honest limits: this is NOT a pager — no escalation, no acknowledgement, and a
+# GitHub notification is easy to miss, which is why it also opens an issue. It
+# also cannot detect its own absence: if the workflow stops running (GitHub
+# disables schedules after 60 days of repo inactivity), silence is indistinguish-
+# able from health. Cadence is hourly, not every few minutes, because at 15-min
+# intervals this single workflow would consume ~2,880 min/mo — more than the
+# entire free Actions budget that applies once the repo goes private before
+# launch (P10). Durability is the promise here, not latency.
+
+name: Uptime canary
+
+on:
+  schedule:
+    - cron: "23 * * * *" # hourly at :23 — off the top-of-hour herd, and clear of
+                         # the rollup (:05) and rate-limit cleanup (:17) crons
+  workflow_dispatch: {}
+
+permissions:
+  issues: write
+
+concurrency:
+  group: uptime
+  cancel-in-progress: false
+
+jobs:
+  canary:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Scan the canary code
+        env:
+          SLUG: ${{ vars.UPTIME_CANARY_SLUG }}
+          UA: "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36"
+        run: |
+          set -euo pipefail
+          if [ -z "${SLUG:-}" ]; then
+            echo "::error::UPTIME_CANARY_SLUG repo variable is not set — nothing to watch."
+            exit 1
+          fi
+
+          RESP=$(curl -sS -D - -o /dev/null --max-redirs 0 -A "$UA" "https://qrcdn.com/${SLUG}")
+          echo "$RESP"
+
+          STATUS=$(printf '%s' "$RESP" | head -1 | grep -oE '[0-9]{3}' | head -1)
+          LOCATION=$(printf '%s' "$RESP" | grep -i '^location:' | tr -d '\r' | sed 's/^[Ll]ocation:[[:space:]]*//')
+          CACHE=$(printf '%s' "$RESP" | grep -i '^cache-control:' | tr -d '\r' || true)
+
+          FAILED=0
+          if [ "$STATUS" != "302" ]; then
+            echo "::error::expected HTTP 302, got ${STATUS:-<none>}"; FAILED=1
+          fi
+          if ! printf '%s' "$CACHE" | grep -qi 'no-store'; then
+            echo "::error::missing 'Cache-Control: no-store' (got: ${CACHE:-<none>})"; FAILED=1
+          fi
+          case "$LOCATION" in
+            https://www.qrcdn.com/u/*)
+              echo "::error::slug resolution failed — redirected to the unavailable page (${LOCATION}). Either the code was paused, or KV *and* Postgres are both unreachable."
+              FAILED=1
+              ;;
+            "")
+              echo "::error::no Location header"; FAILED=1 ;;
+          esac
+
+          if [ "$FAILED" -ne 0 ]; then
+            echo "Canary FAILED for https://qrcdn.com/${SLUG}"
+            exit 1
+          fi
+          echo "Canary OK: 302 -> ${LOCATION} (no-store)"
+
+      - name: Open an issue on failure
+        if: failure()
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SLUG: ${{ vars.UPTIME_CANARY_SLUG }}
+        run: |
+          set -euo pipefail
+          # Deduplicate: an extended outage should not file a new issue every hour.
+          EXISTING=$(gh issue list --label uptime-alert --state open --limit 1 --json number --jq '.[0].number // empty')
+          RUN_URL="${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
+          if [ -n "$EXISTING" ]; then
+            gh issue comment "$EXISTING" --body "Still failing as of $(date -u '+%Y-%m-%d %H:%M UTC'). Run: ${RUN_URL}"
+          else
+            gh issue create \
+              --title "Uptime canary failing: qrcdn.com/${SLUG}" \
+              --label uptime-alert \
+              --body "The scan-redirect canary failed. This is the core product promise path.
+
+          **Checked:** \`https://qrcdn.com/${SLUG}\` must return 302 + \`Cache-Control: no-store\` and must not redirect to the \`/u/\` unavailable page.
+
+          **Run:** ${RUN_URL}
+
+          If the watched code was deliberately paused, either resume it or point \`UPTIME_CANARY_SLUG\` at a different code. Close this issue once the canary passes again."
+          fi
+
+      - name: Close the alert once healthy again
+        if: success()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          EXISTING=$(gh issue list --label uptime-alert --state open --limit 1 --json number --jq '.[0].number // empty')
+          if [ -n "$EXISTING" ]; then
+            gh issue comment "$EXISTING" --body "Canary recovered at $(date -u '+%Y-%m-%d %H:%M UTC') — closing."
+            gh issue close "$EXISTING"
+          fi

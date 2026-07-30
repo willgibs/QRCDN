@@ -161,6 +161,18 @@ pricing page can be built from `entitlements.ts` at P9 with no vaporware. Two
 deliberate carve-outs, both documented at their code: password protection is
 Studio-only (not exposed via the API until plaintext-in-request-body hygiene
 gets its own review), and bulk creation is Studio-only (no API endpoint yet).
+*Amended at P8 (2026-07-30):* the abuse controls shipped, in two tiers.
+**Rate limiting is live** — a Postgres limiter (migration 009, `check_rate_limit`),
+per-IP on the `/p/{slug}` unlock and per-user on Studio mutations, which incidentally
+covers D14's "retarget rate limits" line. It fails open when the limiter itself errors
+and never when it correctly reports over-limit. **Turnstile and Safe Browsing are
+written but inert**, switching on when `NEXT_PUBLIC_TURNSTILE_SITE_KEY` /
+`SAFE_BROWSING_API_KEY` land (both fail open by construction, so a missing or flaky key
+can never block sign-in or minting). Note D11's separate constraint still stands:
+burst/WAF limiting remains Vercel-Pro-gated; the Postgres limiter complements it rather
+than replacing it. The paragraph below is superseded on rate limiting and correct only
+in that Turnstile/Safe Browsing still await credentials.
+
 The abuse controls in the last line above remain unimplemented and are P10's
 scope — they gate launch, not this phase.
 

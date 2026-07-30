@@ -35,4 +35,5 @@ jobs:
   # The pgTAP/RLS job lives in rls.yml, path-gated to supabase/** — it boots
   # the full local Supabase Docker stack (~5-7 runner-min), which is pure
   # waste on the ~80% of pushes that never touch SQL.
-  # Playwright e2e job lands in P10.
+  # Playwright e2e runs in its own path-gated workflow (e2e.yml, P8-U1) —
+  # it needs a real `next build` + browser, which this job deliberately doesn't.

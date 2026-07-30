@@ -10,7 +10,8 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@qrcdn/shared": "workspace:^"
+    "@qrcdn/shared": "workspace:^",
+    "@sentry/cloudflare": "^10.69.0"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^5.20260721.1",

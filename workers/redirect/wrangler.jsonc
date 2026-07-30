@@ -3,6 +3,15 @@
   "name": "qrcdn-redirect",
   "main": "src/index.ts",
   "compatibility_date": "2026-07-22",
+  // Required by @sentry/cloudflare (P8-U2), not optional: the SDK imports
+  // `node:async_hooks` (for AsyncLocalStorage-based request-scoped context)
+  // at module load, and Workers only resolves `node:*` specifiers with this
+  // flag set — without it, `withSentry` would fail to load in the real
+  // Workers runtime even with SENTRY_DSN empty (unlike the vars/DSN check
+  // below, this isn't something the SDK can no-op around at request time).
+  // `compatibility_date` above is already past the 2024-09-23 requirement
+  // this flag needs (developers.cloudflare.com/workers/runtime-apis/nodejs).
+  "compatibility_flags": ["nodejs_compat"],
   // Route is still commented out — U3 (orchestrator) flips it live once DNS
   // cuts over (apex qrcdn.com orange-clouded + this route, docs/guides/
   // infra.md "DNS / domain topology"). Uncommenting this without the DNS
@@ -23,6 +32,13 @@
   // as NEXT_PUBLIC_SUPABASE_URL in apps/web).
   "vars": {
     "SUPABASE_URL": "https://yklhpbhfowuvxlwlalhf.supabase.co",
+    // Non-secret (a DSN is a publishable write-only ingestion endpoint
+    // identifier, not a credential — same posture as NEXT_PUBLIC_SENTRY_DSN
+    // in apps/web). P8-U2: no Sentry account exists yet, so this is left
+    // empty on purpose. Empty = withSentry() in index.ts is a complete
+    // no-op (verified against SDK source, not assumed — see that call
+    // site); the board fills this in once a Sentry project exists.
+    "SENTRY_DSN": "",
   },
   // SUPABASE_SECRET_KEY (sb_secret_...) and SCAN_SALT are Worker secrets —
   // `wrangler secret put SUPABASE_SECRET_KEY` / `wrangler secret put

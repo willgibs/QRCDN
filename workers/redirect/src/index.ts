@@ -15,6 +15,7 @@
 // the KV binding, calling Supabase REST, and building the Response.
 
 import type { KvSlugRecord } from "@qrcdn/shared";
+import { withSentry } from "@sentry/cloudflare";
 import { decideRoute } from "./route";
 import { handleKvSync } from "./kv-sync-endpoint";
 import {
@@ -52,9 +53,16 @@ export interface Env {
    *  write-through endpoint (kv-sync-endpoint.ts). Optional: absent =
    *  endpoint disabled (404), retargets fall back to the 5-min TTL. */
   SYNC_SECRET?: string;
+  /** Non-secret (wrangler.jsonc `vars`, not `wrangler secret put`) — a
+   *  Sentry DSN is a publishable write-only ingestion endpoint identifier,
+   *  not a credential (same posture as NEXT_PUBLIC_SENTRY_DSN in apps/web).
+   *  P8-U2, no Sentry account exists yet. Optional: absent = `withSentry`
+   *  below is a complete no-op — see its call site for how that's verified,
+   *  not assumed. */
+  SENTRY_DSN?: string;
 }
 
-export default {
+const handler = {
   // `request`/`ctx` are deliberately left without explicit type annotations
   // so they pick up the exact types `ExportedHandlerFetchHandler<Env>`
   // contextually supplies via `satisfies` below — in particular
@@ -139,3 +147,40 @@ export default {
     return response;
   },
 } satisfies ExportedHandler<Env>;
+
+// P8-U2 — error monitoring. `withSentry` initializes the SDK per-request
+// from `env` (Workers have no module-scope access to vars/secrets, so the
+// DSN can only be read here, not gated earlier) and wraps `handler.fetch`
+// to auto-capture thrown/rejected errors and forward them to Sentry.
+//
+// Complete no-op when SENTRY_DSN is absent — verified against the installed
+// @sentry/cloudflare v10.69.0 source, not assumed: returning `undefined`
+// from the options callback is this SDK's own documented "skip init"
+// signal, and even the literal `env.SENTRY_DSN` shorthand the SDK's own
+// README recommends is safe here too — `Client`'s constructor
+// (@sentry/core) only builds a transport `if (this._dsn)`, and an empty/
+// missing dsn never throws or logs unless `debug: true` (never set here).
+// Preserves `handler`'s `satisfies ExportedHandler<Env>` typing untouched
+// (withSentry<...>(optionsCallback, handler): T returns the same type T it
+// was given) and never touches the deliberately untyped `request`/`ctx`
+// params inside `handler.fetch` above.
+export default withSentry((env: Env) => {
+  if (!env.SENTRY_DSN) {
+    return undefined;
+  }
+  return {
+    dsn: env.SENTRY_DSN,
+    // No performance/tracing product is wanted yet — errors arriving
+    // somewhere is the entire scope of P8-U2.
+    tracesSampleRate: 0,
+    // Explicit, not relied-on-as-default (D3, docs/DECISIONS.md — raw
+    // IPs/destinations/scan data must never leave our infra). This also
+    // activates Sentry's own default request-header/cookie redaction
+    // (auth/token/secret/cookie/key-shaped names — see
+    // @sentry/core's filtering-snippets.js), on top of which the explicit
+    // `Sentry.captureException` call in ingest.ts's catch block (the
+    // ctx.waitUntil() gap, see that file) is deliberately called with no
+    // extra/context payload, so there's nothing app-specific left to leak.
+    sendDefaultPii: false,
+  };
+}, handler);

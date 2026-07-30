@@ -240,6 +240,24 @@ export type Database = {
           },
         ]
       }
+      rate_limits: {
+        Row: {
+          count: number
+          subject: string
+          window_start: string
+        }
+        Insert: {
+          count?: number
+          subject: string
+          window_start: string
+        }
+        Update: {
+          count?: number
+          subject?: string
+          window_start?: string
+        }
+        Relationships: []
+      }
       scan_daily: {
         Row: {
           by_city: Json

@@ -31,11 +31,20 @@ import { manifestPath, type E2eFixtureManifest } from "./manifest";
 //    reaped out from under itself.
 // 3. Emails: `e2e-${randomUUID()}@e2e.qrcdn.test`, created via
 //    `auth.admin.createUser({ email, password: randomUUID(), email_confirm:
-//    true })` — the password is generated and discarded (never used again);
-//    the manifest only ever carries the magic-link token below.
+//    true })` — the password is generated and discarded (never used again).
 // 4. The fixture is flipped to `pro` (profiles.plan) so every Pro surface the
 //    money path exercises — access controls, bulk create, vanity slugs — is
 //    actually reachable, not just visible-but-locked.
+//
+// P9-U6: this file used to mint a magic-link token here too (a fifth,
+// unnumbered step) and write it into the manifest. That token is single-use,
+// and money-path.spec.ts's serial describe block retries the WHOLE group
+// from the top on any mid-suite failure — so a retry always resubmitted an
+// already-consumed token and died at the sign-in step, turning a possibly
+// transient failure into a guaranteed one (docs/STATUS.md's P9 entry has the
+// live incident). The mint moved to e2e/auth-token.ts's `mintSignInToken`,
+// called fresh by the sign-in test itself on every attempt — this file's job
+// is only ever to create the user once.
 export default async function globalSetup(): Promise<void> {
   loadE2eEnv();
   requireEnv("NEXT_PUBLIC_SUPABASE_URL");
@@ -62,25 +71,16 @@ export default async function globalSetup(): Promise<void> {
 
   await setProfileToPro(admin, userId);
 
-  // No email is sent by generateLink (P8-U1 brief) — the spec exchanges
-  // `hashed_token` directly against apps/web/app/auth/confirm/route.ts via
+  // No magic-link token is minted here — e2e/auth-token.ts's
+  // `mintSignInToken` mints one fresh, at test time, per sign-in attempt
+  // (P9-U6; see this file's guardrail comment above). No email is sent by
+  // that call either (P8-U1 brief) — the spec exchanges `hashed_token`
+  // directly against apps/web/app/auth/confirm/route.ts via
   // `?token_hash=<hashedToken>&type=magiclink&next=/studio`, the exact same
   // `verifyOtp({ token_hash, type })` call a real clicked email link drives.
-  const { data: linkData, error: linkError } = await admin.auth.admin.generateLink({
-    type: "magiclink",
-    email,
-  });
-  const hashedToken = linkData?.properties?.hashed_token;
-  if (linkError || !hashedToken) {
-    throw new Error(
-      `[e2e/global-setup] failed to generate magic link for ${email}: ${linkError?.message ?? "no hashed_token returned"}`,
-    );
-  }
-
   const manifest: E2eFixtureManifest = {
     userId,
     email,
-    hashedToken,
     createdAt: new Date().toISOString(),
   };
   await writeFile(manifestPath(), JSON.stringify(manifest, null, 2), "utf8");

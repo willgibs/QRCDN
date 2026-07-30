@@ -193,3 +193,66 @@ push → CI watched by exact SHA. UI units: `review-animations` gate before comm
 verify `○ (Static)` on marketing routes in build output; reduced-motion paths exist.
 Phase close-out: production click-through of every page, both themes + mobile
 viewport; OG cards validated in the social debuggers; OG QR decode-checked.
+
+## As-built amendments (2026-07-30)
+
+Recorded at U6 close, against what actually shipped rather than what this spec
+originally planned:
+
+- **Nav ships without a "Studio → /login" link.** `SiteNav`'s link set is just
+  Pricing/API + Sign in; the primary "Start free" CTA already goes to `/login`, so a
+  redundant Studio link would just be the same destination twice. (The footer's
+  Product column does carry a "Studio → /login" link — that one earns its place as
+  a footer catch-all, not a nav duplicate.)
+- **Execution order was U1 → U3 → U4 → U2 → U5 → U6**, not the numeric order this
+  spec lays the units out in (`649f5ee` → `1109480` → `12bdd5b` → `14b926d` →
+  `19022d6`). Consequence: by the time U2's board review round 1 happened, pricing
+  and legal already existed too, so round 1 reviewed a materially complete site
+  (landing + pricing + terms + privacy together), not landing in isolation.
+- **U2 fix round (`d2af287`):** orchestrator review caught both instrument-bearing
+  QR previews (the landing playground's default, the brand-system section's
+  `StudioWindow` mock) opening with an honest-but-self-inflicted "inverted contrast"
+  warning in dark mode, because both were staged on `brandQrStyles.precision[mode]` —
+  ink AND paper flipping with the *site's* theme rather than staying print-true.
+  Fixed by pinning both to their own explicit paper: dark ink on an explicit,
+  non-transparent white mat, independent of site theme, matching the real Studio's
+  own default new-kit style. Codified as a standing rule (see
+  `docs/guides/design-system.md`'s print-truth rule, added this unit): **any surface
+  carrying the scannability instrument or an export never opens criticizing our own
+  default.** Decorative theme-flipped inversion is still fine — it's just hero-only
+  now (the `ScanNetwork` tile carries no instrument and no download, so its dark-mode
+  inversion was never the bug).
+- **U5 fresh-grep deviations** (the migration table above was written before U1–U4
+  landed; re-grepped at U5 execution, per its own "re-verify at execution" note):
+  `components/brand/backdrop.tsx` (`HeroBackdrop`) had **6** real importers by then,
+  not the 5 the table anticipated — `/login`, `/developers`, `/u/[slug]`, `/p/[slug]`
+  as planned, plus `app/not-found.tsx` (U1) and `components/marketing/hero.tsx` (U2),
+  both written after this table was drafted. `lib/brand-qr.ts` (`brandQrStyles`/
+  `brandQrBackdrop`) landed with **5** importers: the 3 U2 components that stage a QR
+  preview (`playground.tsx`, `scan-network.tsx`, `studio-window.tsx`), the
+  pre-existing real-product consumer the table flagged (`studio-shell.tsx`), and
+  `scripts/generate-brand-images.ts` (the OG script). `components/qr/qr-svg.tsx`
+  (`QrSvg`) moved as planned and currently has **zero** importers — dead code by
+  count, kept anyway as the neutral, non-marketing/non-studio QR-render primitive
+  the component inventory now documents it as. The `Brand` union
+  (`type Brand = (typeof BRANDS)[number]`) was dropped outright rather than moved:
+  with `BRANDS` long collapsed to `["precision"] as const` (the D13 lock), it had
+  decayed into a single-member union — dead generality, not a real abstraction worth
+  carrying forward.
+- **The `hello@qrcdn.com` Email Routing rider is DONE**: DNS verified (additive MX on
+  the apex, Cloudflare Email Routing, no conflict with Resend's `send.` subdomain or
+  the redirect Worker, which is HTTP-only) — pending only the founder's
+  destination-verification click on his own inbox.
+- **E2E retry-resilience fix** (this unit, Part 2): `apps/web/e2e/global-setup.ts`
+  used to mint the sign-in suite's one magic-link token once, into the manifest.
+  Single-use token + a serial-group retry that restarts from sign-in meant any
+  mid-suite flake was guaranteed unrecoverable, not just possibly so — live evidence
+  is the E2E check for `12bdd5b` itself, which needed a job-level re-run to go green
+  (`docs/STATUS.md`'s P9 entry has the run detail). Fixed by minting fresh, at test
+  time, on every sign-in attempt (`apps/web/e2e/auth-token.ts`'s `mintSignInToken`);
+  the manifest now carries only `userId`/`email`/`createdAt`. Proved directly: two
+  `mintSignInToken` calls in one process against the same email produced two distinct
+  tokens, both exchanged successfully via `/auth/confirm` (simulating attempt 1 +
+  retry), while re-exchanging the first token a second time was correctly rejected
+  — confirming both the bug's premise (tokens really are single-use) and the fix
+  (minting fresh sidesteps it every time).

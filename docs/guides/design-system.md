@@ -24,8 +24,9 @@ Read this when touching tokens, themes, fonts, or shared UI components under `ap
 
 - **Checkpoint A is closed.** "Precision instrument" won the three-way exploration — Apple-esque register, formula extracted from lazy.so / genie.io / stellar.work: one enormous plain-spoken headline owning the viewport; extreme restraint (single accent, hierarchy from scale/space only); quiet gray subcopy; one strong CTA; eyebrow-labeled benefit sections; product visuals in soft frames. The v4.2 hero is the codified quality floor for every future surface (see "The quality floor" below).
 - The D13 lock protocol has executed: precision's Layer 0/1 values live directly in the base `:root`/`.dark` blocks in `apps/web/app/globals.css` (Inter display + body, JetBrains Mono accents, violet-blue accent `oklch(0.51 0.23 268)` light / `oklch(0.62 0.21 268)` dark, deeper dark surfaces). `warmth.css`/`bold.css` and their `[data-brand]` selectors are deleted, along with the Fraunces/Hanken Grotesk/Bricolage Grotesque/Space Grotesk font loaders — `apps/web/app/fonts.ts` now exports only `inter` and `jetbrainsMono`.
-- `/explore/[brand]` persists post-lock as the P9 marketing-page seed (founder decision, not a lock-protocol exception): `BRANDS` in `lib/explore.ts` resolves to `["precision"]` only, with no `data-brand` plumbing left in the explore components.
-- Product features still never gate on the `brand` route param — `/explore/[brand]` is a throwaway marketing-preview surface, not multi-tenancy.
+- `/explore/[brand]` persisted post-lock through P9-U4 as the P9 marketing-page seed (founder decision, not a lock-protocol exception): `BRANDS` in `lib/explore.ts` resolved to `["precision"]` only, with no `data-brand` plumbing left in the explore components.
+- Product features never gated on the `brand` route param while `/explore/[brand]` existed — it was a throwaway marketing-preview surface, not multi-tenancy.
+- **Superseded at P9-U5 (2026-07-30): `/explore` and `lib/explore.ts` are deleted outright**, harvested-for-pattern into the real marketing site (`app/(marketing)/`) rather than kept as a seed any longer. The two bullets above are historical record, not current state — see "Component inventory" below for where each P2 pattern lives now.
 - P4 (studio + generator) landed the Resend-grammar "luminous staging" restage on top of the locked precision tokens — see "Luminous staging grammar" and "Shared brand primitives" below. This is a visual-language extension, not a reopening of brand exploration.
 
 ## The D13 lock protocol (executed at Checkpoint A close)
@@ -38,7 +39,7 @@ The lock ran as one coherent pass when the founder approved precision. Kept here
 4. Deleted the unused font loaders from `apps/web/app/fonts.ts` and `fontVariables` — only Inter and JetBrains Mono remain.
 5. Left Layer 2 (`@theme inline`) untouched — it was already brand-agnostic.
 
-One deviation from the protocol as originally written: `/explore/[brand]` was **not** deleted — the founder kept it as the P9 marketing-page seed (see "Current brand state"); `BRANDS` in `lib/explore.ts` collapsed to `["precision"] as const`, so precision is the only resolvable value.
+One deviation from the protocol as originally written: `/explore/[brand]` was **not** deleted at Checkpoint A close — the founder kept it as the P9 marketing-page seed (see "Current brand state"); `BRANDS` in `lib/explore.ts` collapsed to `["precision"] as const`, so precision was the only resolvable value. That deferral ended at P9-U5 (2026-07-30): `/explore` and `lib/explore.ts` are now deleted for real, the deviation resolved rather than standing indefinitely.
 
 ## Fonts (`apps/web/app/fonts.ts`)
 
@@ -54,21 +55,39 @@ The P2 exploration fonts (Fraunces, Hanken Grotesk, Bricolage Grotesque, Space G
 ## Product tokens
 
 - `--surface-studio` — background for the "studio" style-editing surface (used by `StudioSlice`'s outer `<section>`), distinct from `--background`/`--card`.
-- `--qr-fg` / `--qr-bg` — **plain sRGB hex strings** (e.g. `#131316`, `#ffffff`), not oklch, even though every other Layer 1 token in the theme files is oklch. This is intentional and non-negotiable: exported QR assets must be sRGB hex, never oklch (D6, `CLAUDE.md` hard rule) — these two tokens are the bridge between the oklch-based UI theme and the hex-only `qr-engine` input (`QrStyle.fill`/`background` colors). `apps/web/lib/explore.ts`'s `brandQrBackdrop` map must be kept in sync with each theme's `--qr-bg` value by hand (there is no build-time check for this yet).
+- `--qr-fg` / `--qr-bg` — **plain sRGB hex strings** (e.g. `#131316`, `#ffffff`), not oklch, even though every other Layer 1 token in the theme files is oklch. This is intentional and non-negotiable: exported QR assets must be sRGB hex, never oklch (D6, `CLAUDE.md` hard rule) — these two tokens are the bridge between the oklch-based UI theme and the hex-only `qr-engine` input (`QrStyle.fill`/`background` colors). `apps/web/lib/brand-qr.ts`'s `brandQrBackdrop` map (moved from `lib/explore.ts` at P9-U5) must be kept in sync with each theme's `--qr-bg` value by hand (there is no build-time check for this yet).
 - `--brand-font-display` / `--brand-font-body` / `--brand-font-mono` — Layer 1 indirection so Layer 2's `--font-sans`/`--font-mono`/`--font-display`/`--font-heading` never need to change per brand.
 
 ## Component inventory
 
 Vendored shadcn primitives already under `apps/web/components/ui/` (style `radix-nova`, see `apps/web/components.json`) — adopt these rather than hand-rolling: `badge`, `button`, `card`, `chart` (Recharts wrapper), `dialog`, `dropdown-menu`, `input`, `label`, `select`, `separator`, `slider`, `sonner`, `switch`, `table`, `tabs`, `toggle-group`, `toggle`, `tooltip`.
 
-Custom, domain-specific components built in P2 under `apps/web/components/explore/` (commit `5a74f86`) — these are the pattern to follow for future studio/dashboard work, not primitives to pull from shadcn:
+**`apps/web/components/explore/` no longer exists** (deleted at P9-U5, 2026-07-30 —
+`docs/guides/p9-marketing.md`'s U5 migration table). The custom, domain-specific
+components P2 built there (commit `5a74f86`) didn't vanish; each had its own heir,
+split across three homes by what kind of thing it turned out to be:
 
-| Component | File | What it does |
+| P2 component | Heir | What changed |
 |---|---|---|
-| Live QR preview | `qr-svg.tsx` (`QrSvg`) | Client-renders `renderQr` from `@qrcdn/qr-engine` directly — same engine as the server, theme-aware (light/dark style variant via `useTheme` + `useMounted`) |
-| Shape pickers with real SVG swatches | `studio-slice.tsx` (`DotSwatch`, `EyeSwatch` inside `StudioSlice`) | Hand-drawn miniature SVGs (not icon-font glyphs) that visually preview each `dots.style` / `eyes.frame` option inside a `ToggleGroup` |
-| Stat tiles | `dashboard-card.tsx` (`DashboardCard`) | Plain `Card`s showing "Total scans" / "Top country" as large numbers |
-| (Table, not yet a true geo table) | `dashboard-card.tsx` (`DashboardCard`'s `topCodes` table) | Currently a top-codes-by-scan-count table (name/slug/scans); see Outline discrepancies — a real geo breakdown table doesn't exist yet |
+| Live QR preview (`qr-svg.tsx`, `QrSvg`) | `apps/web/components/qr/qr-svg.tsx` — unchanged code, moved | Neutral QR-rendering home, beside `qr/shape-swatches.tsx`. Currently **zero importers** (grep-verified) — not dead code by policy, just not yet reached for; available for the next surface that needs a theme-aware client-rendered QR |
+| Shape pickers (`studio-slice.tsx`'s `DotSwatch`/`EyeSwatch`) | `apps/web/components/qr/shape-swatches.tsx` | Already superseded once, at P4 (see the P4 studio table below) — `studio-slice.tsx` itself is gone, but its pattern was living on through the P4 file long before U5 deleted the original |
+| Stat tiles + top-codes table (`dashboard-card.tsx`, `DashboardCard`) | No code-level heir — deleted outright | Its *pattern* lives on as `components/marketing/dashboard-window.tsx` (framed product-window mock, P9-U2) and the real dashboard's own stat tiles/tables (`(app)/codes/`, P6) — both fresh implementations against current product truth, not migrations of this file |
+| Cross-surface atmosphere (`backdrop.tsx`, `HeroBackdrop`) | `apps/web/components/brand/backdrop.tsx` — unchanged code, moved | Never really explore-only (P2 birthplace mischaracterized it — same story as the primitives already in "Shared brand primitives" below, which is where it's now listed). 6 real importers as of P9-U5 (grep-verified, more than the U5 migration table originally planned for — see `p9-marketing.md`'s as-built amendments): `/login`, `/developers`, `/u/[slug]`, `/p/[slug]`, `app/not-found.tsx`, `components/marketing/hero.tsx` |
+| Brand QR styling (`lib/explore.ts`'s `brandQrStyles`/`brandQrBackdrop`) | `apps/web/lib/brand-qr.ts` — unchanged code, moved | Still-consumed brand primitives — 5 importers (grep-verified): the 3 marketing components that stage a QR preview, the pre-existing `studio-shell.tsx`, and the OG-image script. See "Product tokens" above |
+| Multi-brand switcher (`lib/explore.ts`'s `BRANDS`/`isBrand`/`brandCopy`/`Brand`) | None — deleted | Existed only to drive `/explore`'s brand switcher; superseded by plain P9-U2/U3 landing and pricing copy. `Brand` (`= (typeof BRANDS)[number]`) had decayed into a single-member union once `BRANDS` collapsed to `["precision"]` at the D13 lock — dead generality, not an abstraction worth carrying forward |
+
+The current, live equivalent of "the pattern to follow for future storefront work" is
+`apps/web/components/marketing/` (P9-U1 through U5, marketing-only by design) —
+`site-nav.tsx`, `site-footer.tsx`, `hero.tsx`, `playground.tsx`, `product-window.tsx`
+(+ the `studio-window.tsx`/`dashboard-window.tsx` mocks built on it),
+`pricing-plans.tsx`, `pricing-faq.tsx`, `legal-shell.tsx`, and a handful of
+single-section files, among others. Harvested-for-pattern from the P2/explore
+components above rather than importing them — the spec's explicit instruction,
+since `components/explore/` was slated for deletion from the start. Cross-surface
+pieces these lean on (`HeroBackdrop`, `ArtifactStage`, `AccentText`,
+`Reveal`/`Eyebrow`/`ModuleMark`) live in `components/brand/` instead (see "Shared
+brand primitives" below) rather than under `components/marketing/` itself — same
+reasoning as `HeroBackdrop`'s own move out of `components/explore/`.
 
 P4 studio components, built under `apps/web/components/studio/` and `apps/web/components/qr/` (the color/gradient editor and logo upload the outline once called "not yet built" both landed here):
 
@@ -87,10 +106,11 @@ Cross-surface primitives — shared by studio, auth, and explore/marketing alike
 
 | Module | Exports | Server-safe? | What it's for |
 |---|---|---|---|
-| `magic.tsx` | `EASE_OUT`, `useRevealVariants`, `Reveal`, `ModuleMark`, `Eyebrow` | No (`"use client"`, uses `motion/react` + `useReducedMotion`) | Shared motion language (entrance variants, scroll reveal) + the eyebrow/module-mark brand mark, used by login, studio, and every explore section |
+| `magic.tsx` | `EASE_OUT`, `useRevealVariants`, `Reveal`, `ModuleMark`, `Eyebrow` | No (`"use client"`, uses `motion/react` + `useReducedMotion`) | Shared motion language (entrance variants, scroll reveal) + the eyebrow/module-mark brand mark, used by login, studio, and every marketing section |
+| `backdrop.tsx` | `HeroBackdrop` | **Yes** — presentational, no hooks | Atmosphere layer (violet glow + QR-module grid texture) behind a hero/floor-register surface. Moved here from `components/explore/backdrop.tsx` at P9-U5 (was already cross-surface before the move — P2 birthplace mischaracterized it as explore-only, same story as every module in this table). 6 importers: `/login`, `/developers`, `/u/[slug]`, `/p/[slug]`, `app/not-found.tsx`, `components/marketing/hero.tsx` |
 | `artifact-stage.tsx` | `ArtifactStage` | **Yes** — presentational, no hooks | Glow-layer wrapper for a floating "luminous artifact" — now the **marketing-only** staging rig (P9 static product visuals) since round 3 moved the studio preview to `TiltStage`. See "Luminous staging grammar" below |
 | `tilt-stage.tsx` | `TiltStage` | No (`"use client"`, uses `motion/react` + `useReducedMotion`) | Interactive 3D staging wrapper — tilt-toward-cursor + moving specular sheen + reactive floor shadow. Studio-only (round 3, replacing `ArtifactStage` on that one surface). See "Luminous staging grammar" below |
-| `accent-text.tsx` | `AccentText` | **Yes** — presentational, no hooks | Gradient accent-word span for headlines. Built for P9; not applied to any live surface yet |
+| `accent-text.tsx` | `AccentText` | **Yes** — presentational, no hooks | Gradient accent-word span for headlines. Built at P4 for P9; applied at P9-U2 — `components/marketing/hero.tsx` wraps "Every destination." in it, the v4.2 hero-bones pattern this guide's quality floor codifies |
 | `glow-tile.ts` | `glowTileOn`, `glowSwatchSelected` | N/A (plain string constants, not components) | Class recipes for "lit" selected states — composed into vendored Radix `ToggleGroupItem`/swatch `className`s, never baked into `ui/toggle*.tsx` itself |
 
 ## Luminous staging grammar (Resend reference)
@@ -133,6 +153,30 @@ Founder feedback on round 2's stage: the bloom (glow-only) treatment reads well 
 
 - **`effectiveEcc`** comes straight from `ScannabilityReport` (`scannabilityReport()`, `packages/qr-engine/src/guardrails.ts`) — this was already wired pre-round-3 (`ControlsRail`'s Export section reads the same field).
 - **`version`** (the QR symbol version, 1–40) is **not** on `ScannabilityReport` at all — `scannabilityReport()`'s return type only carries `score`, `issues`, `worstContrast`, and `effectiveEcc`. It IS exposed, just from a different call: `renderQr()`'s `RenderResult.version` (`packages/qr-engine/src/render.ts`). The Studio already calls `renderQr` (via `lib/preview.ts`'s `renderPreview` wrapper) for the live SVG, so round 3 threads `version` through `PreviewRenderResult` rather than touching the engine — no engine or schema change, per the standing hard rule. `version` is `null` on the render-error branch (payload over QR capacity): the placeholder render's version describes an unrelated payload, so there's nothing honest to report, and `ScannabilityChip` never mounts on that branch anyway.
+
+### Print-truth staging (P9-U2 fix, `d2af287`)
+
+**Rule:** surfaces bearing the scannability instrument or an export stage the QR on
+its own paper mat; decorative theme-flipped inversion is reserved for atmosphere
+(hero) with no instrument attached.
+
+Found by orchestrator review, not by any automated gate: the landing playground's
+default style and the brand-system section's `StudioWindow` mock were both staged on
+`brandQrStyles.precision[mode]` — ink AND paper flipping with the *site's* color
+scheme. In dark mode that put light ink on a dark `--qr-bg` mat, a genuine inverted-
+contrast warning, on the one surface a visitor sees before touching anything and on
+the one mock explaining that the instrument keeps you honest — so the instrument's
+first reading for a dark-mode visitor criticized our own default, and the
+brand-system section about honesty depicted the instrument flagging our own showcase
+style. Fixed by pinning both to an explicit, non-transparent white paper mat with the
+D13-locked light ink, independent of site theme — matching the real Studio's own
+default new-kit style (also opaque, never the transparent-background path). The
+`ScanNetwork` hero tile is exempt and unchanged: it carries no instrument and no
+download, so its decorative dark-mode inversion (`brandQrStyles.precision.dark`) was
+never the bug and stays exactly as designed — this is the "atmosphere, hero-only"
+half of the rule. Full incident + fix detail: `docs/guides/p9-marketing.md`'s
+as-built amendments; verification: `apps/web/e2e/marketing.spec.ts`'s landing
+playground test (P9-U6) is a standing regression guard against this recurring.
 
 ## Chart approach
 

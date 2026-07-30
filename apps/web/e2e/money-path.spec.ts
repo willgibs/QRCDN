@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 import { readFile } from "node:fs/promises";
 import { test, expect, trackActionFailures } from "./fixtures";
 import type { BrowserContext, Page, ServerActionFailure } from "./fixtures";
+import { mintSignInToken } from "./auth-token";
 import { E2E_BASE_URL } from "./env";
 import { manifestPath, type E2eFixtureManifest } from "./manifest";
 
@@ -122,8 +123,13 @@ test.describe.serial("money path", () => {
   });
 
   test("signs in via the magic-link confirm route and lands on /studio authenticated", async () => {
+    // Minted HERE, at test time, on every attempt — not read from a token
+    // global-setup pre-minted once (P9-U6; see e2e/auth-token.ts's header
+    // for the retry-cascade this fixes: a serial-group retry re-runs this
+    // exact test, and a single pre-minted token would already be consumed).
+    const hashedToken = await mintSignInToken(manifest.email);
     await page.goto(
-      `${E2E_BASE_URL}/auth/confirm?token_hash=${encodeURIComponent(manifest.hashedToken)}&type=magiclink&next=/studio`,
+      `${E2E_BASE_URL}/auth/confirm?token_hash=${encodeURIComponent(hashedToken)}&type=magiclink&next=/studio`,
     );
     await expect(page).toHaveURL(/\/studio$/);
     await expect(page.getByLabel("Destination")).toBeVisible();

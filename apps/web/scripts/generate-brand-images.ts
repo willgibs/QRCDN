@@ -18,10 +18,17 @@
  *   - app/(marketing)/opengraph-image.alt.txt
  *
  * U3 extends this file with a pricing OG (below) rather than duplicating
- * the raster/verify plumbing; U4 is expected to add a shared legal OG the
- * same way:
+ * the raster/verify plumbing:
  *   - app/(marketing)/pricing/opengraph-image.png (1200x630)
  *   - app/(marketing)/pricing/opengraph-image.alt.txt
+ *
+ * U4 adds ONE shared legal OG — same composition, written to both routes
+ * (terms and privacy share a single generic legal variant, not two):
+ *   - app/(marketing)/terms/opengraph-image.png (1200x630)
+ *   - app/(marketing)/terms/opengraph-image.alt.txt
+ *   - app/(marketing)/privacy/opengraph-image.png (1200x630, byte-identical
+ *     to the terms PNG)
+ *   - app/(marketing)/privacy/opengraph-image.alt.txt
  */
 
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
@@ -277,6 +284,60 @@ function buildPricingOgSvg(qr: QrRender): string {
 }
 
 // ---------------------------------------------------------------------
+// Legal OG (1200x630) — app/(marketing)/terms/opengraph-image.png AND
+// app/(marketing)/privacy/opengraph-image.png (U4)
+//
+// One composition function, two output paths: terms and privacy are
+// deliberately ONE generic legal variant, not two bespoke cards — same
+// canvas language as the builders above (background, grid texture,
+// wordmark row, right-column paper tile + glow + QR panel), reusing the
+// homepage's own QR render (`qr`, OG_PAYLOAD) rather than minting a new
+// payload, since the spec calls for these two pages to "share one
+// design" with the homepage card. Kept independent of
+// buildHomepageOgSvg()/buildPricingOgSvg() for the same reason those two
+// are independent of each other: this script's outputs are committed,
+// byte-verified PNGs, and editing this builder must never be able to
+// perturb the other two.
+// ---------------------------------------------------------------------
+
+function buildLegalOgSvg(qr: QrRender): string {
+  const W = 1200;
+  const H = 630;
+
+  const tile = { x: 768, y: 135, w: 360, h: 360, rx: 28 };
+  const tileCenterX = tile.x + tile.w / 2;
+  const tileCenterY = tile.y + tile.h / 2;
+  const qrBox = 272;
+  const qrX = tile.x + (tile.w - qrBox) / 2;
+  const qrY = tile.y + (tile.h - qrBox) / 2;
+
+  const leftX = 88;
+
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}">
+    <rect width="${W}" height="${H}" fill="${DARK_BACKGROUND}"/>
+    ${gridTextureFragment(W, H)}
+
+    ${moduleMarkFragment(leftX, 146, 30, DARK_PRIMARY)}
+    <text x="${leftX + 42}" y="169" font-family="Inter" font-weight="700" font-size="24" letter-spacing="-0.3" fill="${DARK_FOREGROUND}">QRCDN</text>
+
+    <text x="${leftX}" y="342" font-family="Inter" font-weight="700" font-size="60" letter-spacing="-1.2" fill="${DARK_FOREGROUND}">The fine print,</text>
+    <text x="${leftX}" y="408" font-family="Inter" font-weight="700" font-size="60" letter-spacing="-1.2" fill="${DARK_FOREGROUND}">in plain language.</text>
+
+    <text x="${leftX}" y="464" font-family="Inter" font-weight="400" font-size="20" letter-spacing="3" fill="${DARK_MUTED_FOREGROUND}">terms · privacy</text>
+
+    <defs>
+      <filter id="glow" x="-80%" y="-80%" width="260%" height="260%">
+        <feGaussianBlur stdDeviation="38"/>
+      </filter>
+    </defs>
+    <ellipse cx="${tileCenterX}" cy="${tileCenterY + 18}" rx="230" ry="185" fill="${DARK_PRIMARY}" opacity="0.35" filter="url(#glow)"/>
+
+    <rect x="${tile.x}" y="${tile.y}" width="${tile.w}" height="${tile.h}" rx="${tile.rx}" fill="${QR_PAPER}"/>
+    ${qrGroupFragment(qr, qrX, qrY, qrBox)}
+  </svg>`;
+}
+
+// ---------------------------------------------------------------------
 // apple-icon.png (180x180) — app/apple-icon.png
 // ---------------------------------------------------------------------
 
@@ -349,6 +410,19 @@ async function main() {
   const pricingOgPng = rasterize(buildPricingOgSvg(pricingQr), 1200);
   const pricingOgAlt = `QRCDN pricing — $${PRICING.monthlyUsd}/mo or $${PRICING.annualUsd}/yr. A styled QR code beside the QRCDN wordmark on a dark canvas.`;
 
+  // Legal OG (U4) reuses `qr` — the homepage's already-verified OG_PAYLOAD
+  // render — rather than issuing a third verifyQrDecodesTo() call: it is
+  // the identical renderQr() output already proven above to decode to
+  // OG_PAYLOAD, so a second decode of the same bytes would only re-prove
+  // the same fact. The two output files are byte-identical by
+  // construction (one rasterize() call, written twice); alt text differs
+  // per route since it describes the PAGE, not the shared pixels.
+  const legalOgPng = rasterize(buildLegalOgSvg(qr), 1200);
+  const legalOgAltTerms =
+    "QRCDN Terms of Service — the fine print, in plain language. A styled QR code beside the QRCDN wordmark on a dark canvas.";
+  const legalOgAltPrivacy =
+    "QRCDN Privacy Policy — the fine print, in plain language. A styled QR code beside the QRCDN wordmark on a dark canvas.";
+
   const appleIconPath = join(WEB_ROOT, "app/apple-icon.png");
   const marketingDir = join(WEB_ROOT, "app/(marketing)");
   const ogPngPath = join(marketingDir, "opengraph-image.png");
@@ -358,13 +432,27 @@ async function main() {
   const pricingOgPngPath = join(pricingDir, "opengraph-image.png");
   const pricingOgAltPath = join(pricingDir, "opengraph-image.alt.txt");
 
+  const termsDir = join(marketingDir, "terms");
+  const termsOgPngPath = join(termsDir, "opengraph-image.png");
+  const termsOgAltPath = join(termsDir, "opengraph-image.alt.txt");
+
+  const privacyDir = join(marketingDir, "privacy");
+  const privacyOgPngPath = join(privacyDir, "opengraph-image.png");
+  const privacyOgAltPath = join(privacyDir, "opengraph-image.alt.txt");
+
   mkdirSync(marketingDir, { recursive: true });
   mkdirSync(pricingDir, { recursive: true });
+  mkdirSync(termsDir, { recursive: true });
+  mkdirSync(privacyDir, { recursive: true });
   writeFileSync(appleIconPath, appleIconPng);
   writeFileSync(ogPngPath, ogPng);
   writeFileSync(ogAltPath, ogAlt);
   writeFileSync(pricingOgPngPath, pricingOgPng);
   writeFileSync(pricingOgAltPath, pricingOgAlt);
+  writeFileSync(termsOgPngPath, legalOgPng);
+  writeFileSync(termsOgAltPath, legalOgAltTerms);
+  writeFileSync(privacyOgPngPath, legalOgPng);
+  writeFileSync(privacyOgAltPath, legalOgAltPrivacy);
 
   console.log(`[generate-brand-images] wrote ${appleIconPath} (${appleIconPng.length} bytes)`);
   console.log(`[generate-brand-images] wrote ${ogPngPath} (${ogPng.length} bytes)`);
@@ -373,6 +461,12 @@ async function main() {
     `[generate-brand-images] wrote ${pricingOgPngPath} (${pricingOgPng.length} bytes)`,
   );
   console.log(`[generate-brand-images] wrote ${pricingOgAltPath}`);
+  console.log(`[generate-brand-images] wrote ${termsOgPngPath} (${legalOgPng.length} bytes)`);
+  console.log(`[generate-brand-images] wrote ${termsOgAltPath}`);
+  console.log(
+    `[generate-brand-images] wrote ${privacyOgPngPath} (${legalOgPng.length} bytes, byte-identical to ${termsOgPngPath})`,
+  );
+  console.log(`[generate-brand-images] wrote ${privacyOgAltPath}`);
 }
 
 main().catch((err) => {

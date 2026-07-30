@@ -4,7 +4,7 @@ import { HeroBackdrop } from "@/components/explore/backdrop";
 import { ModuleMark } from "@/components/brand/magic";
 
 export const metadata: Metadata = {
-  title: "API — QRCDN",
+  title: "API",
   description:
     "REST API for QRCDN dynamic codes: create, retarget, pause, and pull scan analytics over one scoped, bearer-authenticated endpoint.",
 };

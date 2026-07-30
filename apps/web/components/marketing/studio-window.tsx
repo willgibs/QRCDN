@@ -1,5 +1,6 @@
 import { renderQr, scannabilityReport } from "@qrcdn/qr-engine";
-import { brandQrBackdrop, brandQrStyles } from "@/lib/explore";
+import type { QrStyle } from "@qrcdn/shared";
+import { brandQrStyles } from "@/lib/explore";
 import { ModuleMark } from "@/components/brand/magic";
 import { glowSwatchSelected } from "@/components/brand/glow-tile";
 import { ScannabilityChip } from "@/components/studio/scannability-chip";
@@ -15,14 +16,29 @@ import { ProductWindow } from "./product-window";
 // instrument (components/studio/scannability-chip.tsx), fed a genuine
 // ScannabilityReport + RenderResult.version computed once at module scope
 // from the actual engine, not a hand-typed "Scannability 98" badge.
+//
+// Print-truth fix (P9-U2 follow-up): the preview renders exactly ONE
+// style — dark ink on an explicit, opaque white paper mat — never the
+// brandQrStyles.precision.dark variant. That variant's light-on-dark ink
+// is a decorative choice appropriate only for the non-instrumented hero
+// ScanNetwork tile; used here it made the section about the instrument
+// keeping you honest depict the instrument flagging our OWN showcase
+// style with an "inverted" warning whenever the site is in dark mode. The
+// window's chrome (kit pills, shape/color swatches) still themes normally
+// via `dark:` — only the QR artifact + its instrument reading stay
+// theme-invariant, matching the real Studio's own default new-kit style
+// (an opaque white background, not a transparent one).
 const QR_DATA = "HTTPS://QRCDN.COM/K7M2X9A";
-const STYLE = brandQrStyles.precision;
-const BACKDROP = brandQrBackdrop.precision;
+const STYLE: QrStyle = {
+  ...brandQrStyles.precision.light,
+  background: {
+    transparent: false,
+    color: brandQrStyles.precision.light.background.color,
+  },
+};
 
-const lightRender = renderQr({ data: QR_DATA, style: STYLE.light });
-const darkRender = renderQr({ data: QR_DATA, style: STYLE.dark });
-const lightReport = scannabilityReport(STYLE.light, { transparentBackdrop: BACKDROP.light });
-const darkReport = scannabilityReport(STYLE.dark, { transparentBackdrop: BACKDROP.dark });
+const render = renderQr({ data: QR_DATA, style: STYLE });
+const report = scannabilityReport(STYLE);
 
 const KITS = [
   { name: "Café Norte", active: true },
@@ -112,27 +128,25 @@ export function StudioWindow() {
           </div>
         </div>
 
-        {/* Preview — real light/dark render + the real instrument panel */}
+        {/* Preview — the real render + the real instrument panel, print-true
+            (same paper + ink regardless of site theme — see the module
+            doc comment above for why). */}
         <div className="w-full border-t border-border/60 bg-surface-studio p-5 md:w-64 md:border-t-0 md:border-l lg:w-72">
           <p className="text-xs text-muted-foreground">Preview</p>
-          <div className="mt-3 rounded-xl bg-qr-bg p-4">
+          <div
+            className="mt-3 rounded-xl p-4"
+            style={{ backgroundColor: STYLE.background.color }}
+          >
             <div
-              className="[&_svg]:h-auto [&_svg]:w-full dark:hidden"
-              dangerouslySetInnerHTML={{ __html: lightRender.svg }}
-            />
-            <div
-              className="hidden [&_svg]:h-auto [&_svg]:w-full dark:block"
-              dangerouslySetInnerHTML={{ __html: darkRender.svg }}
+              className="[&_svg]:h-auto [&_svg]:w-full"
+              dangerouslySetInnerHTML={{ __html: render.svg }}
             />
           </div>
           <p className="mt-3 text-center font-mono text-[11px] text-muted-foreground">
             qrcdn.com/K7M2X9A
           </p>
-          <div className="mt-3 dark:hidden">
-            <ScannabilityChip report={lightReport} version={lightRender.version} />
-          </div>
-          <div className="mt-3 hidden dark:block">
-            <ScannabilityChip report={darkReport} version={darkRender.version} />
+          <div className="mt-3">
+            <ScannabilityChip report={report} version={render.version} />
           </div>
         </div>
       </div>

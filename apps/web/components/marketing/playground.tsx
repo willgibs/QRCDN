@@ -2,10 +2,9 @@
 
 import { useCallback, useId, useMemo, useState } from "react";
 import Link from "next/link";
-import { useTheme } from "next-themes";
 import { Loader2 } from "lucide-react";
 import { scannabilityReport } from "@qrcdn/qr-engine";
-import { parseQrStyle } from "@qrcdn/shared";
+import { parseQrStyle, type QrStyle } from "@qrcdn/shared";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -18,9 +17,8 @@ import { Eyebrow, Reveal } from "@/components/brand/magic";
 import { ColorField } from "@/components/studio/color-controls";
 import { ScannabilityChip } from "@/components/studio/scannability-chip";
 import { DOT_STYLES, EYE_FRAMES, DotSwatch, EyeSwatch } from "@/components/qr/shape-swatches";
-import { useMounted } from "@/hooks/use-mounted";
 import { downloadBlob, exportFilename, rasterizeSvgToPng } from "@/lib/export";
-import { brandQrBackdrop, brandQrStyles } from "@/lib/explore";
+import { brandQrStyles } from "@/lib/explore";
 import { PREVIEW_PAYLOAD_DEFAULT, renderPreview } from "@/lib/preview";
 import { inkHexFromStyle } from "@/lib/qr-style-derive";
 
@@ -37,45 +35,58 @@ import { inkHexFromStyle } from "@/lib/qr-style-derive";
  * string), and real SVG/PNG downloads (lib/export.ts). No account, no
  * server round-trip: everything here runs client-side against the same
  * `@qrcdn/qr-engine` the API and Studio use.
- *
- * Ink is theme-scoped exactly like studio-slice.tsx: a custom color chosen
- * in one color mode is deliberately dropped on a theme flip (a swatch tuned
- * for light can kill contrast in dark) rather than carried over silently.
  */
 
-const INK_PRESETS = ["#131316", "#312e81", "#1e3a8a", "#0f766e", "#b91c1c"] as const;
+/**
+ * The instrument must never open criticizing our own default — light inks
+ * are user choices it can honestly police. Print-truth staging: dark ink
+ * on an explicit, opaque white paper mat, independent of the SITE's color
+ * scheme — unlike the hero ScanNetwork tile's decorative dark-mode
+ * inversion (brandQrStyles.precision.dark), which is fine precisely
+ * because that tile carries no instrument and no download. Ink mirrors
+ * the D13-locked precision style; paper is explicit/non-transparent so it
+ * never resolves through the theme-reactive --qr-bg bridge the way a
+ * transparent background would (a transparent mat here would still have
+ * gone dark in dark mode and paired disastrously with this same dark ink).
+ */
+const DEFAULT_STYLE: QrStyle = {
+  ...brandQrStyles.precision.light,
+  background: {
+    transparent: false,
+    color: brandQrStyles.precision.light.background.color,
+  },
+};
+
+// All dark-on-white by design (print-true default), plus the brand's own
+// dark-mode ink as one preset — so a visitor can reach the honest inverted
+// warning in a single click, not only via the free-hex field.
+const INK_PRESETS = [
+  "#131316",
+  "#312e81",
+  "#1e3a8a",
+  "#0f766e",
+  "#b91c1c",
+  inkHexFromStyle(brandQrStyles.precision.dark),
+] as const;
+
 const PNG_EXPORT_SIZE = 1024;
 
 export function Playground() {
-  const { resolvedTheme } = useTheme();
-  const mounted = useMounted();
-  const dark = mounted && resolvedTheme === "dark";
-  const mode: "light" | "dark" = dark ? "dark" : "light";
-  const base = brandQrStyles.precision[mode];
-
   const [payload, setPayload] = useState(PREVIEW_PAYLOAD_DEFAULT);
-  const [dotStyle, setDotStyle] = useState<(typeof DOT_STYLES)[number]>(
-    brandQrStyles.precision.light.dots.style,
-  );
-  const [eyeFrame, setEyeFrame] = useState<(typeof EYE_FRAMES)[number]>(
-    brandQrStyles.precision.light.eyes.frame,
-  );
-  const [sizeRatio, setSizeRatio] = useState(brandQrStyles.precision.light.dots.sizeRatio);
-  const [inkSelection, setInkSelection] = useState<{
-    mode: "light" | "dark";
-    color: string | null;
-  }>({ mode: "light", color: null });
-  const activeInk = inkSelection.mode === mode ? inkSelection.color : null;
+  const [dotStyle, setDotStyle] = useState<(typeof DOT_STYLES)[number]>(DEFAULT_STYLE.dots.style);
+  const [eyeFrame, setEyeFrame] = useState<(typeof EYE_FRAMES)[number]>(DEFAULT_STYLE.eyes.frame);
+  const [sizeRatio, setSizeRatio] = useState(DEFAULT_STYLE.dots.sizeRatio);
+  const [activeInk, setActiveInk] = useState<string | null>(null);
 
   const style = useMemo(
     () =>
       parseQrStyle({
-        ...base,
+        ...DEFAULT_STYLE,
         dots: { style: dotStyle, sizeRatio },
-        eyes: { ...base.eyes, frame: eyeFrame },
+        eyes: { ...DEFAULT_STYLE.eyes, frame: eyeFrame },
         ...(activeInk ? { fill: { type: "solid" as const, color: activeInk } } : {}),
       }),
-    [base, dotStyle, eyeFrame, sizeRatio, activeInk],
+    [dotStyle, eyeFrame, sizeRatio, activeInk],
   );
 
   const previewData = payload.trim().length > 0 ? payload : PREVIEW_PAYLOAD_DEFAULT;
@@ -85,10 +96,10 @@ export function Playground() {
     [previewData, style],
   );
 
-  const report = useMemo(
-    () => scannabilityReport(style, { transparentBackdrop: brandQrBackdrop.precision[mode] }),
-    [style, mode],
-  );
+  // No transparentBackdrop option needed — style.background.transparent is
+  // always false here (the explicit white mat above), so the report always
+  // grades contrast against the artifact's own real paper, not a guess.
+  const report = useMemo(() => scannabilityReport(style), [style]);
 
   const inkHex = inkHexFromStyle(style);
 
@@ -203,7 +214,7 @@ export function Playground() {
               <ColorField
                 label="Ink"
                 value={inkHex}
-                onChange={(hex) => setInkSelection({ mode, color: hex })}
+                onChange={(hex) => setActiveInk(hex)}
                 presets={INK_PRESETS}
               />
             </CardContent>
@@ -213,7 +224,7 @@ export function Playground() {
             <ArtifactStage glowColor={inkHex} className="mx-auto w-full max-w-[260px]">
               <div
                 className="relative w-full overflow-hidden rounded-2xl p-5 shadow-xl shadow-black/25 ring-1 ring-black/10 dark:shadow-black/50 dark:ring-white/10"
-                style={{ backgroundColor: "var(--qr-bg)" }}
+                style={{ backgroundColor: style.background.color }}
               >
                 <div
                   role="img"

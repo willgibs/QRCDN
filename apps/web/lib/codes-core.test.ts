@@ -33,6 +33,21 @@ vi.mock("./kv-sync", () => ({
 import { writeSlugToKv } from "./kv-sync";
 const writeSlugToKvMock = vi.mocked(writeSlugToKv);
 
+// P8-U5: checkUrlSafety is called from all three call sites this file
+// exercises (createDynamicCodeCore, retargetCodeCore,
+// createDynamicCodesBulkCore). Defaulted to the real-world default
+// (unconfigured) directly in the factory — same pattern as
+// hashCodePassword's default below — so every PRE-EXISTING test in this
+// file (none of which know Safe Browsing exists) keeps proceeding to its
+// insert/update exactly as before, with zero changes required to them.
+// Tests that want the safe:false/check_failed branches override with
+// mockResolvedValueOnce right before calling the function under test.
+vi.mock("./safe-browsing", () => ({
+  checkUrlSafety: vi.fn().mockResolvedValue({ checked: false, reason: "unconfigured" }),
+}));
+import { checkUrlSafety } from "./safe-browsing";
+const checkUrlSafetyMock = vi.mocked(checkUrlSafety);
+
 // hashCodePassword is mocked (rather than run for real) so setCodeAccessCore
 // tests stay fast/deterministic and can assert on a fixed, recognizable
 // "scrypt$..." return value — passwords.ts's own suite already exercises the
@@ -191,6 +206,78 @@ describe("createDynamicCodeCore — owner scoping", () => {
 
     expect(result).toEqual({ ok: false, error: "profile_not_found" });
     expect(from).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("createDynamicCodeCore — Safe Browsing screen (P8-U5)", () => {
+  it("THE CRITICAL TEST — unconfigured Safe Browsing (checked:false) never blocks the insert", async () => {
+    checkUrlSafetyMock.mockResolvedValueOnce({ checked: false, reason: "unconfigured" });
+    const { db, builders } = createDb([
+      { table: "profiles", result: { data: { plan: "pro" }, error: null } },
+      { table: "qr_codes", result: { count: 0, error: null } },
+      { table: "qr_codes", result: { data: { id: "code-1", slug: "ABCD234" }, error: null } },
+    ]);
+
+    const result = await createDynamicCodeCore(ctxWith(db), {
+      name: "Menu",
+      destination: "https://example.com",
+      style: { v: 1 },
+    });
+
+    expect(result).toEqual({ ok: true, data: { id: "code-1", slug: "ABCD234" } });
+    expect(builders[2]!.calls.insert).toHaveLength(1);
+  });
+
+  it("Safe Browsing reports unsafe — blocked before the insert, zero DB write", async () => {
+    checkUrlSafetyMock.mockResolvedValueOnce({ checked: true, safe: false });
+    const { db, builders } = createDb([
+      { table: "profiles", result: { data: { plan: "pro" }, error: null } },
+      { table: "qr_codes", result: { count: 0, error: null } },
+    ]);
+
+    const result = await createDynamicCodeCore(ctxWith(db), {
+      name: "Menu",
+      destination: "https://malicious.example.com",
+      style: { v: 1 },
+    });
+
+    expect(result).toEqual({ ok: false, error: "destination_unsafe" });
+    expect(builders.every((b) => !b.calls.insert)).toBe(true);
+  });
+
+  it("Safe Browsing check_failed — insert proceeds normally (fails open)", async () => {
+    checkUrlSafetyMock.mockResolvedValueOnce({ checked: false, reason: "check_failed" });
+    const { db, builders } = createDb([
+      { table: "profiles", result: { data: { plan: "pro" }, error: null } },
+      { table: "qr_codes", result: { count: 0, error: null } },
+      { table: "qr_codes", result: { data: { id: "code-1", slug: "ABCD234" }, error: null } },
+    ]);
+
+    const result = await createDynamicCodeCore(ctxWith(db), {
+      name: "Menu",
+      destination: "https://example.com",
+      style: { v: 1 },
+    });
+
+    expect(result).toEqual({ ok: true, data: { id: "code-1", slug: "ABCD234" } });
+    expect(builders[2]!.calls.insert).toHaveLength(1);
+  });
+
+  it("passes the trimmed/validated destination to checkUrlSafety, not the raw input", async () => {
+    checkUrlSafetyMock.mockResolvedValueOnce({ checked: false, reason: "unconfigured" });
+    const { db } = createDb([
+      { table: "profiles", result: { data: { plan: "pro" }, error: null } },
+      { table: "qr_codes", result: { count: 0, error: null } },
+      { table: "qr_codes", result: { data: { id: "code-1", slug: "ABCD234" }, error: null } },
+    ]);
+
+    await createDynamicCodeCore(ctxWith(db), {
+      name: "Menu",
+      destination: "  https://example.com  ",
+      style: { v: 1 },
+    });
+
+    expect(checkUrlSafetyMock).toHaveBeenCalledWith("https://example.com");
   });
 });
 
@@ -483,6 +570,37 @@ describe("createDynamicCodesBulkCore", () => {
       ]);
     }
   });
+
+  // P8-U5: Safe Browsing screen, per item.
+  it("one item flagged unsafe fails only that item — order preserved, the other item still succeeds", async () => {
+    checkUrlSafetyMock
+      .mockResolvedValueOnce({ checked: true, safe: false }) // "Bad": blocked
+      .mockResolvedValueOnce({ checked: false, reason: "unconfigured" }); // "Good": proceeds
+    const { db, builders } = createDb([
+      { table: "profiles", result: { data: { plan: "pro" }, error: null } },
+      { table: "qr_codes", result: { count: 0, error: null } },
+      { table: "qr_codes", result: { data: { id: "code-2", slug: "GOOD1234" }, error: null } },
+    ]);
+
+    const result = await createDynamicCodesBulkCore(
+      ctxWith(db),
+      [
+        { name: "Bad", destination: "https://malicious.example.com" },
+        { name: "Good", destination: "https://good.example.com" },
+      ],
+      STYLE,
+    );
+
+    expect(result).toEqual({
+      ok: true,
+      data: [
+        { name: "Bad", ok: false, error: "destination_unsafe" },
+        { name: "Good", ok: true, slug: "GOOD1234", url: "https://qrcdn.com/GOOD1234" },
+      ],
+    });
+    // Exactly one insert attempt — the blocked item never reached insertDynamicCode.
+    expect(builders.filter((b) => b.calls.insert).length).toBe(1);
+  });
 });
 
 describe("listDynamicCodesCore — owner scoping", () => {
@@ -720,6 +838,70 @@ describe("retargetCodeCore — owner scoping and KV propagation", () => {
     });
     expect(record).not.toHaveProperty("expiresAt");
     expect(record).not.toHaveProperty("passwordProtected");
+  });
+});
+
+describe("retargetCodeCore — Safe Browsing screen (P8-U5)", () => {
+  it("unconfigured Safe Browsing (checked:false) never blocks the update", async () => {
+    checkUrlSafetyMock.mockResolvedValueOnce({ checked: false, reason: "unconfigured" });
+    writeSlugToKvMock.mockResolvedValueOnce({ synced: true });
+    const { db, builders } = createDb([
+      {
+        table: "qr_codes",
+        result: {
+          data: {
+            slug: "ABCD234",
+            destination_url: "https://new.example.com",
+            status: "active",
+            expires_at: null,
+            password_hash: null,
+          },
+          error: null,
+        },
+      },
+    ]);
+
+    const result = await retargetCodeCore(ctxWith(db), "code-1", "https://new.example.com");
+
+    expect(result.ok).toBe(true);
+    expect(builders[0]!.calls.update).toHaveLength(1);
+  });
+
+  it("Safe Browsing reports unsafe — blocked before the update, zero DB write", async () => {
+    checkUrlSafetyMock.mockResolvedValueOnce({ checked: true, safe: false });
+    const { db, from } = createDb([]);
+
+    const result = await retargetCodeCore(ctxWith(db), "code-1", "https://malicious.example.com");
+
+    expect(result).toEqual({ ok: false, error: "destination_unsafe" });
+    // Empty plan array — a .from() call here (an update attempt) throws
+    // "plan exhausted", which is exactly the proof this needs: zero DB write.
+    expect(from).not.toHaveBeenCalled();
+  });
+
+  it("Safe Browsing check_failed — update proceeds normally (fails open)", async () => {
+    checkUrlSafetyMock.mockResolvedValueOnce({ checked: false, reason: "check_failed" });
+    writeSlugToKvMock.mockResolvedValueOnce({ synced: true });
+    const { db, builders } = createDb([
+      {
+        table: "qr_codes",
+        result: {
+          data: {
+            slug: "ABCD234",
+            destination_url: "https://new.example.com",
+            status: "active",
+            expires_at: null,
+            password_hash: null,
+          },
+          error: null,
+        },
+      },
+    ]);
+
+    const result = await retargetCodeCore(ctxWith(db), "code-1", "https://new.example.com");
+
+    expect(result.ok).toBe(true);
+    expect(builders[0]!.calls.update).toHaveLength(1);
   });
 });
 

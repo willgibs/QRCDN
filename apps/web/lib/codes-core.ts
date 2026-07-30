@@ -12,6 +12,7 @@ import {
 import { PLAN_LIMITS, type Plan } from "./entitlements";
 import { generateSlug, validateVanitySlug } from "./slug";
 import { writeSlugToKv } from "./kv-sync";
+import { checkUrlSafety } from "./safe-browsing";
 import { hashCodePassword } from "./passwords";
 import { SHORT_URL_HOST } from "./short-url";
 import {
@@ -315,6 +316,19 @@ export async function createDynamicCodeCore(
     return { ok: false, error: "code_limit" };
   }
 
+  // P8-U5: Safe Browsing screen (D14 abuse control) — after validation,
+  // as the LAST gate before the insert (the DB write), so a request that's
+  // going to fail anyway on plan/limit/slug grounds never spends a Safe
+  // Browsing API call. See lib/safe-browsing.ts's fail-open contract: ONLY
+  // an affirmative `{ checked: true, safe: false }` blocks. Both
+  // `checked: false` shapes (unconfigured, or the check itself failing)
+  // proceed to the insert exactly like today — getting this backwards
+  // would break every mint the moment a key is unset or misconfigured.
+  const safety = await checkUrlSafety(validated.data.destination);
+  if (safety.checked && !safety.safe) {
+    return { ok: false, error: "destination_unsafe" };
+  }
+
   return insertDynamicCode(ctx, {
     name: validated.data.name,
     destination: validated.data.destination,
@@ -460,6 +474,22 @@ export async function createDynamicCodesBulkCore(
       slug = slugResult.data;
     }
 
+    // P8-U5: Safe Browsing screen, per item — see lib/safe-browsing.ts's
+    // fail-open contract and createDynamicCodeCore's identical comment
+    // above. Placed as the LAST gate before this item's insert (after
+    // validation/slug resolution, which are free) so an item that was
+    // doomed anyway (bad destination, taken vanity slug) never spends a
+    // Safe Browsing API call it didn't need. Only an affirmative unsafe
+    // verdict fails the item; unconfigured/check_failed proceed to insert
+    // like every other item — a blocked destination becomes THAT item's
+    // own failure outcome and never aborts the rest of the batch, this
+    // function's existing partial-success contract, unchanged.
+    const safety = await checkUrlSafety(validated.data.destination);
+    if (safety.checked && !safety.safe) {
+      outcomes.push({ name: validated.data.name, ok: false, error: "destination_unsafe" });
+      continue;
+    }
+
     const insertResult = await insertDynamicCode(ctx, {
       name: validated.data.name,
       destination: validated.data.destination,
@@ -542,6 +572,18 @@ export async function retargetCodeCore(
   const destinationResult = validateDestination(destination);
   if (!destinationResult.ok) {
     return destinationResult;
+  }
+
+  // P8-U5: Safe Browsing screen (D14 abuse control) — after validation,
+  // before the update (the DB write). Same fail-open contract as
+  // createDynamicCodeCore above: ONLY `{ checked: true, safe: false }`
+  // blocks; both `checked: false` shapes proceed to the update unchanged.
+  // Retarget is the one path a malicious actor could use to slip a bad
+  // destination onto an ALREADY-PRINTED, already-trusted code after the
+  // fact, so this check applies here even though creation already ran it.
+  const safety = await checkUrlSafety(destinationResult.data);
+  if (safety.checked && !safety.safe) {
+    return { ok: false, error: "destination_unsafe" };
   }
 
   const { data, error } = await ctx.db

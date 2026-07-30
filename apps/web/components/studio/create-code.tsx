@@ -25,12 +25,17 @@ const CODE_LIMIT_MESSAGE = "Free includes 3 dynamic codes — Pro raises it to 2
 const GENERIC_ERROR_MESSAGE = "Couldn't create that code — try again.";
 // P8-U4: createDynamicCode is now rate-limited (STUDIO_MUTATE_LIMIT).
 const RATE_LIMITED_MESSAGE = "Too many changes just now — try again in a few minutes.";
+// P8-U5: createDynamicCode now screens the destination through Safe
+// Browsing (lib/safe-browsing.ts, via createDynamicCodeCore) — unconfigured
+// or a check failure never reaches this branch, only an affirmative match.
+const UNSAFE_DESTINATION_MESSAGE = "That destination was flagged as unsafe.";
 
-type CreateError = "limit" | "rate_limited" | "generic";
+type CreateError = "limit" | "rate_limited" | "unsafe" | "generic";
 
 function createErrorMessage(error: CreateError): string {
   if (error === "limit") return CODE_LIMIT_MESSAGE;
   if (error === "rate_limited") return RATE_LIMITED_MESSAGE;
+  if (error === "unsafe") return UNSAFE_DESTINATION_MESSAGE;
   return GENERIC_ERROR_MESSAGE;
 }
 
@@ -147,6 +152,8 @@ export function CreateCodeControl({
           setError("limit");
         } else if (result.error === "rate_limited") {
           setError("rate_limited");
+        } else if (result.error === "destination_unsafe") {
+          setError("unsafe");
         } else {
           setError("generic");
         }
@@ -342,7 +349,7 @@ export function CreateCodeControl({
         </form>
         {error && (
           // The limit note is an upgrade nudge (quiet, muted) — every other
-          // error (including rate_limited) is a real failure
+          // error (rate_limited, unsafe, generic) is a real failure
           // (destructive-red), same distinction kit-bar's
           // limitError/actionError pair makes with two separately-styled
           // notes.

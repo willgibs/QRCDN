@@ -31,6 +31,14 @@ const CREATE_INTERNAL_ERRORS = new Set([
 // through to the same 422 invalidRequest passthrough as
 // invalid_destination/invalid_name already do — no special-casing needed
 // beyond keeping them OUT of CREATE_INTERNAL_ERRORS above.
+//
+// destination_unsafe (P8-U5, lib/safe-browsing.ts via
+// createDynamicCodeCore) is deliberately ALSO kept out of
+// CREATE_INTERNAL_ERRORS — a flagged destination is a caller-fixable input
+// problem (pick a different URL), not a backend failure, so it falls
+// through to the same 422 invalidRequest(result.error) passthrough below,
+// same tier as invalid_destination. No code change was needed to get this
+// mapping right; this comment exists so it stays deliberate, not accidental.
 
 export async function GET(request: Request) {
   const auth = await authenticateApiRequest(request);

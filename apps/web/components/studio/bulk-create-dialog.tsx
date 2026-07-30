@@ -53,6 +53,23 @@ const BATCH_ERROR_MESSAGES: Record<string, string> = {
 };
 const GENERIC_BATCH_ERROR = "Couldn't create those codes — try again.";
 
+// P8-U5: createDynamicCodesBulkCore's Safe Browsing screen
+// (lib/safe-browsing.ts) fails a flagged destination as ITS OWN item
+// outcome (never the whole-batch error above — see BATCH_ERROR_MESSAGES's
+// callers, which only ever fire for the whole call, not one line) so this
+// gets its own small lookup for the per-item error rendered in each failure
+// row below. Every other per-item error code (invalid_destination,
+// slug_taken, the raw zod message for a bad name, ...) still renders as the
+// literal string codes-core.ts returns — unchanged pre-existing behavior,
+// not something this unit is here to fix.
+const ITEM_ERROR_MESSAGES: Partial<Record<string, string>> = {
+  destination_unsafe: "That destination was flagged as unsafe.",
+};
+
+function itemErrorMessage(error: string): string {
+  return ITEM_ERROR_MESSAGES[error] ?? error;
+}
+
 const PLACEHOLDER = "Menu | https://example.com/menu\nhttps://example.com/promo";
 
 interface BulkDraftItem {
@@ -302,7 +319,7 @@ export function BulkCreateDialog({
                       {outcome.name || "(unnamed)"}
                     </span>
                     <span role="alert" className="shrink-0 text-xs text-destructive">
-                      {outcome.error}
+                      {itemErrorMessage(outcome.error)}
                     </span>
                   </div>
                 ))}

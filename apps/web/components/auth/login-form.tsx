@@ -1,6 +1,7 @@
 "use client";
 
-import { useId, useState, type FormEvent } from "react";
+import { useEffect, useId, useRef, useState, type FormEvent } from "react";
+import Script from "next/script";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { Loader2, Mail } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -34,6 +35,38 @@ function GoogleMark({ className }: { className?: string }) {
   );
 }
 
+// P8-U5: Turnstile (D14 abuse control on sign-in). Supabase Auth verifies
+// the token natively, server-side (Project Settings -> Auth -> Bot and
+// Abuse Protection) — there is no siteverify endpoint of our own to write.
+// This file's whole job is: load the widget, capture its token, forward it
+// as signInWithOtp's options.captchaToken. `NEXT_PUBLIC_TURNSTILE_SITE_KEY`
+// is inlined at build time (same idiom as instrumentation-client.ts's
+// NEXT_PUBLIC_SENTRY_DSN) — unset collapses every conditional below to dead
+// code the bundler strips: no script tag, no widget container, no gating
+// on the submit button. This is the default state today (no Cloudflare
+// Turnstile site exists yet, the board provisions one later) and must
+// render byte-identical to the pre-P8-U5 form. Google OAuth (handleGoogle
+// below) is deliberately untouched — out of scope (redirect flow, Google's
+// own bot controls).
+const TURNSTILE_SITE_KEY = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY;
+
+declare global {
+  interface Window {
+    turnstile?: {
+      render: (
+        container: HTMLElement,
+        options: {
+          sitekey: string;
+          callback: (token: string) => void;
+          "expired-callback"?: () => void;
+          "error-callback"?: () => void;
+        },
+      ) => string;
+      remove: (widgetId: string) => void;
+    };
+  }
+}
+
 type Pending = "email" | "google" | null;
 
 export function LoginForm({ initialError }: { initialError?: string }) {
@@ -43,6 +76,60 @@ export function LoginForm({ initialError }: { initialError?: string }) {
   const [pending, setPending] = useState<Pending>(null);
   const [sent, setSent] = useState(false);
   const [error, setError] = useState<string | null>(initialError ?? null);
+
+  // Turnstile — every piece of state below stays at its initial value (and
+  // the effect below is a permanent no-op) when TURNSTILE_SITE_KEY is
+  // unset, since nothing ever flips scriptLoaded true with no <Script> in
+  // the tree to load it.
+  const turnstileRef = useRef<HTMLDivElement>(null);
+  const [scriptLoaded, setScriptLoaded] = useState(false);
+  const [turnstileFailed, setTurnstileFailed] = useState(false);
+  const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
+
+  // Renders the widget once the script has loaded, and RE-renders it
+  // whenever the container remounts. The container (below, in the "form"
+  // branch) unmounts while `sent` (the "check your inbox" view) is
+  // showing and remounts if the caller clicks "Use a different email" —
+  // `next/script`'s onLoad fires exactly once per script load, not on
+  // every remount, so keying this effect on `sent` too (not just
+  // scriptLoaded) is what makes a second attempt in the same page load
+  // work instead of leaving the submit button gated forever on a widget
+  // whose container no longer exists.
+  useEffect(() => {
+    if (!TURNSTILE_SITE_KEY || !scriptLoaded || sent) return;
+    const container = turnstileRef.current;
+    if (!container || !window.turnstile) return;
+
+    let widgetId: string | null = null;
+    try {
+      widgetId = window.turnstile.render(container, {
+        sitekey: TURNSTILE_SITE_KEY,
+        callback: (token) => setTurnstileToken(token),
+        "expired-callback": () => setTurnstileToken(null),
+        "error-callback": () => setTurnstileToken(null),
+      });
+    } catch {
+      // A third-party script must never brick our own login form — fail
+      // open (same posture as lib/safe-browsing.ts's fail-open contract,
+      // applied here to "can the user sign in at all" rather than "should
+      // this write be blocked"). Deferred via queueMicrotask, not called
+      // directly here: a setState call synchronously inside an effect's own
+      // body (as opposed to inside a later-invoked callback, like
+      // render()'s callback/error-callback below) trips
+      // react-hooks/set-state-in-effect — see docs/guides/design-system.md's
+      // useMounted note for the same lint rule hit elsewhere in this
+      // codebase.
+      queueMicrotask(() => setTurnstileFailed(true));
+      return;
+    }
+
+    return () => {
+      if (widgetId && window.turnstile) {
+        window.turnstile.remove(widgetId);
+      }
+      setTurnstileToken(null);
+    };
+  }, [scriptLoaded, sent]);
 
   async function handleMagicLink(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -54,6 +141,12 @@ export function LoginForm({ initialError }: { initialError?: string }) {
       email,
       options: {
         emailRedirectTo: `${window.location.origin}/auth/confirm`,
+        // Omitted entirely (not sent as null/undefined) when there's no
+        // token — either Turnstile is unconfigured, or it failed open
+        // above. Supabase only enforces captchaToken when ITS OWN
+        // Turnstile setting is on, so an omitted token is a normal request
+        // in the unconfigured case, exactly like before this unit.
+        ...(turnstileToken ? { captchaToken: turnstileToken } : {}),
       },
     });
 
@@ -88,8 +181,24 @@ export function LoginForm({ initialError }: { initialError?: string }) {
   const transition = { duration: reduced ? 0.15 : 0.3, ease: EASE_OUT };
   const from = reduced ? "translateY(0px)" : "translateY(8px)";
 
+  // Blocks email submission until Turnstile has produced a token. Collapses
+  // to `false` (no-op, folded straight into the Button's existing disabled=
+  // expression below) when unconfigured, and fails back open if the
+  // widget/script itself errored (see the effect above) rather than
+  // leaving the form stuck disabled with no path forward.
+  const turnstileBlocking = Boolean(TURNSTILE_SITE_KEY) && !turnstileToken && !turnstileFailed;
+
   return (
     <div className="flex flex-col gap-5">
+      {TURNSTILE_SITE_KEY && (
+        <Script
+          src="https://challenges.cloudflare.com/turnstile/v0/api.js"
+          strategy="afterInteractive"
+          onLoad={() => setScriptLoaded(true)}
+          onError={() => setTurnstileFailed(true)}
+        />
+      )}
+
       <AnimatePresence mode="wait" initial={false}>
         {sent ? (
           <motion.div
@@ -165,11 +274,12 @@ export function LoginForm({ initialError }: { initialError?: string }) {
                   className="h-11"
                 />
               </div>
+              {TURNSTILE_SITE_KEY && <div ref={turnstileRef} />}
               <Button
                 type="submit"
                 size="lg"
                 className="h-11 w-full gap-2 text-sm"
-                disabled={pending !== null || email.length === 0}
+                disabled={pending !== null || email.length === 0 || turnstileBlocking}
               >
                 {pending === "email" && <Loader2 className="size-4 animate-spin" />}
                 Continue with email

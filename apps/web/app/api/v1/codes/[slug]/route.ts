@@ -29,6 +29,13 @@ export const dynamic = "force-dynamic";
 // not a bad request — see codes-core.ts). "plan_required" is NOT in this
 // set — it's handled as its own 403 branch below, not folded into either
 // bucket.
+//
+// destination_unsafe (P8-U5, lib/safe-browsing.ts via retargetCodeCore) is
+// deliberately ALSO not in this set, same reasoning as codes/route.ts's own
+// CREATE_INTERNAL_ERRORS comment: a flagged destination is a caller-fixable
+// 422, not a backend failure, so it falls through to
+// invalidRequest(retargetResult.error) in the destination branch below
+// without any special-casing.
 const UPDATE_INTERNAL_ERRORS = new Set(["update_failed", "profile_not_found"]);
 
 export async function GET(request: Request, ctx: RouteContext<"/api/v1/codes/[slug]">) {

@@ -182,6 +182,25 @@ describe("PATCH /api/v1/codes/[slug]", () => {
       setPausedMock.mock.invocationCallOrder[0]!,
     );
   });
+
+  // P8-U5: destination_unsafe (retargetCodeCore's Safe Browsing screen) is
+  // a caller-fixable 422, not a 500 — deliberately kept out of
+  // UPDATE_INTERNAL_ERRORS (see route.ts's comment above that set).
+  it("422s invalid_request when the core reports destination_unsafe on retarget", async () => {
+    getBySlugMock.mockResolvedValueOnce({ ok: true, data: CODE });
+    retargetMock.mockResolvedValueOnce({ ok: false, error: "destination_unsafe" });
+
+    const response = await PATCH(
+      patchRequest("ABCD234", { destination: "https://malicious.example.com" }),
+      ctxFor("ABCD234"),
+    );
+
+    expect(response.status).toBe(422);
+    await expect(response.json()).resolves.toEqual({
+      error: "invalid_request",
+      message: "destination_unsafe",
+    });
+  });
 });
 
 describe("PATCH /api/v1/codes/[slug] — expiresAt (P7.5-U2)", () => {

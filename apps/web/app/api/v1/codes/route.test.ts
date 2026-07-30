@@ -248,4 +248,21 @@ describe("POST /api/v1/codes", () => {
       message: "slug_reserved",
     });
   });
+
+  // P8-U5: destination_unsafe (createDynamicCodeCore's Safe Browsing screen)
+  // is a caller-fixable 422, not a 500 — same tier as invalid_destination,
+  // deliberately kept out of CREATE_INTERNAL_ERRORS (see route.ts's comment).
+  it("422s invalid_request when the core reports destination_unsafe", async () => {
+    createMock.mockResolvedValueOnce({ ok: false, error: "destination_unsafe" });
+
+    const response = await POST(
+      postRequest(JSON.stringify({ name: "Menu", destination: "https://malicious.example.com" })),
+    );
+
+    expect(response.status).toBe(422);
+    await expect(response.json()).resolves.toEqual({
+      error: "invalid_request",
+      message: "destination_unsafe",
+    });
+  });
 });

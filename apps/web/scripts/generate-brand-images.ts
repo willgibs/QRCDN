@@ -17,8 +17,11 @@
  *   - app/(marketing)/opengraph-image.png (1200x630)
  *   - app/(marketing)/opengraph-image.alt.txt
  *
- * U3/U4 are expected to extend this file with a pricing OG and a shared
- * legal OG rather than duplicating the raster/verify plumbing here.
+ * U3 extends this file with a pricing OG (below) rather than duplicating
+ * the raster/verify plumbing; U4 is expected to add a shared legal OG the
+ * same way:
+ *   - app/(marketing)/pricing/opengraph-image.png (1200x630)
+ *   - app/(marketing)/pricing/opengraph-image.alt.txt
  */
 
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
@@ -32,6 +35,10 @@ import { renderQr } from "@qrcdn/qr-engine";
 // lib/brand-qr.ts at U5 (docs/guides/p9-marketing.md's U5 migration
 // table) — repoint this import when that lands.
 import { brandQrStyles } from "../lib/explore";
+// The pricing OG's two dollar figures come straight from entitlements.ts
+// (CLAUDE.md hard rule: entitlement/pricing numbers live there only) —
+// this script can and does import app modules directly, per the U3 spec.
+import { PRICING } from "../lib/entitlements";
 
 const SCRIPT_DIR = dirname(fileURLToPath(import.meta.url));
 const WEB_ROOT = join(SCRIPT_DIR, "..");
@@ -43,6 +50,15 @@ const require = createRequire(import.meta.url);
 // densest encoding); the redirect Worker 301s `/` to www, so scanning a
 // shared OG card lands a visitor on the real homepage.
 const OG_PAYLOAD = "HTTPS://QRCDN.COM";
+
+// The pricing OG's QR deep-links to /pricing specifically. Still uppercase
+// alphanumeric-mode (":" and "/" are both in the QR alphanumeric charset,
+// so this stays as dense as OG_PAYLOAD above) — the apex worker's host
+// canonicalization 301 preserves the path (permanentRedirect in
+// workers/redirect/src/responses.ts forwards `${WWW_ORIGIN}${pathAndSearch}`,
+// not just the origin), so scanning this card lands a visitor on the real
+// /pricing page, not just the homepage.
+const OG_PRICING_PAYLOAD = "HTTPS://QRCDN.COM/PRICING";
 
 // ---------------------------------------------------------------------
 // sRGB hex palette — exported brand assets are sRGB hex only, never oklch
@@ -143,6 +159,20 @@ function renderOgQr(): QrRender {
   return { inner, sideLength };
 }
 
+/** Same engine call as renderOgQr(), pointed at OG_PRICING_PAYLOAD — kept
+ *  as its own function (rather than parameterizing renderOgQr) so the two
+ *  call sites in main() stay independently obvious about which payload
+ *  they render and verify. */
+function renderPricingOgQr(): QrRender {
+  const { svg, sideLength } = renderQr({
+    data: OG_PRICING_PAYLOAD,
+    style: brandQrStyles.precision.light,
+    quietZone: 4,
+  });
+  const inner = svg.replace(/^<svg[^>]*>/, "").replace(/<\/svg>$/, "");
+  return { inner, sideLength };
+}
+
 function qrGroupFragment(qr: QrRender, x: number, y: number, boxSize: number): string {
   const scale = boxSize / qr.sideLength;
   return `<g transform="translate(${x} ${y}) scale(${scale})">${qr.inner}</g>`;
@@ -178,6 +208,61 @@ function buildHomepageOgSvg(qr: QrRender): string {
     <text x="${leftX}" y="422" font-family="Inter" font-weight="700" font-size="72" letter-spacing="-1.5" fill="${DARK_FOREGROUND}">Every destination</text>
 
     <text x="${leftX}" y="478" font-family="Inter" font-weight="400" font-size="20" letter-spacing="3" fill="${DARK_MUTED_FOREGROUND}">your code never dies</text>
+
+    <defs>
+      <filter id="glow" x="-80%" y="-80%" width="260%" height="260%">
+        <feGaussianBlur stdDeviation="38"/>
+      </filter>
+    </defs>
+    <ellipse cx="${tileCenterX}" cy="${tileCenterY + 18}" rx="230" ry="185" fill="${DARK_PRIMARY}" opacity="0.35" filter="url(#glow)"/>
+
+    <rect x="${tile.x}" y="${tile.y}" width="${tile.w}" height="${tile.h}" rx="${tile.rx}" fill="${QR_PAPER}"/>
+    ${qrGroupFragment(qr, qrX, qrY, qrBox)}
+  </svg>`;
+}
+
+// ---------------------------------------------------------------------
+// Pricing OG (1200x630) — app/(marketing)/pricing/opengraph-image.png (U3)
+//
+// Same canvas language as the homepage OG above (background, grid
+// texture, wordmark row, right-column paper tile + glow + QR panel), but
+// deliberately NOT extracted into a shared helper with
+// buildHomepageOgSvg(): this script's outputs are meant to be
+// deterministic, committed bytes (see the file header), and the
+// self-verify step below only proves this function's own output decodes
+// correctly. Keeping the two builders fully independent means editing
+// this one can never accidentally perturb buildHomepageOgSvg()'s
+// already-committed, byte-verified PNG.
+// ---------------------------------------------------------------------
+
+function buildPricingOgSvg(qr: QrRender): string {
+  const W = 1200;
+  const H = 630;
+
+  const tile = { x: 768, y: 135, w: 360, h: 360, rx: 28 };
+  const tileCenterX = tile.x + tile.w / 2;
+  const tileCenterY = tile.y + tile.h / 2;
+  const qrBox = 272;
+  const qrX = tile.x + (tile.w - qrBox) / 2;
+  const qrY = tile.y + (tile.h - qrBox) / 2;
+
+  const leftX = 88;
+
+  // Zero literals (CLAUDE.md hard rule): both figures come straight from
+  // PRICING (lib/entitlements.ts) — never hand-typed here.
+  const priceLine = `$${PRICING.monthlyUsd}/mo · $${PRICING.annualUsd}/yr`;
+
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}">
+    <rect width="${W}" height="${H}" fill="${DARK_BACKGROUND}"/>
+    ${gridTextureFragment(W, H)}
+
+    ${moduleMarkFragment(leftX, 146, 30, DARK_PRIMARY)}
+    <text x="${leftX + 42}" y="169" font-family="Inter" font-weight="700" font-size="24" letter-spacing="-0.3" fill="${DARK_FOREGROUND}">QRCDN</text>
+
+    <text x="${leftX}" y="342" font-family="Inter" font-weight="700" font-size="72" letter-spacing="-1.5" fill="${DARK_FOREGROUND}">Simple, honest</text>
+    <text x="${leftX}" y="422" font-family="Inter" font-weight="700" font-size="72" letter-spacing="-1.5" fill="${DARK_FOREGROUND}">pricing.</text>
+
+    <text x="${leftX}" y="480" font-family="Inter" font-weight="700" font-size="32" letter-spacing="0.2" fill="${DARK_PRIMARY}">${priceLine}</text>
 
     <defs>
       <filter id="glow" x="-80%" y="-80%" width="260%" height="260%">
@@ -247,28 +332,47 @@ async function verifyQrDecodesTo(qr: QrRender, expected: string): Promise<string
 
 async function main() {
   const qr = renderOgQr();
-
   const decoded = await verifyQrDecodesTo(qr, OG_PAYLOAD);
   console.log(`[generate-brand-images] QR self-verify OK — decoded payload: "${decoded}"`);
+
+  const pricingQr = renderPricingOgQr();
+  const pricingDecoded = await verifyQrDecodesTo(pricingQr, OG_PRICING_PAYLOAD);
+  console.log(
+    `[generate-brand-images] QR self-verify OK — decoded payload: "${pricingDecoded}"`,
+  );
 
   const appleIconPng = rasterize(buildAppleIconSvg(), 180);
   const ogPng = rasterize(buildHomepageOgSvg(qr), 1200);
   const ogAlt =
     "QRCDN — one code, every destination. A styled QR code beside the QRCDN wordmark on a dark canvas.";
 
+  const pricingOgPng = rasterize(buildPricingOgSvg(pricingQr), 1200);
+  const pricingOgAlt = `QRCDN pricing — $${PRICING.monthlyUsd}/mo or $${PRICING.annualUsd}/yr. A styled QR code beside the QRCDN wordmark on a dark canvas.`;
+
   const appleIconPath = join(WEB_ROOT, "app/apple-icon.png");
   const marketingDir = join(WEB_ROOT, "app/(marketing)");
   const ogPngPath = join(marketingDir, "opengraph-image.png");
   const ogAltPath = join(marketingDir, "opengraph-image.alt.txt");
 
+  const pricingDir = join(marketingDir, "pricing");
+  const pricingOgPngPath = join(pricingDir, "opengraph-image.png");
+  const pricingOgAltPath = join(pricingDir, "opengraph-image.alt.txt");
+
   mkdirSync(marketingDir, { recursive: true });
+  mkdirSync(pricingDir, { recursive: true });
   writeFileSync(appleIconPath, appleIconPng);
   writeFileSync(ogPngPath, ogPng);
   writeFileSync(ogAltPath, ogAlt);
+  writeFileSync(pricingOgPngPath, pricingOgPng);
+  writeFileSync(pricingOgAltPath, pricingOgAlt);
 
   console.log(`[generate-brand-images] wrote ${appleIconPath} (${appleIconPng.length} bytes)`);
   console.log(`[generate-brand-images] wrote ${ogPngPath} (${ogPng.length} bytes)`);
   console.log(`[generate-brand-images] wrote ${ogAltPath}`);
+  console.log(
+    `[generate-brand-images] wrote ${pricingOgPngPath} (${pricingOgPng.length} bytes)`,
+  );
+  console.log(`[generate-brand-images] wrote ${pricingOgAltPath}`);
 }
 
 main().catch((err) => {

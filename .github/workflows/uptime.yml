@@ -96,6 +96,7 @@ jobs:
         if: failure()
         env:
           GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
           SLUG: ${{ vars.UPTIME_CANARY_SLUG }}
         run: |
           set -euo pipefail
@@ -121,6 +122,7 @@ jobs:
         if: success()
         env:
           GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
         run: |
           set -euo pipefail
           EXISTING=$(gh issue list --label uptime-alert --state open --limit 1 --json number --jq '.[0].number // empty')

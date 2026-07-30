@@ -188,7 +188,18 @@ export function CreateCodeControl({
     return (
       <div className="flex flex-col gap-2 rounded-xl border border-primary/25 bg-primary/5 px-3 py-2.5">
         <div className="flex items-center justify-between gap-2">
-          <span className="min-w-0 flex-1 truncate font-mono text-xs text-foreground">
+          {/* role="status" + aria-label (P8-U1, e2e/money-path.spec.ts):
+              the raw text alone collides with PreviewStage's own "Live
+              preview" region, which renders the same short URL once it
+              becomes the working payload — an accessible name is the
+              correct fix (not a CSS selector) and also means a screen
+              reader actually announces "here is your new short URL"
+              rather than a bare string. */}
+          <span
+            role="status"
+            aria-label="New short URL"
+            className="min-w-0 flex-1 truncate font-mono text-xs text-foreground"
+          >
             {mintedShortUrl}
           </span>
           <Button

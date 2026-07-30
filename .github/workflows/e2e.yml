@@ -1,0 +1,93 @@
+# Playwright e2e — the money path, driven in a real Chromium against a real
+# `next start` build (P8-U1). Exists specifically to catch the class of
+# outage that shipped in P7-U2 and survived to production for days
+# (docs/STATUS.md's P7.5 red-team entry): a `"use server"` module whose
+# bundled server-action registry threw a ReferenceError on every POST, while
+# tsc/next build/385 vitest tests/CI/manual API checks all stayed green. Only
+# a real browser clicking a real button could see it.
+#
+# Path-gated (unlike ci.yml/rls.yml's own comment: this suite writes to
+# PRODUCTION Supabase — apps/web/e2e/global-setup.ts — so it only runs when
+# the surfaces it exercises could plausibly have changed) and
+# cancel-in-progress for the same cost-control reasons ci.yml/rls.yml already
+# document. Fork PRs are skipped entirely: they can't see
+# E2E_SUPABASE_SECRET_KEY (GitHub doesn't expose secrets to fork-PR runs
+# regardless), and this repo is public (docs/guides/infra.md) — a run that
+# can't authenticate would just fail loudly for no reason.
+name: E2E
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "apps/web/**"
+      - "packages/**"
+      - "supabase/migrations/**"
+      - ".github/workflows/e2e.yml"
+  pull_request:
+    paths:
+      - "apps/web/**"
+      - "packages/**"
+      - "supabase/migrations/**"
+      - ".github/workflows/e2e.yml"
+
+concurrency:
+  group: e2e-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  e2e:
+    if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      # Public (D9 — sb_publishable_ scheme; already committed as the real
+      # value in apps/web/.env.example, not a placeholder — set again here
+      # per this unit's brief so the job never depends on that file staying
+      # in sync). SUPABASE_SECRET_KEY is the one value that must come from a
+      # secret: it's the RLS-bypassing admin client global-setup.ts/
+      # global-teardown.ts use to create/delete the throwaway fixture user.
+      NEXT_PUBLIC_SUPABASE_URL: https://yklhpbhfowuvxlwlalhf.supabase.co
+      SUPABASE_SECRET_KEY: ${{ secrets.E2E_SUPABASE_SECRET_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+
+      - name: Cache Playwright browsers
+        id: playwright-cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: ${{ runner.os }}-playwright-${{ hashFiles('pnpm-lock.yaml') }}
+
+      # `--with-deps` also apt-get-installs Chromium's OS-level shared
+      # libraries — skip it on a cache hit (ubuntu-latest's stock image
+      # already carries what a cached, previously-verified-working browser
+      # needs; this is Playwright's own documented CI pattern). Always run
+      # `playwright install` itself, even on a hit, so Playwright's own
+      # bookkeeping (not just the cached files) is confirmed consistent.
+      - name: Install Playwright chromium
+        run: |
+          if [ "${{ steps.playwright-cache.outputs.cache-hit }}" = "true" ]; then
+            pnpm --filter web exec playwright install chromium
+          else
+            pnpm --filter web exec playwright install --with-deps chromium
+          fi
+
+      - run: cp apps/web/.env.example apps/web/.env.local
+      - run: pnpm --filter web build
+      - run: pnpm --filter web test:e2e
+
+      - name: Upload test results
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-test-results
+          path: apps/web/test-results/
+          retention-days: 7
+          if-no-files-found: warn

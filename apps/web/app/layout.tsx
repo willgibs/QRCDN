@@ -4,6 +4,7 @@ import { fontVariables } from "./fonts";
 import { ThemeProvider } from "@/components/theme-provider";
 
 export const metadata: Metadata = {
+  metadataBase: new URL("https://www.qrcdn.com"),
   title: {
     default: "QRCDN — QR codes with a brand system",
     template: "%s · QRCDN",

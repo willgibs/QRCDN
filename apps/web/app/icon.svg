@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 10" role="img" aria-label="QRCDN">
+  <!--
+    ModuleMark brand glyph (components/brand/magic.tsx's ModuleMark: viewBox
+    0 0 10 10, four rects, two full-opacity + two at 45%) redrawn with fixed
+    sRGB hex fills instead of currentColor — favicons have no CSS cascade to
+    inherit from, and exported brand assets are sRGB hex only, never oklch
+    (CLAUDE.md hard rule).
+
+    Both hex values are the locked precision primary token's (globals.css)
+    OWN browser-rendered sRGB output for its light/dark oklch values — set
+    as a Canvas2D fillStyle, filled into a rect, then read back via
+    getImageData (the literal pixels a browser paints for that oklch()
+    value) — not a hand-rolled matrix conversion, not eyeballed:
+      light primary: oklch(0.51 0.23 268) -> #314fe7  (globals.css:85)
+      dark  primary: oklch(0.62 0.21 268) -> #5178ff  (globals.css:122)
+    Recompute the same way if the source tokens ever change.
+  -->
+  <style>
+    rect { fill: #314fe7; }
+    @media (prefers-color-scheme: dark) {
+      rect { fill: #5178ff; }
+    }
+  </style>
+  <rect x="0" y="0" width="4" height="4" />
+  <rect x="6" y="0" width="4" height="4" opacity="0.45" />
+  <rect x="0" y="6" width="4" height="4" opacity="0.45" />
+  <rect x="6" y="6" width="4" height="4" />
+</svg>

@@ -122,6 +122,10 @@ export function CodesList({
   const [retargetDraft, setRetargetDraft] = useState("");
   const [notice, setNotice] = useState<RowNotice | null>(null);
   const [accessDialogCodeId, setAccessDialogCodeId] = useState<string | null>(null);
+  /** Controlled so opening the Access dialog can close the menu explicitly —
+   *  see the "Access…" item for why suppressing Radix's own close isn't
+   *  enough on its own. */
+  const [openMenuId, setOpenMenuId] = useState<string | null>(null);
 
   const noticeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -221,7 +225,10 @@ export function CodesList({
           <div key={code.id} className="flex flex-col gap-1.5 rounded-xl border border-border/60 px-3 py-2.5">
             <div className="flex items-center justify-between gap-2">
               <span className="min-w-0 flex-1 truncate text-sm text-foreground">{code.name}</span>
-              <DropdownMenu>
+              <DropdownMenu
+                open={openMenuId === code.id}
+                onOpenChange={(next) => setOpenMenuId(next ? code.id : null)}
+              >
                 <DropdownMenuTrigger asChild>
                   <Button
                     type="button"
@@ -245,10 +252,17 @@ export function CodesList({
                   </DropdownMenuItem>
                   <DropdownMenuItem
                     onSelect={(e) => {
-                      // Keep the dropdown's own close/focus-return from
-                      // racing the Dialog's open transition — the Dialog
-                      // takes over focus management itself once open.
+                      // Suppress Radix's own close-and-return-focus, which
+                      // otherwise races the Dialog's open transition — but
+                      // then close the menu EXPLICITLY via controlled state.
+                      // preventDefault alone (P7.5-U2) left the menu open
+                      // behind the dialog and still open after it dismissed:
+                      // visible jank for a person, and in automation the
+                      // stray popover's click-outside layer swallowed every
+                      // later click (found by the P8 e2e suite — a
+                      // deterministic 30s hang, not a flake).
                       e.preventDefault();
+                      setOpenMenuId(null);
                       setAccessDialogCodeId(code.id);
                     }}
                   >

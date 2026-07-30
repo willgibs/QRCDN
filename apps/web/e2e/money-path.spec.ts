@@ -73,11 +73,15 @@ function futureLocalDateTimeValue(yearsFromNow: number): string {
 const FUTURE_EXPIRY = futureLocalDateTimeValue(1);
 
 /**
- * Opens the codes-list row's "Actions for {name}" dropdown. Presses Escape
- * first as a deliberate, empirically-motivated defensive step: closing the
- * Access dialog (opened from a DropdownMenuItem two levels down — Actions
- * button -> dropdown -> "Access…" item -> Dialog) leaves THIS SAME dropdown
- * reopened afterward. Confirmed by screenshotting the page immediately after
+ * Opens the codes-list row's "Actions for {name}" dropdown.
+ *
+ * This used to need a defensive `Escape` first, because closing the Access
+ * dialog left the dropdown it was opened from still open. That was a real
+ * product bug — this suite found it — and it is now FIXED at the source
+ * (codes-list.tsx closes the menu explicitly via controlled state). The
+ * workaround is deliberately gone so this suite keeps proving the fix: if
+ * the bug ever returns, these tests hang again rather than quietly papering
+ * over it. Original diagnosis, kept because it explains the failure mode:
  * the Access dialog's own save-and-close assertion passes, well before the
  * next step even starts: the "Actions for…" menu is visibly open in that
  * screenshot despite nothing in this spec clicking it again. Root cause
@@ -93,7 +97,6 @@ const FUTURE_EXPIRY = futureLocalDateTimeValue(1);
  * steps that don't hit the dialog-reopen quirk.
  */
 async function openCodeActionsMenu(page: Page, codeName: string): Promise<void> {
-  await page.keyboard.press("Escape");
   await page.getByRole("button", { name: `Actions for ${codeName}` }).click();
 }
 
@@ -116,17 +119,6 @@ test.describe.serial("money path", () => {
   test.afterAll(async () => {
     await page.close();
     await context.close();
-  });
-
-  // Defensive, applies between every step: closing ANY dialog opened from a
-  // DropdownMenuItem (Access…) leaves that dropdown reopened afterward (see
-  // openCodeActionsMenu's doc comment) — and that stray-open dropdown, left
-  // alone, goes on to break whatever the NEXT step clicks, not just a
-  // repeat "Actions for…" click (confirmed: it broke the unrelated
-  // "Bulk create" button in the very next test during development). Escape
-  // is a safe no-op when nothing is open.
-  test.afterEach(async () => {
-    await page.keyboard.press("Escape").catch(() => {});
   });
 
   test("signs in via the magic-link confirm route and lands on /studio authenticated", async () => {

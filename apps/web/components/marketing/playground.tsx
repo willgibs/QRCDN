@@ -18,7 +18,7 @@ import { ColorField } from "@/components/studio/color-controls";
 import { ScannabilityChip } from "@/components/studio/scannability-chip";
 import { DOT_STYLES, EYE_FRAMES, DotSwatch, EyeSwatch } from "@/components/qr/shape-swatches";
 import { downloadBlob, exportFilename, rasterizeSvgToPng } from "@/lib/export";
-import { brandQrStyles } from "@/lib/explore";
+import { brandQrStyles } from "@/lib/brand-qr";
 import { PREVIEW_PAYLOAD_DEFAULT, renderPreview } from "@/lib/preview";
 import { inkHexFromStyle } from "@/lib/qr-style-derive";
 

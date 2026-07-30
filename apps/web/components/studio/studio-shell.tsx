@@ -10,7 +10,7 @@ import type { Plan } from "@/lib/entitlements";
 import { useMounted } from "@/hooks/use-mounted";
 import { degreesToRadians } from "@/lib/angle";
 import { downloadBlob, exportFilename, rasterizeSvgToPng } from "@/lib/export";
-import { brandQrBackdrop } from "@/lib/explore";
+import { brandQrBackdrop } from "@/lib/brand-qr";
 import {
   LOGO_PADDING_DEFAULT,
   LOGO_SIZE_RATIO_DEFAULT,
@@ -320,10 +320,9 @@ export function StudioShell({
   );
 
   // Theme-dependent output must wait for mount (hooks/use-mounted.ts) — SSR
-  // doesn't know the resolved color scheme. `brandQrBackdrop.precision` is
-  // studio-slice.tsx's own transparentBackdrop source, duplicated here for
-  // the same reason lib/explore.ts's own comment documents: it must match
-  // --qr-bg in globals.css by hand, there's no build-time check yet.
+  // doesn't know the resolved color scheme. `brandQrBackdrop.precision` must
+  // match --qr-bg in globals.css by hand (lib/brand-qr.ts's own doc comment
+  // makes the same note) — there's no build-time check yet.
   const { resolvedTheme } = useTheme();
   const mounted = useMounted();
   const dark = mounted && resolvedTheme === "dark";

@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { HeroBackdrop } from "@/components/explore/backdrop";
+import { HeroBackdrop } from "@/components/brand/backdrop";
 import { ModuleMark, Reveal } from "@/components/brand/magic";
 import { LoginForm } from "@/components/auth/login-form";
 

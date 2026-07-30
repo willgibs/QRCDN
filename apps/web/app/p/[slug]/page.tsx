@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { HeroBackdrop } from "@/components/explore/backdrop";
+import { HeroBackdrop } from "@/components/brand/backdrop";
 import { ModuleMark } from "@/components/brand/magic";
 import { UnlockForm } from "./unlock-form";
 

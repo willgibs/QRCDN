@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { HeroBackdrop } from "@/components/explore/backdrop";
+import { HeroBackdrop } from "@/components/brand/backdrop";
 import { AccentText } from "@/components/brand/accent-text";
 import { Reveal } from "@/components/brand/magic";
 import { ScanNetwork } from "./scan-network";

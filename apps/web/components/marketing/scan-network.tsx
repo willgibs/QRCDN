@@ -3,7 +3,7 @@
 import { motion, useReducedMotion } from "motion/react";
 import { useEffect, useState } from "react";
 import { renderQr } from "@qrcdn/qr-engine";
-import { brandQrStyles } from "@/lib/explore";
+import { brandQrStyles } from "@/lib/brand-qr";
 import { cn } from "@/lib/utils";
 import { EASE_OUT } from "@/components/brand/magic";
 

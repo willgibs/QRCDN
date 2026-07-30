@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { HeroBackdrop } from "@/components/explore/backdrop";
+import { HeroBackdrop } from "@/components/brand/backdrop";
 import { ModuleMark } from "@/components/brand/magic";
 import { Button } from "@/components/ui/button";
 

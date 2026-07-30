@@ -38,10 +38,7 @@ import { fileURLToPath } from "node:url";
 import { Resvg } from "@resvg/resvg-js";
 import { prepareZXingModule, readBarcodes } from "zxing-wasm/reader";
 import { renderQr } from "@qrcdn/qr-engine";
-// lib/explore.ts's brandQrStyles/brandQrBackdrop move to a new
-// lib/brand-qr.ts at U5 (docs/guides/p9-marketing.md's U5 migration
-// table) — repoint this import when that lands.
-import { brandQrStyles } from "../lib/explore";
+import { brandQrStyles } from "../lib/brand-qr";
 // The pricing OG's two dollar figures come straight from entitlements.ts
 // (CLAUDE.md hard rule: entitlement/pricing numbers live there only) —
 // this script can and does import app modules directly, per the U3 spec.
@@ -81,7 +78,7 @@ const DARK_BACKGROUND = "#070709"; // .dark --background: oklch(0.13 0.004 280) 
 const DARK_FOREGROUND = "#f1f2f3"; // .dark --foreground: oklch(0.96 0.002 280) — globals.css:117
 const DARK_MUTED_FOREGROUND = "#85868a"; // .dark --muted-foreground: oklch(0.62 0.006 280) — globals.css:127
 const DARK_PRIMARY = "#5178ff"; // .dark --primary: oklch(0.62 0.21 268) — globals.css:122
-const QR_PAPER = "#ffffff"; // --qr-bg (light) — globals.css:104, must match brandQrBackdrop.precision.light (lib/explore.ts)
+const QR_PAPER = "#ffffff"; // --qr-bg (light) — globals.css:104, must match brandQrBackdrop.precision.light (lib/brand-qr.ts)
 
 function fontFiles(): string[] {
   return [
@@ -119,7 +116,7 @@ function moduleMarkFragment(x: number, y: number, size: number, fill: string): s
   </g>`;
 }
 
-/** Faint QR-module grid texture (echoes components/explore/backdrop.tsx's
+/** Faint QR-module grid texture (echoes components/brand/backdrop.tsx's
  *  HeroBackdrop motif, redrawn at a fixed hex instead of currentColor) at
  *  the same quiet-texture ceiling documented in design-system.md (<=0.035
  *  opacity) — a barely-there brand cue, not decoration that competes with

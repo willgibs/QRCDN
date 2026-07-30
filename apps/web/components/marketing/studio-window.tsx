@@ -1,6 +1,6 @@
 import { renderQr, scannabilityReport } from "@qrcdn/qr-engine";
 import type { QrStyle } from "@qrcdn/shared";
-import { brandQrStyles } from "@/lib/explore";
+import { brandQrStyles } from "@/lib/brand-qr";
 import { ModuleMark } from "@/components/brand/magic";
 import { glowSwatchSelected } from "@/components/brand/glow-tile";
 import { ScannabilityChip } from "@/components/studio/scannability-chip";

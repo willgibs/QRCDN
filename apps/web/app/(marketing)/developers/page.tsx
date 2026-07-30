@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { HeroBackdrop } from "@/components/explore/backdrop";
-import { ModuleMark } from "@/components/brand/magic";
+import { HeroBackdrop } from "@/components/brand/backdrop";
 
 export const metadata: Metadata = {
   title: "API",
@@ -14,6 +13,13 @@ export const metadata: Metadata = {
 // this is public marketing-adjacent documentation, not an auth or
 // existence-probing surface. Mirrors /u/[slug]'s static stance but has no
 // dynamic route segment, so there is no generateStaticParams here.
+//
+// Moved into app/(marketing)/ at P9-U5 (URL unchanged — route groups don't
+// affect paths): now inherits SiteNav/SiteFooter from
+// app/(marketing)/layout.tsx instead of hand-rolling its own logo header
+// and closing footer. The dropped footer's two links are not lost — "/"
+// is already reachable via SiteNav/SiteFooter's own logo, and "/api-keys"
+// is already linked inline from the Authentication section below.
 
 function CodeBlock({ code }: { code: string }) {
   return (
@@ -108,15 +114,7 @@ export default function DevelopersPage() {
       <HeroBackdrop />
 
       <div className="relative mx-auto flex max-w-3xl flex-col px-6 py-16 sm:py-20">
-        <Link
-          href="/"
-          className="inline-flex w-fit items-center gap-2.5 font-display text-lg font-bold tracking-tight text-foreground"
-        >
-          <ModuleMark className="size-3.5 text-primary" />
-          QRCDN
-        </Link>
-
-        <div className="mt-12">
+        <div>
           <h1 className="font-display text-3xl font-semibold tracking-tight text-foreground sm:text-4xl">
             The QRCDN API
           </h1>
@@ -345,15 +343,6 @@ export default function DevelopersPage() {
             </ul>
           </Section>
         </div>
-
-        <footer className="mt-16 flex items-center gap-6 border-t border-border/60 pt-8 font-mono text-xs text-muted-foreground">
-          <Link href="/api-keys" className="text-primary underline-offset-4 hover:underline">
-            Manage your keys
-          </Link>
-          <Link href="/" className="hover:text-foreground hover:underline underline-offset-4">
-            QRCDN home
-          </Link>
-        </footer>
       </div>
     </div>
   );

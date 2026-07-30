@@ -152,9 +152,6 @@ importers:
       '@qrcdn/shared':
         specifier: workspace:^
         version: link:../../packages/shared
-      '@sentry/cloudflare':
-        specifier: ^10.69.0
-        version: 10.69.0(@cloudflare/workers-types@5.20260721.1)(wrangler@4.112.0(@cloudflare/workers-types@5.20260721.1))
     devDependencies:
       '@cloudflare/workers-types':
         specifier: ^5.20260721.1
@@ -2047,18 +2044,6 @@ packages:
     resolution: {integrity: sha512-baBcNPLLfUi9WuL+Tpri9BFaAdvugZIKelC5X0tt0Zdy+K0K+PCVSrnNmwMWU/HyaF/SEv6b6UHnXIdqanBlcg==}
     engines: {node: '>= 10'}
     hasBin: true
-
-  '@sentry/cloudflare@10.69.0':
-    resolution: {integrity: sha512-CO6Tr74cw3Wx2DyWSfBCxR6EDcNfBjn52hxWacxHsLurpdfQ7Bp/J32m1KxzezR5CZXngfBTmemK3iZsMgt5uQ==}
-    engines: {node: '>=18'}
-    peerDependencies:
-      '@cloudflare/workers-types': ^4.x || ^5.x
-      wrangler: ^4.x
-    peerDependenciesMeta:
-      '@cloudflare/workers-types':
-        optional: true
-      wrangler:
-        optional: true
 
   '@sentry/conventions@0.16.0':
     resolution: {integrity: sha512-fO9PLmHdVURcSPUpWCItWAtgKiMwGdJHbovoSEyLplX5sxs2ugvI4CBPTrkkgqhObnZOD0CnWBKDzSVQYBKEyQ==}
@@ -7193,18 +7178,6 @@ snapshots:
       '@sentry/cli-win32-x64': 2.58.6
     transitivePeerDependencies:
       - encoding
-      - supports-color
-
-  '@sentry/cloudflare@10.69.0(@cloudflare/workers-types@5.20260721.1)(wrangler@4.112.0(@cloudflare/workers-types@5.20260721.1))':
-    dependencies:
-      '@opentelemetry/api': 1.9.1
-      '@sentry/core': 10.69.0
-      '@sentry/server-utils': 10.69.0
-      magic-string: 0.30.21
-    optionalDependencies:
-      '@cloudflare/workers-types': 5.20260721.1
-      wrangler: 4.112.0(@cloudflare/workers-types@5.20260721.1)
-    transitivePeerDependencies:
       - supports-color
 
   '@sentry/conventions@0.16.0': {}

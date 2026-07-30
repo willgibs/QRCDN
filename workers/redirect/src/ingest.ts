@@ -1,4 +1,3 @@
-import { captureException } from "@sentry/cloudflare";
 import { classifyDevice } from "./ua";
 import { extractGeo, refererHost, type CfGeo } from "./geo";
 import { hashIp, toPgBytea } from "./scan-hash";
@@ -24,19 +23,17 @@ export interface IngestRequestContext {
  * theoretically could): a scan-ingest failure must never become visible to,
  * or delay, the response already sent to the client.
  *
- * P8-U2: the catch block also reports to Sentry explicitly, because
- * Sentry's Cloudflare SDK does NOT auto-capture errors thrown inside
- * `ctx.waitUntil()` — confirmed by reading @sentry/cloudflare's own source
- * (flush.js's `instrumentedWaitUntil` only wraps the promise in a
- * `.finally()` for its own flush bookkeeping; it never attaches a
- * `.catch()`, so a rejection is never observed there). Combined with this
- * function's blanket try/catch existing specifically to stop that
- * rejection from ever happening, that gap means an ingest failure would be
- * invisible to Sentry with zero code here — exactly the "nobody knew" class
- * of bug this whole unit exists to close. `captureException` is a no-op
- * (no throw, no network call) when Sentry isn't initialized — see
- * index.ts's `withSentry` call site — and is deliberately called with no
- * extra context/payload, so there's nothing app-specific for it to leak.
+ * P8-U2: that same blanket catch is exactly what would make an ingest
+ * failure invisible — it exists to protect the response, but it also
+ * swallows the only evidence. So the catch logs. `console.error` in a
+ * Worker is captured by Cloudflare's native Workers Logs (`observability`
+ * in wrangler.jsonc) and by `wrangler tail`, which costs zero bundle bytes
+ * — the deciding factor on this file's package, where an SDK measured
+ * 10.8x the whole Worker (see index.ts's export comment).
+ *
+ * Logs the error only — no request context, no destination, no ip/hash
+ * (D3: that data must not leave our infrastructure, and a log sink is
+ * "leaving").
  */
 export async function ingestScan(
   env: SupabaseRestEnv,
@@ -57,11 +54,6 @@ export async function ingestScan(
       referer: refererHost(request.referer),
     });
   } catch (err) {
-    try {
-      captureException(err);
-    } catch {
-      // Monitoring itself must never be the reason an ingest failure
-      // escapes — see the outer doc comment.
-    }
+    console.error("scan ingest failed", err);
   }
 }

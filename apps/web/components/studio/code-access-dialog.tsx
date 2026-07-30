@@ -36,6 +36,8 @@ const ERROR_COPY: Record<string, string> = {
   invalid_password: "Passwords must be 4–128 characters.",
   plan_required: "Access controls are a Pro feature.",
   not_found: "That code no longer exists — refresh and try again.",
+  // P8-U4: setCodeAccess is now rate-limited (STUDIO_MUTATE_LIMIT).
+  rate_limited: "Too many changes just now — try again in a few minutes.",
 };
 
 function errorCopy(code: string): string {

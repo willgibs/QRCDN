@@ -23,6 +23,16 @@ import type { QrCode } from "@/lib/codes-core";
 const COPY_FLASH_TIMEOUT_MS = 1600;
 const CODE_LIMIT_MESSAGE = "Free includes 3 dynamic codes — Pro raises it to 250.";
 const GENERIC_ERROR_MESSAGE = "Couldn't create that code — try again.";
+// P8-U4: createDynamicCode is now rate-limited (STUDIO_MUTATE_LIMIT).
+const RATE_LIMITED_MESSAGE = "Too many changes just now — try again in a few minutes.";
+
+type CreateError = "limit" | "rate_limited" | "generic";
+
+function createErrorMessage(error: CreateError): string {
+  if (error === "limit") return CODE_LIMIT_MESSAGE;
+  if (error === "rate_limited") return RATE_LIMITED_MESSAGE;
+  return GENERIC_ERROR_MESSAGE;
+}
 
 // Single-sourced against lib/slug.ts's SLUG_CHARSET (P7.5-U3) rather than a
 // hand-typed copy, so this helper text can never drift from the charset
@@ -81,7 +91,7 @@ export function CreateCodeControl({
   const [phase, setPhase] = useState<Phase>("idle");
   const [draftName, setDraftName] = useState("");
   const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<"limit" | "generic" | null>(null);
+  const [error, setError] = useState<CreateError | null>(null);
   const [mintedShortUrl, setMintedShortUrl] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const [slugOpen, setSlugOpen] = useState(false);
@@ -133,7 +143,13 @@ export function CreateCodeControl({
           setSlugError(result.error);
           return;
         }
-        setError(result.error === "code_limit" ? "limit" : "generic");
+        if (result.error === "code_limit") {
+          setError("limit");
+        } else if (result.error === "rate_limited") {
+          setError("rate_limited");
+        } else {
+          setError("generic");
+        }
         return;
       }
       const shortUrl = printedShortUrl(result.data.slug);
@@ -315,11 +331,12 @@ export function CreateCodeControl({
         </form>
         {error && (
           // The limit note is an upgrade nudge (quiet, muted) — every other
-          // error is a real failure (destructive-red), same distinction
-          // kit-bar's limitError/actionError pair makes with two
-          // separately-styled notes.
+          // error (including rate_limited) is a real failure
+          // (destructive-red), same distinction kit-bar's
+          // limitError/actionError pair makes with two separately-styled
+          // notes.
           <p role="alert" className={cn("text-xs", error === "limit" ? "text-muted-foreground" : "text-destructive")}>
-            {error === "limit" ? CODE_LIMIT_MESSAGE : GENERIC_ERROR_MESSAGE}
+            {createErrorMessage(error)}
           </p>
         )}
       </div>

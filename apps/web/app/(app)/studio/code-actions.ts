@@ -1,6 +1,7 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import {
   createDynamicCodeCore,
   createDynamicCodesBulkCore,
@@ -14,6 +15,7 @@ import {
   type DynamicCodeSummary,
   type QrCode,
 } from "@/lib/codes-core";
+import { checkRateLimit, STUDIO_MUTATE_LIMIT } from "@/lib/rate-limits";
 import { validateQrCodeId, type ActionResult } from "@/lib/validation";
 import type { QrStyle } from "@qrcdn/shared";
 
@@ -21,11 +23,12 @@ import type { QrStyle } from "@qrcdn/shared";
 // all business logic — including the load-bearing owner_id filters — now
 // lives in apps/web/lib/codes-core.ts, so the exact same logic is reachable
 // from the cookie-authenticated studio path here AND the API-key-
-// authenticated public API path (admin client, RLS bypassed). Each action
-// below does exactly three things, in order: validate any input that must be
-// resolved BEFORE we know who the caller is (kept here, unchanged from the
-// pre-extraction bodies), authenticate via requireClaimsContext/
-// requireUserContext (unchanged), then delegate to the matching *Core
+// authenticated public API path (admin client, RLS bypassed). Each mutating
+// action below does exactly four things, in order: validate any input that
+// must be resolved BEFORE we know who the caller is (kept here, unchanged
+// from the pre-extraction bodies), authenticate via requireClaimsContext/
+// requireUserContext (unchanged), apply STUDIO_MUTATE_LIMIT (P8-U4, new —
+// see studioMutateAllowed below), then delegate to the matching *Core
 // function with `{ db: supabase, ownerId: userId }`.
 //
 // Schema fact (read, not guessed — supabase/migrations/20260721000001_
@@ -81,6 +84,30 @@ function ctxFrom(auth: { supabase: SupabaseServerClient; userId: string }): Code
   return { db: auth.supabase, ownerId: auth.userId };
 }
 
+/**
+ * STUDIO_MUTATE_LIMIT gate (P8-U4), applied identically across every
+ * mutating action below (create/bulk-create/retarget/pause/access) — after
+ * auth resolves, before delegating to the matching *Core function. Builds
+ * its OWN admin (service_role) client rather than reusing the caller's
+ * RLS-scoped `ctx.supabase`: check_rate_limit()'s EXECUTE privilege is
+ * granted to service_role only (supabase/migrations/
+ * 20260730000009_rate_limits.sql), so the cookie-session client could never
+ * call it even if asked to.
+ *
+ * Deliberately STUDIO-ONLY — never called from apps/web/lib/codes-core.ts's
+ * *Core functions themselves, which are shared with the API-key path
+ * (app/api/v1/**): that path already pays its own monthly quota
+ * (increment_api_usage) on every accepted request, so stacking this limiter
+ * underneath the cores would double-throttle the API for no added
+ * protection. This gate exists for the Studio's cookie-session surface,
+ * which has no quota of its own.
+ */
+async function studioMutateAllowed(userId: string): Promise<boolean> {
+  const admin = createAdminClient();
+  const result = await checkRateLimit(admin, `studio_mutate:${userId}`, STUDIO_MUTATE_LIMIT);
+  return result.allowed;
+}
+
 export async function createDynamicCode(input: {
   name: unknown;
   destination: unknown;
@@ -93,6 +120,9 @@ export async function createDynamicCode(input: {
   const ctx = await requireClaimsContext();
   if (!ctx) {
     return { ok: false, error: "unauthenticated" };
+  }
+  if (!(await studioMutateAllowed(ctx.userId))) {
+    return { ok: false, error: "rate_limited" };
   }
 
   return createDynamicCodeCore(ctxFrom(ctx), input);
@@ -136,6 +166,9 @@ export async function retargetCode(
   if (!ctx) {
     return { ok: false, error: "unauthenticated" };
   }
+  if (!(await studioMutateAllowed(ctx.userId))) {
+    return { ok: false, error: "rate_limited" };
+  }
 
   return retargetCodeCore(ctxFrom(ctx), idResult.data, destination);
 }
@@ -154,6 +187,9 @@ export async function setCodePaused(
   const ctx = await requireUserContext();
   if (!ctx) {
     return { ok: false, error: "unauthenticated" };
+  }
+  if (!(await studioMutateAllowed(ctx.userId))) {
+    return { ok: false, error: "rate_limited" };
   }
 
   return setCodePausedCore(ctxFrom(ctx), idResult.data, paused);
@@ -176,6 +212,9 @@ export async function setCodeAccess(
   const ctx = await requireUserContext();
   if (!ctx) {
     return { ok: false, error: "unauthenticated" };
+  }
+  if (!(await studioMutateAllowed(ctx.userId))) {
+    return { ok: false, error: "rate_limited" };
   }
 
   return setCodeAccessCore(ctxFrom(ctx), idResult.data, input);
@@ -200,6 +239,9 @@ export async function createDynamicCodesBulk(
   const ctx = await requireUserContext();
   if (!ctx) {
     return { ok: false, error: "unauthenticated" };
+  }
+  if (!(await studioMutateAllowed(ctx.userId))) {
+    return { ok: false, error: "rate_limited" };
   }
 
   return createDynamicCodesBulkCore(ctxFrom(ctx), items, style);

@@ -27,8 +27,18 @@ import { CodeAccessDialog } from "@/components/studio/code-access-dialog";
 const ROW_NOTICE_TIMEOUT_MS = 6000;
 
 const GENERIC_ROW_ERROR = "Couldn't complete that — try again.";
+// P8-U4: retargetCode/setCodePaused are now rate-limited (STUDIO_MUTATE_LIMIT).
+const RATE_LIMITED_ROW_ERROR = "Too many changes just now — try again in a few minutes.";
 
 type RowNotice = { id: string; kind: "error" | "propagating"; message: string };
+
+/** `rate_limited` overrides whatever generic copy the caller would otherwise
+ *  show for a failed row action — every other error code keeps falling back
+ *  to `fallback`, same collapse-to-generic stance the rest of this action
+ *  surface already takes for codes it doesn't have specific copy for. */
+function rowErrorMessage(error: string, fallback: string): string {
+  return error === "rate_limited" ? RATE_LIMITED_ROW_ERROR : fallback;
+}
 
 /** Status dot+label — every state renders as labeled text, never a bare
  *  dot (founder rule). "archived" is unreachable through any action in this
@@ -150,7 +160,7 @@ export function CodesList({
     try {
       const result = await retargetCode(id, retargetDraft);
       if (!result.ok) {
-        showNotice(id, "error", "Couldn't retarget that code — try again.");
+        showNotice(id, "error", rowErrorMessage(result.error, "Couldn't retarget that code — try again."));
         return;
       }
       onRetargeted(id, result.data.destinationUrl);
@@ -172,7 +182,7 @@ export function CodesList({
     try {
       const result = await setCodePaused(code.id, nextPaused);
       if (!result.ok) {
-        showNotice(code.id, "error", GENERIC_ROW_ERROR);
+        showNotice(code.id, "error", rowErrorMessage(result.error, GENERIC_ROW_ERROR));
         return;
       }
       onPauseToggled(code.id, result.data.status);

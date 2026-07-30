@@ -5,8 +5,10 @@
 // this repo (confirmed empirically by every prior P6/P7 unit — see
 // app/api/cron/purge/route.test.ts's and lib/api-auth.test.ts's own header
 // notes); "@/" only resolves under Next's own bundler.
+import { headers } from "next/headers";
 import { createAdminClient } from "../../../lib/supabase/admin";
 import { verifyCodePassword } from "../../../lib/passwords";
+import { checkRateLimit, ipSubject, P_UNLOCK_LIMIT } from "../../../lib/rate-limits";
 import type { ActionResult } from "../../../lib/validation";
 
 // P7.5-U2: the app's first PUBLIC (unauthenticated, reachable by anyone with
@@ -17,26 +19,58 @@ import type { ActionResult } from "../../../lib/validation";
 // (page.tsx never sets one either — see its own header comment).
 //
 // Rate-limiting / brute-force posture (condensed — full context: the D11
-// amendment in docs/DECISIONS.md and the P7.5 spec). Two separate concerns:
+// amendment in docs/DECISIONS.md and the P8-U4 spec). Two separate
+// concerns:
 //   1. Existence + protection-status disclosure: a caller who reaches /p/
 //      {slug} already knows the slug exists and is password-protected — the
 //      QR code itself told them that. This action doesn't leak anything
 //      beyond what scanning the physical code already reveals.
-//   2. Password-guessing throughput: THIS is the real risk, and there is no
-//      per-IP/per-slug rate limiting in front of this action yet — that's
-//      P10 (Turnstile/WAF), blocked by the same D11-amendment constraint
-//      that's blocked rate limiting everywhere else in this codebase so
-//      far. Until then, the two frictions below are the entire defense:
-//      scrypt's cost factor (N=2^15, apps/web/lib/passwords.ts — tens of
-//      milliseconds of CPU per attempt) and this action's own constant
-//      artificial delay on a wrong guess (below). Both are DOCUMENTED
-//      INTERIM measures, not a claim that this is sufficient against a
-//      sustained, distributed guessing attack.
+//   2. Password-guessing throughput: P8-U4 closed the gap this comment used
+//      to describe as unmitigated. `checkRateLimit` (lib/rate-limits.ts,
+//      backed by supabase/migrations/20260730000009_rate_limits.sql) now
+//      caps this action at P_UNLOCK_LIMIT (8 calls / 5min) per (hashed ip,
+//      slug), checked BEFORE the DB fetch and BEFORE verifyCodePassword
+//      below — an over-limit caller never pays for, or even reaches, a
+//      query or a scrypt hash. This is an APPLICATION-level limiter, not
+//      the burst/WAF layer: D11's Vercel-Pro blocker (`@vercel/firewall`
+//      checkRateLimit() + WAF rule) only ever applied to that separate
+//      per-second layer, which remains unshipped, gated on the Pro plan
+//      upgrade (/developers documents that gap honestly, unchanged by this
+//      unit). Below this new gate, the pre-existing frictions are
+//      unchanged and still doing real work for any caller who stays under
+//      the window: scrypt's cost factor (N=2^15, apps/web/lib/passwords.ts
+//      — tens of milliseconds of CPU per attempt) and this action's own
+//      constant artificial delay on a wrong guess (below). checkRateLimit
+//      fails OPEN by design (lib/rate-limits.ts) — a broken limiter allows
+//      the call through rather than turning into an outage for every
+//      legitimate unlock attempt.
 
 const WRONG_PASSWORD_DELAY_MS = 150;
 
+// A caller with no forwarded-for header at all (shouldn't happen behind
+// Vercel in practice, but callerIp() below must still resolve to SOME
+// stable subject rather than throw) shares this one bucket — a
+// deliberately conservative fallback: worst case, unrelated callers with no
+// header briefly share a rate-limit window with each other, never with any
+// real caller's own IP-scoped budget.
+const UNKNOWN_IP = "unknown";
+
 function defaultDelay(): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, WRONG_PASSWORD_DELAY_MS));
+}
+
+/**
+ * First entry of a (possibly comma-separated, proxy-chain) `x-forwarded-for`
+ * header, or UNKNOWN_IP when absent/empty. Next.js 16's `headers()` is
+ * async-only (CLAUDE.md gotcha).
+ */
+async function callerIp(): Promise<string> {
+  const forwardedFor = (await headers()).get("x-forwarded-for");
+  if (!forwardedFor) {
+    return UNKNOWN_IP;
+  }
+  const first = forwardedFor.split(",")[0]?.trim();
+  return first && first.length > 0 ? first : UNKNOWN_IP;
 }
 
 /**
@@ -52,7 +86,11 @@ function defaultDelay(): Promise<void> {
  * collapses to the same generic `"unavailable"` error so a wrong-guess
  * response can't be used to distinguish "code doesn't exist" from "code
  * expired 5 minutes ago" from "wrong password" — only a right guess is ever
- * distinguishable from every kind of wrong one.
+ * distinguishable from every kind of wrong one. `rate_limited` (P8-U4) is
+ * the one deliberate exception to that collapse: see the file header and
+ * this unit's delivery report for why a distinct code here doesn't leak
+ * anything a response-timing measurement wouldn't already reveal, given the
+ * rate-limit check below runs BEFORE the scrypt-costed verify.
  */
 export async function verifyCodeAccess(
   slug: unknown,
@@ -66,6 +104,20 @@ export async function verifyCodeAccess(
   }
 
   const db = createAdminClient();
+
+  // Rate-limited BEFORE the DB fetch and BEFORE verifyCodePassword — reject
+  // cheaply, ahead of the scrypt cost (P8-U4; see file header). Subject is
+  // scoped to the UPPERCASED slug (matching the lookup below) so a caller
+  // can't dodge the limiter by toggling the slug's case across calls — this
+  // action is reachable directly (a server action, not just through the
+  // rendered form), so the client-side uppercasing page.tsx/UnlockForm
+  // already do can't be relied on here.
+  const ip = await callerIp();
+  const rateLimit = await checkRateLimit(db, ipSubject(ip, `p_unlock:${slug.toUpperCase()}`), P_UNLOCK_LIMIT);
+  if (!rateLimit.allowed) {
+    return { ok: false, error: "rate_limited" };
+  }
+
   const { data, error } = await db
     .from("qr_codes")
     .select("destination_url, status, expires_at, password_hash")

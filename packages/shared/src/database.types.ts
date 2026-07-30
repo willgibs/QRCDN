@@ -398,6 +398,13 @@ export type Database = {
     }
     Functions: {
       _cap_top_n_jsonb: { Args: { cap?: number; tally: Json }; Returns: Json }
+      check_rate_limit: {
+        Args: { p_limit: number; p_subject: string; p_window_seconds: number }
+        Returns: {
+          allowed: boolean
+          count: number
+        }[]
+      }
       increment_api_usage: {
         Args: { p_cap: number; p_key_id: string }
         Returns: {

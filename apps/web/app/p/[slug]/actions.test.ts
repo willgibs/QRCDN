@@ -8,13 +8,30 @@ vi.mock("../../../lib/supabase/admin", () => ({
 vi.mock("../../../lib/passwords", () => ({
   verifyCodePassword: vi.fn(),
 }));
+// next/headers has no real implementation under plain vitest (no request
+// scope) — mocked the same way api-auth.test.ts mocks next/server's
+// `after`. Only `checkRateLimit` is mocked from lib/rate-limits (via
+// importOriginal): ipSubject/P_UNLOCK_LIMIT stay REAL so assertions below
+// can build their expected subject with the actual function instead of
+// duplicating its hashing logic.
+vi.mock("next/headers", () => ({
+  headers: vi.fn(),
+}));
+vi.mock("../../../lib/rate-limits", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("../../../lib/rate-limits")>();
+  return { ...actual, checkRateLimit: vi.fn() };
+});
 
+import { headers } from "next/headers";
 import { createAdminClient } from "../../../lib/supabase/admin";
 import { verifyCodePassword } from "../../../lib/passwords";
+import { checkRateLimit, ipSubject, P_UNLOCK_LIMIT } from "../../../lib/rate-limits";
 import { verifyCodeAccess } from "./actions";
 
 const createAdminClientMock = vi.mocked(createAdminClient);
 const verifyCodePasswordMock = vi.mocked(verifyCodePassword);
+const headersMock = vi.mocked(headers);
+const checkRateLimitMock = vi.mocked(checkRateLimit);
 
 interface RowResult {
   data: {
@@ -60,6 +77,11 @@ const ACTIVE_ROW = {
 beforeEach(() => {
   createAdminClientMock.mockReset();
   verifyCodePasswordMock.mockReset();
+  // Defaults every pre-existing test below relies on implicitly: no
+  // forwarded-ip header, and the limiter allowing every call through — the
+  // rate-limiting-specific describe block overrides these per case.
+  headersMock.mockReset().mockResolvedValue(new Headers());
+  checkRateLimitMock.mockReset().mockResolvedValue({ allowed: true, failedOpen: false });
 });
 
 describe("verifyCodeAccess — input shape", () => {
@@ -145,5 +167,68 @@ describe("verifyCodeAccess — password verification", () => {
 
     expect(result).toEqual({ ok: true, data: { destination: "https://example.com/secret-menu" } });
     expect(delay).not.toHaveBeenCalled();
+  });
+});
+
+describe("verifyCodeAccess — rate limiting (P8-U4)", () => {
+  it("calls the limiter with ipSubject(ip, 'p_unlock:' + the UPPERCASED slug) and P_UNLOCK_LIMIT", async () => {
+    headersMock.mockResolvedValue(new Headers({ "x-forwarded-for": "203.0.113.7" }));
+    mockDb({ data: ACTIVE_ROW, error: null });
+
+    await verifyCodeAccess("abcd234", "any");
+
+    expect(checkRateLimitMock).toHaveBeenCalledWith(
+      expect.anything(),
+      ipSubject("203.0.113.7", "p_unlock:ABCD234"),
+      P_UNLOCK_LIMIT,
+    );
+  });
+
+  it("takes the first entry of a comma-separated x-forwarded-for", async () => {
+    headersMock.mockResolvedValue(new Headers({ "x-forwarded-for": "203.0.113.7, 10.0.0.1" }));
+    mockDb({ data: null, error: null });
+
+    await verifyCodeAccess("abcd234", "any");
+
+    expect(checkRateLimitMock).toHaveBeenCalledWith(
+      expect.anything(),
+      ipSubject("203.0.113.7", "p_unlock:ABCD234"),
+      P_UNLOCK_LIMIT,
+    );
+  });
+
+  it("falls back to a constant subject ip when x-forwarded-for is absent", async () => {
+    headersMock.mockResolvedValue(new Headers());
+    mockDb({ data: null, error: null });
+
+    await verifyCodeAccess("abcd234", "any");
+
+    // "unknown" mirrors actions.ts's own private UNKNOWN_IP constant — not
+    // exported, so pinned here as a literal.
+    expect(checkRateLimitMock).toHaveBeenCalledWith(
+      expect.anything(),
+      ipSubject("unknown", "p_unlock:ABCD234"),
+      P_UNLOCK_LIMIT,
+    );
+  });
+
+  it("an over-limit result returns rate_limited and never reaches the db or verifyCodePassword", async () => {
+    checkRateLimitMock.mockResolvedValue({ allowed: false, failedOpen: false });
+    const { from } = mockDb({ data: ACTIVE_ROW, error: null });
+
+    const result = await verifyCodeAccess("ABCD234", "any");
+
+    expect(result).toEqual({ ok: false, error: "rate_limited" });
+    expect(from).not.toHaveBeenCalled();
+    expect(verifyCodePasswordMock).not.toHaveBeenCalled();
+  });
+
+  it("a fail-open limiter result still allows the request through", async () => {
+    checkRateLimitMock.mockResolvedValue({ allowed: true, failedOpen: true });
+    mockDb({ data: { ...ACTIVE_ROW, password_hash: null }, error: null });
+
+    const result = await verifyCodeAccess("ABCD234", "whatever");
+
+    expect(result).toEqual({ ok: true, data: { destination: "https://example.com/secret-menu" } });
   });
 });

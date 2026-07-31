@@ -1,0 +1,20 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`highlight > bash: every token color is a var(--code-*) reference, background transparent 1`] = `
+"<pre class="shiki qrcdn-code" style="background-color:transparent;color:var(--code-fg)" tabindex="0"><code><span class="line"><span style="color:var(--code-function)">curl</span><span style="color:var(--code-string)"> https://www.qrcdn.com/api/v1/codes</span><span style="color:var(--code-number)"> \\</span></span>
+<span class="line"><span style="color:var(--code-number)">  -H</span><span style="color:var(--code-string)"> "Authorization: Bearer qrcdn_live_xxx"</span></span></code></pre>"
+`;
+
+exports[`highlight > jsonc: every token color is a var(--code-*) reference 1`] = `
+"<pre class="shiki qrcdn-code" style="background-color:transparent;color:var(--code-fg)" tabindex="0"><code><span class="line"><span style="color:var(--code-punctuation)">{</span></span>
+<span class="line"><span style="color:var(--code-punctuation)">  "</span><span style="color:var(--code-property)">slug</span><span style="color:var(--code-punctuation)">"</span><span style="color:var(--code-punctuation)">:</span><span style="color:var(--code-string)"> "8K2QRX"</span><span style="color:var(--code-punctuation)">,</span></span>
+<span class="line"><span style="color:var(--code-punctuation)">  "</span><span style="color:var(--code-property)">scanCount</span><span style="color:var(--code-punctuation)">"</span><span style="color:var(--code-punctuation)">:</span><span style="color:var(--code-number)"> 142</span><span style="color:var(--code-punctuation)">,</span></span>
+<span class="line"><span style="color:var(--code-punctuation)">  "</span><span style="color:var(--code-property)">expiresAt</span><span style="color:var(--code-punctuation)">"</span><span style="color:var(--code-punctuation)">:</span><span style="color:var(--code-keyword)"> null</span></span>
+<span class="line"><span style="color:var(--code-punctuation)">}</span></span></code></pre>"
+`;
+
+exports[`highlight > typescript: every token color is a var(--code-*) reference 1`] = `
+"<pre class="shiki qrcdn-code" style="background-color:transparent;color:var(--code-fg)" tabindex="0"><code><span class="line"><span style="color:var(--code-keyword)">export</span><span style="color:var(--code-keyword)"> async</span><span style="color:var(--code-keyword)"> function</span><span style="color:var(--code-function)"> f</span><span style="color:var(--code-punctuation)">(</span><span style="color:var(--code-property)">x</span><span style="color:var(--code-keyword)">:</span><span style="color:var(--code-fg)"> number</span><span style="color:var(--code-punctuation)">)</span><span style="color:var(--code-keyword)">:</span><span style="color:var(--code-fg)"> Promise</span><span style="color:var(--code-punctuation)">&#x3C;</span><span style="color:var(--code-fg)">void</span><span style="color:var(--code-punctuation)">></span><span style="color:var(--code-punctuation)"> {</span></span>
+<span class="line"><span style="color:var(--code-keyword)">  const</span><span style="color:var(--code-property)"> n</span><span style="color:var(--code-keyword)"> =</span><span style="color:var(--code-number)"> 42</span><span style="color:var(--code-punctuation)">;</span></span>
+<span class="line"><span style="color:var(--code-punctuation)">}</span></span></code></pre>"
+`;

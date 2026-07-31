@@ -14,6 +14,67 @@ Read this when touching tokens, themes, fonts, or shared UI components under `ap
 @theme inline { --color-primary: var(--primary); ... }     /* Layer 2, written once */
 ```
 
+### D13 amendment (P9.5-T1b): additive token families
+
+Layer 2 is closed to per-brand *value* changes — that rule is unchanged. What's new: token
+*families* the original `@theme inline` block never had (spacing, type scale, containers, code
+colors) land as an additive extension in a **second, clearly-commented `@theme` block**,
+immediately below the original in `globals.css`. This is not a reopening of "never edit Layer 2
+during theming" — the original block's existing color/radius/motion mappings stay
+byte-for-byte untouched; the new block only adds namespaces the old one never touched. The two
+blocks compose additively (a documented Tailwind v4 mechanism, verified against the installed
+`tailwindcss@4.3.3`), so there's no practical difference between "one bigger block" and "two
+adjacent blocks" other than keeping the diff reviewable.
+
+Every new family, with its usage rules:
+
+- **Fluid spacing** (`--spacing-gutter/section-tight/section/section-air/block`) —
+  `clamp(min, preferred, max)`, min/max always rem-anchored (WCAG 1.4.4 Resize Text: a pure-`vw`
+  value ignores the user's OS/browser text-size setting; rem tracks it). `gutter` is the page's
+  horizontal inset (`px-gutter`, paired with `max-w-page`); `section-tight`/`section`/
+  `section-air` are vertical rhythm, mapped 1:1 to `Section`'s `rhythm` prop
+  (`tight`/`standard`/`air`) below; `block` is spacing *within* a section's own content, not
+  between sections.
+- **Containers** (`--container-page/copy/lede/docs/prose`) — fixed max-widths, not fluid: a text
+  measure either fits its purpose or it doesn't, there's no min/max range to bound. `page`
+  (1152px) is the outer frame every `Section` uses. `copy` (544px) and `lede` (672px) are narrow
+  text measures — pair a `copy`-measure block with an `aside` or a full-measure visual below it
+  (`Section`'s dead-measure ban, below). `docs` (736px) is the docs content column beside a TOC
+  rail (the `/developers` pilot). `prose` (65ch, a character-count unit on purpose) is for
+  long-form article/blog body copy (future blog unit).
+- **Type scale** (`--text-display/h1/h2/h3/lede/eyebrow/code`) — each size's declaration bundles
+  a paired `--text-<name>--line-height`/`--text-<name>--letter-spacing` (a Tailwind v4
+  mechanism, the same pattern the framework's own default theme uses for `--text-xs` etc.):
+  declaring the companions folds line-height/letter-spacing into the generated `text-<name>`
+  utility alongside font-size, so one class sets all three instead of three utilities that can
+  drift out of sync across call sites. `display` is reserved for genuine hero-scale headlines
+  (not a default — `SectionHeading` only reaches it when `titleAs="h1"`); `h1`/`h2`/`h3` are
+  page/section/subsection heads; `lede` is subhead copy under a heading; `eyebrow` (fixed 11px —
+  a label, not a heading, so no fluid range) and `code` (fixed 13px) are the technical/mono
+  registers.
+- **Code colors** (`--code-bg/fg/comment/keyword/string/number/function/property/punctuation`)
+  — a near-monochrome shiki palette; the brand's "single accent" rule extends here too (keyword
+  and function are both the brand violet, at two intensities via `color-mix`, never a second
+  hue). Declared per-mode in `:root`/`.dark`, like every other Layer 0/1 color (oklch is fine —
+  these are UI-only and never reach `qr-engine`; exported QR assets stay sRGB-hex-only per the
+  hard rule), and mapped into the *original* `@theme inline` block alongside the other colors,
+  since — like every color token — they vary by mode and need the `inline` re-evaluation.
+  Consumed by `lib/code-theme.ts`'s shiki theme and `components/marketing/code-block.tsx`'s
+  frame.
+- **`--surface-tint`** — one new Layer 0/1 color beside `--surface-studio`, mapped through the
+  *original* `@theme inline` block the same way (it's a color, so it varies by mode). One step
+  subtler than `--surface-studio` toward `--muted`, for `Section`'s `surface="tint"` (plain
+  section-to-section alternation) — `surface="floor"` (`bg-surface-studio`) stays reserved for
+  the recessed "studio floor" register (luminous staging, live QR previews), not general
+  marketing banding.
+
+Tailwind v4 named-scale verification: before writing any component against these, a throwaway
+`compile()` call against the installed `tailwindcss@4.3.3` confirmed `--spacing-<name>`,
+`--text-<name>` (+ paired `--line-height`/`--letter-spacing`), and `--container-<name>` theme
+keys generate real utilities (`p-gutter`, `text-h2`, `max-w-page`, etc.) — the fallback
+arbitrary-property syntax (`py-(--spacing-section)`) was not needed anywhere; token values would
+be identical either way.
+
 ## Dark mode mechanics
 
 - Class strategy: `@custom-variant dark (&:is(.dark *));` in `globals.css` — Tailwind's `dark:` variant fires off a `.dark` ancestor class, not `prefers-color-scheme` directly.
@@ -88,6 +149,20 @@ pieces these lean on (`HeroBackdrop`, `ArtifactStage`, `AccentText`,
 `Reveal`/`Eyebrow`/`ModuleMark`) live in `components/brand/` instead (see "Shared
 brand primitives" below) rather than under `components/marketing/` itself — same
 reasoning as `HeroBackdrop`'s own move out of `components/explore/`.
+
+**`section.tsx`** (P9.5-T1b) — the landing's future section primitive:
+`Section`/`SectionHeading`/`SectionBody`, built against the token families above.
+Full contract (variants, rhythm/surface/divider options, the dead-measure/
+centered-count/hairline rules) is doc-commented in the file itself rather than
+duplicated here — the landing sections themselves are **not yet migrated onto
+it** (T3a's job); its only consumer this unit is the `/developers` pilot below.
+Shared with it: **`lib/highlight.ts`/`lib/code-theme.ts`/`code-block.tsx`**
+(shiki syntax highlighting, server-rendered, themed off the code-color tokens
+above) and **`developers/`** (the extracted `/developers` page pieces —
+`lib/api-reference.ts`'s typed endpoint data, `components/marketing/developers/`'s
+`Section`/`Endpoint`/`InlineCode`/`Method`/`api-toc.tsx`), the first real page
+built against the docs-grid containers (`max-w-page`/`max-w-docs`) and type
+scale (`text-h1`/`text-h3`) from this unit.
 
 P4 studio components, built under `apps/web/components/studio/` and `apps/web/components/qr/` (the color/gradient editor and logo upload the outline once called "not yet built" both landed here):
 

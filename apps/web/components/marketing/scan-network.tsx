@@ -21,6 +21,21 @@ import { EASE_OUT } from "@/components/brand/magic";
  * theme-reactive render — the same zero-client-JS static-render pattern the
  * framed product windows use. Only the chip-cycling interval and entrance
  * motion need to be client-side here.
+ *
+ * Three stage variants, one per breakpoint tier (P9.5-T1a):
+ *  - below md: the compact chip-only fallback (untouched — no SVG paths).
+ *  - md–lg (768–1279): a compact two-chip SVG stage (below), sized to
+ *    render its chip text at 100% (no `scale()` transform) — the four-chip
+ *    stage previously covered this whole range via `scale-[0.66]`/
+ *    `lg:scale-[0.8]`, which also shrank the 11px chip text to 7.3px/8.8px
+ *    (docs/guides/design-system.md's T1 A3 note). `scale()` transforms
+ *    every descendant uniformly, including font rendering, so the fix is a
+ *    layout that never needs the transform in the first place: chips are
+ *    positioned via percentage-of-container (derived from the same 640×200
+ *    viewBox the SVG paths use) rather than fixed pixel coordinates inside
+ *    a scaled box, so the stage can resize fluidly across 768–1279 while
+ *    every chip's own font-size stays exactly as authored.
+ *  - xl+ (1280px): the original four-chip stage, unchanged.
  */
 
 const QR_DATA = "HTTPS://QRCDN.COM/K7M2X9A";
@@ -42,6 +57,32 @@ const PATHS = [
 ];
 
 const CYCLE_MS = 2800;
+
+// ---- Compact (md/lg) stage — own 640×200 coordinate system, own two-item
+// subset of DESTINATIONS (index 0 = the existing "left" entry, index 2 =
+// the existing "right" entry — labels read off the shared array so the two
+// stages can never drift out of copy sync; x/side are stage-local). ----
+const COMPACT_VIEW_W = 640;
+// x=155/485 (not a symmetric round 130/510) leaves enough room for the
+// longest label in this pair ("tickets.io/tour-2026", 21 chars) to render
+// at 768px — the stage's own width equals the viewport's content width at
+// that breakpoint (no margin to spare), and 130/510 measured ~6px short
+// (verified via getBoundingClientRect against a live 768px viewport,
+// silently clipped by the hero's overflow-hidden rather than scrolling).
+const COMPACT_DESTINATIONS = [
+  { label: DESTINATIONS[0].label, x: 155, side: "left" as const },
+  { label: DESTINATIONS[2].label, x: 485, side: "right" as const },
+];
+
+// Same S-curve grammar as PATHS: a cubic Bezier from the QR tile's edge to
+// the chip, control points bowed upward (y 100 -> 84 -> 84 -> 100) since
+// both stage-local endpoints share one vertical row (unlike the four-path
+// stage's top/bottom pairs) — the bow is what keeps the trace reading as a
+// curve instead of a straight connector between two same-y points.
+const COMPACT_PATHS = [
+  "M258 100 C222 84 180 84 155 100",
+  "M382 100 C418 84 460 84 485 100",
+];
 
 function QrTile({ className }: { className?: string }) {
   return (
@@ -106,6 +147,12 @@ function DestinationChip({
 export function ScanNetwork() {
   const [active, setActive] = useState(0);
   const reduced = useReducedMotion();
+  // The compact stage shows 2 of the 4 destinations; remapping the shared
+  // 0-3 cycle onto 0-1 (rather than running a second interval) keeps one
+  // of the two visible chips always active — same "always something
+  // flowing" property the <md fallback's `active % 3` remap already
+  // relies on, just mod 2 for a two-item stage.
+  const compactActive = active % 2;
 
   useEffect(() => {
     const id = setInterval(
@@ -117,8 +164,9 @@ export function ScanNetwork() {
 
   return (
     <div className="relative">
-      {/* Full network stage — md and up */}
-      <div className="hidden md:block">
+      {/* Full four-chip network stage — xl and up only (P9.5-T1a moved the
+          768–1279 range to the compact two-chip stage below). */}
+      <div className="hidden xl:block">
         {/* Stage is 1000×300 + ~30px chip overhang each side; scale steps keep
             the full artwork inside the content column at every breakpoint. */}
         <div className="relative mx-auto h-[200px] w-full max-w-[1000px] lg:h-[240px] xl:h-[300px]">
@@ -188,6 +236,95 @@ export function ScanNetwork() {
                 <QrTile />
               </motion.div>
             </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Compact two-chip network stage — md/lg only (768–1279). Chips are
+          positioned as a percentage of this container (derived from the
+          640×200 viewBox below) rather than fixed pixels inside a scaled
+          box, so the stage resizes fluidly across the range without ever
+          transforming — and therefore without ever shrinking — chip text. */}
+      <div className="hidden md:block xl:hidden">
+        <div className="relative mx-auto aspect-[640/200] w-full max-w-3xl">
+          <svg
+            viewBox={`0 0 ${COMPACT_VIEW_W} 200`}
+            className="absolute inset-0 h-full w-full"
+            aria-hidden
+          >
+            {COMPACT_PATHS.map((d, i) => (
+              <path
+                key={`compact-base-${i}`}
+                d={d}
+                fill="none"
+                strokeWidth="1.5"
+                strokeLinecap="round"
+                vectorEffect="non-scaling-stroke"
+                className={cn(
+                  "stroke-border transition-opacity duration-300",
+                  i === compactActive ? "opacity-100" : "opacity-60",
+                )}
+              />
+            ))}
+            {/* the live trace: an energy packet flowing along the active path */}
+            {!reduced && (
+              <path
+                key={`compact-flow-${compactActive}`}
+                d={COMPACT_PATHS[compactActive]}
+                fill="none"
+                strokeWidth="2"
+                strokeLinecap="round"
+                vectorEffect="non-scaling-stroke"
+                className="animate-qr-flow-compact stroke-primary"
+              />
+            )}
+          </svg>
+
+          {COMPACT_DESTINATIONS.map((dest, i) => (
+            <div
+              key={dest.label}
+              className="absolute"
+              // Positioning is plain (unanimated) CSS, same split as the
+              // full stage: left chips anchor via `right` so they grow
+              // away from center as their label length varies, keeping
+              // the edge nearest the QR tile (and the incoming path) at a
+              // fixed point regardless of text length.
+              style={
+                dest.side === "left"
+                  ? {
+                      right: `${((COMPACT_VIEW_W - dest.x) / COMPACT_VIEW_W) * 100}%`,
+                      top: "calc(50% - 15px)",
+                    }
+                  : {
+                      left: `${(dest.x / COMPACT_VIEW_W) * 100}%`,
+                      top: "calc(50% - 15px)",
+                    }
+              }
+            >
+              <motion.div
+                initial={{
+                  opacity: 0,
+                  transform: reduced ? "translateY(0px)" : "translateY(8px)",
+                }}
+                animate={{ opacity: 1, transform: "translateY(0px)" }}
+                transition={{ duration: 0.5, delay: 0.35 + i * 0.07, ease: EASE_OUT }}
+              >
+                <DestinationChip label={dest.label} active={i === compactActive} />
+              </motion.div>
+            </div>
+          ))}
+
+          <div className="absolute left-1/2 top-1/2 w-[176px] -translate-x-1/2 -translate-y-1/2">
+            <motion.div
+              initial={{
+                opacity: 0,
+                transform: reduced ? "scale(1)" : "scale(0.96)",
+              }}
+              animate={{ opacity: 1, transform: "scale(1)" }}
+              transition={{ duration: 0.6, delay: 0.2, ease: EASE_OUT }}
+            >
+              <QrTile />
+            </motion.div>
           </div>
         </div>
       </div>

@@ -266,8 +266,27 @@
   stroke-dasharray: 26 454;
   animation: qr-flow 2.2s linear infinite;
 }
+
+/* Compact-stage variant (P9.5-T1a, md/lg two-chip ScanNetwork layout) — the
+   same "energy packet" idea, dash/gap and duration scaled down for the
+   compact stage's much shorter paths (~150 units vs the full stage's
+   ~280) so the packet reads at the same proportional size/speed instead
+   of looking tiny against a gap sized for the four-chip stage. */
+@keyframes qr-flow-compact {
+  from {
+    stroke-dashoffset: 180;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+.animate-qr-flow-compact {
+  stroke-dasharray: 10 170;
+  animation: qr-flow-compact 1.2s linear infinite;
+}
 @media (prefers-reduced-motion: reduce) {
-  .animate-qr-flow {
+  .animate-qr-flow,
+  .animate-qr-flow-compact {
     animation: none;
     stroke-dasharray: none;
     opacity: 0.5;

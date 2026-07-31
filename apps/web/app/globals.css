@@ -206,6 +206,52 @@
   }
 }
 
+/* Hero entrance (P9.5-T1a) — replaces the h1/sub/CTA `Reveal` (whileInView)
+   wrappers, which shipped `opacity:0` in the server-rendered HTML for the
+   LCP element (the h1): whileInView only resolves once client JS runs an
+   IntersectionObserver, so a slow/absent hydration left the LCP candidate
+   invisible at paint. Pure CSS keyframes run the instant the stylesheet is
+   parsed — no JS dependency, and `opacity:0` never appears as an inline
+   style or a static utility class on the element itself (only inside this
+   @keyframes block), so the served markup for the h1 always carries full
+   opacity. Distance/duration/easing match the Reveal component's own hero
+   values (18px, --duration-slow, --motion-ease-out) — same design, CSS
+   mechanism. `backwards` fill applies the 0% frame during each element's
+   own animation-delay window too, so staggered children don't flash at
+   full opacity before their turn. */
+@keyframes hero-enter {
+  from {
+    opacity: 0;
+    transform: translateY(18px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.hero-enter {
+  animation-name: hero-enter;
+  animation-duration: var(--duration-slow);
+  animation-timing-function: var(--motion-ease-out);
+  animation-fill-mode: backwards;
+}
+.hero-enter-1 {
+  animation-delay: 0ms;
+}
+.hero-enter-2 {
+  animation-delay: 80ms;
+}
+.hero-enter-3 {
+  animation-delay: 160ms;
+}
+@media (prefers-reduced-motion: reduce) {
+  .hero-enter {
+    animation: none;
+    opacity: 1;
+    transform: none;
+  }
+}
+
 /* Scan-network trace animation (hero artwork). The dash segment is the
    "energy packet" travelling the active path. */
 @keyframes qr-flow {

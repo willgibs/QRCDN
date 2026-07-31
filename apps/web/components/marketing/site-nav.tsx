@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import { Menu, X } from "lucide-react";
 import { ModuleMark } from "@/components/brand/magic";
 import { Button } from "@/components/ui/button";
+import { NavAuthLink, NavAuthCta } from "@/components/marketing/nav-auth-slot";
 import { cn } from "@/lib/utils";
 
 const NAV_LINKS = [
@@ -68,18 +69,11 @@ export function SiteNav() {
               </Link>
             );
           })}
-          <Link
-            href="/login"
-            className="rounded-md px-3 py-1.5 text-sm font-medium text-muted-foreground transition-colors duration-(--duration-fast) ease-(--motion-ease-out) hover:text-foreground"
-          >
-            Sign in
-          </Link>
+          <NavAuthLink className="rounded-md px-3 py-1.5 text-sm font-medium text-muted-foreground transition-colors duration-(--duration-fast) ease-(--motion-ease-out) hover:text-foreground" />
         </nav>
 
         <div className="flex shrink-0 items-center gap-2">
-          <Button asChild size="sm">
-            <Link href="/login">Start free</Link>
-          </Button>
+          <NavAuthCta />
           <Button
             type="button"
             variant="ghost"
@@ -112,13 +106,10 @@ export function SiteNav() {
                 {label}
               </Link>
             ))}
-            <Link
-              href="/login"
-              onClick={() => setOpen(false)}
+            <NavAuthLink
               className="rounded-md px-2 py-2.5 text-sm font-medium text-muted-foreground transition-colors duration-(--duration-fast) ease-(--motion-ease-out) hover:text-foreground"
-            >
-              Sign in
-            </Link>
+              onNavigate={() => setOpen(false)}
+            />
           </nav>
         </div>
       </div>

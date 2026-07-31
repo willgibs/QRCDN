@@ -26,5 +26,5 @@ export async function GET(request: NextRequest) {
     }
   }
 
-  return NextResponse.redirect(new URL("/login?verified=0", origin));
+  return NextResponse.redirect(new URL("/login?auth_error=oauth_failed", origin));
 }

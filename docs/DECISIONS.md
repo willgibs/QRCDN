@@ -105,6 +105,21 @@ retention constants live.
 + Google OAuth. Custom SMTP via Resend from day one (built-in SMTP throttles at a few
 emails/hour). `proxy.ts` (Next 16) runs updateSession; all `(app)` routes force-dynamic.
 
+*Dated note (P9.5-T0, 2026-07-31):* diagnosed a live sign-in failure — the dashboard's
+magic-link email template used the Supabase default `{{ .ConfirmationURL }}`, which
+the app's `/auth/confirm` handler never matched (it reads `token_hash`/`type` query
+params); every templated email failed by construction, silently, because e2e's
+`auth.admin.generateLink` path bypasses the template entirely and stayed green
+throughout. Fixed by moving the dashboard template to
+`{{ .RedirectTo }}?token_hash={{ .TokenHash }}&type=email` (browser-independent;
+`email` is the current OTP type, `magiclink` is deprecated) — dashboard-managed, not
+committed anywhere in this repo (see D16). SMTP (Resend) and the redirect allow-list
+were both already correct and were not the cause. Separately noted during the same
+diagnosis: GoTrue's `otp_expired` error cannot distinguish an expired token from an
+already-consumed one, and `signInWithOtp` creates the `auth.users` row at SEND time
+(before any confirmation), so a half-created user can exist for an address that never
+completed sign-in — handle such rows deliberately, don't assume they're garbage.
+
 ## D10 — Stripe: sync-from-source webhooks
 
 Webhooks never apply event deltas; every relevant event triggers
@@ -203,3 +218,24 @@ Building: $0 (Vercel Hobby + Supabase Free `yklhpbhfowuvxlwlalhf` + CF Free).
 Launch: $25/mo — Vercel Pro $20 + **Workers Paid $5 (mandatory: free tier's 100k
 req/day cap would dead-end every printed code on one viral day)**. Supabase Pro $25
 at first real customers (free tier has no backups — nightly pg_dump cron until then).
+
+## D16 — Supabase `[auth]` config: dashboard is authoritative, `config push` banned
+
+`supabase/config.toml`'s `[auth]` block (`site_url = "http://127.0.0.1:3000"`,
+`additional_redirect_urls`, etc.) is the CLI's local-dev scaffold, generated once at
+`supabase init` and never updated to track production — it is stale and local-only,
+not a mirror of the live project. Production auth (SMTP/Resend, the magic-link email
+template, the redirect allow-list, the real `site_url`) is configured directly in the
+Supabase dashboard, and the dashboard is the sole source of truth for it.
+
+**`supabase config push` is banned** absent a deliberate, hand-verified reconciliation
+unit (read every current dashboard value first, write it into `config.toml` by hand,
+diff-review the whole `[auth]` block before running anything) — never a routine push.
+Two reasons this is a hard ban, not a caution: the committed `site_url=localhost`
+would clobber the real production value on push, breaking every magic-link and OAuth
+redirect for every real user; and the Supabase CLI has **no dry-run** for `config
+push` and **no `config pull`** for `[auth]` in the version this repo runs, so there is
+no safe way to preview the change or reverse the damage before it lands. Established
+during the P9.5-T0 live auth-outage diagnosis (2026-07-31) — see `docs/guides/
+p9.5-ascent.md`'s T0 section and `supabase/config.toml`'s own header comment above
+`[auth]`.

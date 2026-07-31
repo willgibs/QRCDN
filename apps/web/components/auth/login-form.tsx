@@ -69,6 +69,12 @@ declare global {
 
 type Pending = "email" | "google" | null;
 
+// P9.5-T0: the sent-state "Didn't get it? Resend" affordance is gated by a
+// cooldown, not free-standing — Supabase's own auth.email.max_frequency
+// throttle would just bounce a rapid re-request anyway, and a disabled
+// countdown reads as more honest than a button that looks live but errors.
+const RESEND_COOLDOWN_SECONDS = 30;
+
 export function LoginForm({ initialError }: { initialError?: string }) {
   const emailId = useId();
   const reduced = useReducedMotion();
@@ -76,6 +82,19 @@ export function LoginForm({ initialError }: { initialError?: string }) {
   const [pending, setPending] = useState<Pending>(null);
   const [sent, setSent] = useState(false);
   const [error, setError] = useState<string | null>(initialError ?? null);
+  const [resendSecondsLeft, setResendSecondsLeft] = useState(0);
+
+  // Standard React countdown idiom: each tick schedules the next one via the
+  // effect re-running on its own decremented dependency, and naturally stops
+  // scheduling once it hits 0. The `setResendSecondsLeft` call lives inside
+  // the timeout callback, not synchronously in the effect body, so this
+  // doesn't trip `react-hooks/set-state-in-effect` (see the Turnstile effect
+  // below for the same rule hit a different way).
+  useEffect(() => {
+    if (resendSecondsLeft <= 0) return;
+    const id = setTimeout(() => setResendSecondsLeft((s) => s - 1), 1000);
+    return () => clearTimeout(id);
+  }, [resendSecondsLeft]);
 
   // Turnstile — every piece of state below stays at its initial value (and
   // the effect below is a permanent no-op) when TURNSTILE_SITE_KEY is
@@ -131,8 +150,7 @@ export function LoginForm({ initialError }: { initialError?: string }) {
     };
   }, [scriptLoaded, sent]);
 
-  async function handleMagicLink(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
+  async function sendMagicLink() {
     setError(null);
     setPending("email");
 
@@ -156,6 +174,22 @@ export function LoginForm({ initialError }: { initialError?: string }) {
       return;
     }
     setSent(true);
+    setResendSecondsLeft(RESEND_COOLDOWN_SECONDS);
+  }
+
+  async function handleMagicLink(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    await sendMagicLink();
+  }
+
+  /** "Didn't get it? Resend" (P9.5-T0) — re-invokes the exact same send,
+   *  restarting the cooldown on success (sendMagicLink sets
+   *  resendSecondsLeft every time it lands, not just on the first call). A
+   *  click while disabled is a no-op rather than relying on the button's
+   *  own `disabled` attribute alone. */
+  async function handleResend() {
+    if (resendSecondsLeft > 0 || pending !== null) return;
+    await sendMagicLink();
   }
 
   async function handleGoogle() {
@@ -218,10 +252,26 @@ export function LoginForm({ initialError }: { initialError?: string }) {
                 We sent a sign-in link to <span className="text-foreground">{email}</span>.
               </p>
             </div>
+            <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
+              Didn&apos;t get it?
+              <button
+                type="button"
+                onClick={handleResend}
+                disabled={resendSecondsLeft > 0 || pending !== null}
+                className="font-medium text-foreground underline-offset-4 transition-colors duration-(--duration-fast) ease-(--motion-ease-out) hover:underline disabled:pointer-events-none disabled:text-muted-foreground disabled:no-underline motion-reduce:transition-none"
+              >
+                {pending === "email"
+                  ? "Sending…"
+                  : resendSecondsLeft > 0
+                    ? `Resend in ${resendSecondsLeft}s`
+                    : "Resend"}
+              </button>
+            </p>
             <Button
               variant="ghost"
               size="sm"
               className="mt-1 text-muted-foreground"
+              disabled={pending !== null}
               onClick={() => setSent(false)}
             >
               Use a different email

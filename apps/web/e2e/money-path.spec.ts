@@ -122,15 +122,40 @@ test.describe.serial("money path", () => {
     await context.close();
   });
 
-  test("signs in via the magic-link confirm route and lands on /studio authenticated", async () => {
+  test("signs in via the magic-link confirm interstitial and lands on /studio authenticated", async () => {
     // Minted HERE, at test time, on every attempt — not read from a token
     // global-setup pre-minted once (P9-U6; see e2e/auth-token.ts's header
     // for the retry-cascade this fixes: a serial-group retry re-runs this
     // exact test, and a single pre-minted token would already be consumed).
+    //
+    // type=email (not the deprecated magiclink) — the exact shape the live
+    // dashboard template now produces (P9.5-T0):
+    // `{{ .RedirectTo }}?token_hash={{ .TokenHash }}&type=email`.
     const hashedToken = await mintSignInToken(manifest.email);
+    // waitUntil: "commit" (not the default "load") — hands control back to
+    // this test as soon as the navigation commits, rather than after the
+    // full page (JS included) has loaded. Empirically necessary, not just
+    // defensive: against a local `next start` talking to real production
+    // Supabase, the default "load" wait let hydration + the auto-submit
+    // effect + the confirmSignInAction round trip + the redirect to /studio
+    // all complete BEFORE this test regained control at all — the very next
+    // line's assertion then found a fully-loaded, already-authenticated
+    // /studio page instead of the interstitial, failing with "element(s)
+    // not found" (the button had already been replaced by an entirely
+    // different page). "commit" wins that race reliably: the button is
+    // present in the server-rendered initial HTML regardless (React hasn't
+    // hydrated yet at commit time), so `toBeVisible()`'s own auto-retry
+    // catches it well before the auto-submit round trip can finish.
     await page.goto(
-      `${E2E_BASE_URL}/auth/confirm?token_hash=${encodeURIComponent(hashedToken)}&type=magiclink&next=/studio`,
+      `${E2E_BASE_URL}/auth/confirm?token_hash=${encodeURIComponent(hashedToken)}&type=email&next=/studio`,
+      { waitUntil: "commit" },
     );
+    // /auth/confirm is now a Server Component interstitial (app/auth/confirm/
+    // page.tsx), not a redirecting route handler — this asserts it actually
+    // rendered (the no-JS-fallback button, app/auth/confirm/auto-submit.tsx)
+    // before the client-side auto-submit (same component) carries it the
+    // rest of the way to /studio.
+    await expect(page.getByRole("button", { name: "Confirm sign-in" })).toBeVisible();
     await expect(page).toHaveURL(/\/studio$/);
     await expect(page.getByLabel("Destination")).toBeVisible();
   });

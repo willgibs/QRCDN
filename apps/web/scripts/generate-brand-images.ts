@@ -402,7 +402,7 @@ async function main() {
   const appleIconPng = rasterize(buildAppleIconSvg(), 180);
   const ogPng = rasterize(buildHomepageOgSvg(qr), 1200);
   const ogAlt =
-    "QRCDN — one code, every destination. A styled QR code beside the QRCDN wordmark on a dark canvas.";
+    "QRCDN: one code, every destination. A styled QR code beside the QRCDN wordmark on a dark canvas.";
 
   const pricingOgPng = rasterize(buildPricingOgSvg(pricingQr), 1200);
   const pricingOgAlt = `QRCDN pricing: $${PRICING.monthlyUsd}/mo or $${PRICING.annualUsd}/yr. A styled QR code beside the QRCDN wordmark on a dark canvas.`;

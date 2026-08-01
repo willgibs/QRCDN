@@ -219,6 +219,20 @@ above) and **`developers/`** (the extracted `/developers` page pieces —
 built against the docs-grid containers (`max-w-page`/`max-w-docs`) and type
 scale (`text-h1`/`text-h3`) from this unit.
 
+**Content-ascended at P9.5-T5**: `lib/api-reference.ts` gained a
+`params`/`responseFields`/`errors` model per endpoint (typed `ApiParam`/
+`ApiResponseField`/`ApiEndpointError`, the shared "code object" response
+shape compile-time coupled to the real `ApiCode` type from
+`app/api/v1/_lib/to-api-code.ts` via `Record<keyof ApiCode, ...>`, so a
+field the API stops returning fails `pnpm typecheck` rather than a manual
+review) plus a small `QUICKSTART_CREATE_EXAMPLE`/`QUICKSTART_REPOINT_EXAMPLE`
+pair for the new Quickstart section. `components/marketing/developers/`
+gained four siblings to the T1b set above: `quickstart.tsx` (the five-step
+walkthrough), `params-table.tsx`/`fields-table.tsx`/`errors-table.tsx`
+(the new per-endpoint tables `endpoint.tsx` now renders), and
+`callout.tsx` (a small "by design" note, first used to frame the
+404-indistinguishability property as a feature rather than a limitation).
+
 P4 studio components, built under `apps/web/components/studio/` and `apps/web/components/qr/` (the color/gradient editor and logo upload the outline once called "not yet built" both landed here):
 
 | Component | File | What it does |

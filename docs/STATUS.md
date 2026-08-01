@@ -1,6 +1,6 @@
 # Status
 
-_Last updated: 2026-08-01 (P9.5-T4 landed — supporting surfaces: /pricing v2, legal alignment, /login value panel, 404). Update this file at every phase boundary or significant commit._
+_Last updated: 2026-08-01 (P9.5-T5 landed: /developers content ascent, Quickstart + comprehensive per-endpoint reference). Update this file at every phase boundary or significant commit._
 
 ## Current phase
 
@@ -122,6 +122,110 @@ Verified: `pnpm lint && pnpm typecheck && pnpm test` all green across every work
 **Matrix band → row-count mapping:** Codes & limits → 1 (Dynamic codes), Design & export → 1 (Brand kits), Analytics → 2 (Analytics history, Scan geography), Access controls → 2 (Expiry/password/scheduling, Vanity short links — grouped with access rather than with API/bulk per `PricingPlans`' own existing feature-bullet grouping), API & bulk → 2 (API access, Bulk generation). 8 rows total, matching `PRICING_ROWS.length` exactly.
 
 Verified: `pnpm lint && pnpm typecheck && pnpm test` all green across every workspace package (694 tests: 55 qr-engine + 138 worker + 23 shared + 478 web — two new `pricing.test.ts` cases for `PRICING_MATRIX_BANDS` coverage), `pnpm build` keeps `/`, `/pricing`, `/terms`, `/privacy` at `○ (Static)` and `/login` at `ƒ (Dynamic)` — byte-identical render-mode set to the pre-T4 baseline. Live production-build review (`next start`) at desktop/375px mobile, both themes, via the browser pane's documented workarounds (scoped `<style>` `!important` override for the frozen-rAF/no-repaint-on-scroll issues; `elementFromPoint`/`getBoundingClientRect` for anything scroll-position-dependent, since screenshots don't repaint on programmatic scroll in this pane). Full local e2e run (`pnpm test:e2e`, all three spec files against `next start -p 3100`): 42/42 green, including the three new/updated marketing.spec.ts assertions and the entire pre-existing money-path + auth-scanner-safety suites (unrelated to this unit, confirming nothing else broke), fixture created and torn down cleanly. No deck deviations (this unit's copy is spec-authored, not deck-governed) — one flagged spec-adjacent judgment call: the matrix band→row mapping itself (band NAMES are spec-verbatim; which existing row goes in which band was this unit's own reasonable call, recorded above for review).
+
+**T5 (this commit): /developers content ascent, quickstart-first, comprehensive.** Spec:
+`t5-build-spec.md` (scratchpad). T1b built the skeleton (docs grid, scroll-spy TOC, the
+`lib/api-reference.ts` model, shiki `CodeBlock`); this unit is the content pass on top of it,
+per the board's own ask ("comprehensive yet intuitive for easy startup... this is where we need
+to win devs over"). Ground truth for everything documented is the actual route handlers under
+`app/api/v1/**` and their shared auth pipeline (`lib/api-auth.ts`), read directly rather than
+assumed: several real gaps and one genuine bug turned up doing that.
+
+- **Quickstart** (`components/marketing/developers/quickstart.tsx`, new, first section in the
+  grid and the TOC): five true-sequence steps, mint a key, create a code, print it, scan it,
+  repoint it, closing on the deck-quoted "Scan the same print again. New destination, same code.
+  That is the whole product." Steps 2 and 5 render `QUICKSTART_CREATE_EXAMPLE`/
+  `QUICKSTART_REPOINT_EXAMPLE` (new, `lib/api-reference.ts`), a deliberately minimal, plan-safe
+  pair distinct from the comprehensive reference's own create-code/update-code samples: the
+  reference's create-code example demonstrates the Pro-only vanity `slug` field (real, valuable
+  documentation), but a brand-new signup following the Quickstart is very likely still on the
+  free plan, where a `slug` in the body 403s with `vanity_slugs_not_available`, and shipping that
+  as someone's first copy-pasted call would break for most readers. The two quickstart steps link
+  down to their full reference entries (`#create-code`/`#update-code`); each step carries a stable
+  `id` so a future surface can link back up. update-code's own reference sample changed from
+  demonstrating `expiresAt` to demonstrating `destination` (retargeting, unlike expiry, is not
+  Pro-gated, and it is literally the endpoint's headline behavior) so quickstart step 5 could
+  reuse it byte-for-byte rather than inventing a third sample.
+- **Reference restructure** (comprehensive): every one of the 5 real endpoints under
+  `app/api/v1/**` (verified against the handler, not memory: `app/api/v1/codes/route.ts` GET+POST,
+  `app/api/v1/codes/[slug]/route.ts` GET+PATCH, `app/api/v1/codes/[slug]/analytics/route.ts` GET;
+  there is no DELETE anywhere in this surface) now renders a Parameters table, the request/response
+  samples, a Response fields table, and an Errors table, from a typed extension of
+  `lib/api-reference.ts` (`ApiParam`/`ApiResponseField`/`ApiEndpointError`, new). The shared "code
+  object" response shape (`CODE_OBJECT_FIELDS`) is keyed as `Record<keyof ApiCode, ...>` against
+  the real `ApiCode` type (`app/api/v1/_lib/to-api-code.ts`), so a field the API stops returning,
+  or a field this module forgets, fails `pnpm typecheck` rather than waiting on review: the same
+  "prove it, don't hand-maintain it" posture `lib/pricing.ts`'s `PRICING_MATRIX_BANDS` already
+  established for `/pricing`. Every plan number (code limits, API cap, retention windows) is
+  imported from `lib/entitlements.ts`/`lib/analytics.ts`'s `RANGE_OPTIONS`, never hand-typed. New
+  shared components: `params-table.tsx`, `fields-table.tsx`, `errors-table.tsx` (all three always
+  render a real `<table>`, even a zero-row one, so "every endpoint has a params table" is
+  structurally true, not just usually true), and `callout.tsx` (a small "by design" note, first
+  used to frame the 404-indistinguishability property as a feature in the shared Errors section,
+  per the spec's explicit ask). Auth section gained key scoping and the exact 401/403 JSON shapes;
+  Errors section gained a `PIPELINE_ERRORS` table (401/403/429/500, apply identically regardless of
+  endpoint) plus the by-design callout; Rate limits tightened with the "over-cap request itself
+  gets rejected, not the next one" nuance read off `increment_api_usage()`
+  (migration `20260723000008_api_usage.sql`). TOC gained a Quickstart entry; the Endpoints group is
+  unchanged in shape (still one nested list) since the actual endpoint count did not change.
+- **Real findings while reading the handlers, not assumed:** (1) the public API's slug lookup
+  (`getCodeBySlugCore`'s plain `.eq("slug", slug)`) is case-sensitive, unlike the redirect Worker's
+  documented case-insensitive matching (D12): never previously documented, now a `notes` line on
+  every `slug` path param. (2) `status` on every code object is `"active" | "paused" | "archived"`
+  only; an expired code still reports `status: "active"` (`qr_codes.status`'s own check constraint
+  has no `"expired"` value: that is a derived, dashboard-only label from `lib/access.ts`'s
+  `codeState()`, never a raw column value), so a caller has to compare `expiresAt` themselves.
+  (3) `scanCount` is not real-time: it is written by the hourly `rollup_scan_daily()` cron
+  (D8 amendment), not per-scan, so a fresh scan may not show up in it for up to an hour, while
+  `today.scans` on the analytics endpoint is live. (4) PATCH's response is a genuinely narrower
+  shape than the full code object (`slug`/`destination`/`status`/`expiresAt` only, no `name`,
+  `scanCount`, `passwordProtected`, `url`, or `createdAt`), implicit in the old sample, now
+  explicit in its own Response fields table. None of these required a handler change (out of
+  scope per the spec); all four are now documented for the first time.
+- **Riders.** `/login`: the card's own mono sign-off is now `lg:hidden` (the value panel's copy is
+  the one that survives at lg+; both were rendering at once before this unit). Root layout
+  `metadata.description`'s em dash removed (restructured to a colon, meaning unchanged): the
+  spec's own stated reason ("the last known em-dash in served marketing HTML") did not fully hold.
+  The homepage's own `metadata.description` (`app/(marketing)/page.tsx`, which overrides the root
+  layout's on `/`) had a second one, and the root layout's own `title.default` (rendered into
+  every page's `<title>` and, via Next's metadata resolution, its `og:title`/`twitter:title`) had a
+  third. Both fixed in the same pass, same restructure style. A fourth was found one layer deeper:
+  the homepage's OG image alt text (`app/(marketing)/opengraph-image.alt.txt`, a plain committed
+  text sidecar to the generated PNG, not the image itself) had one too, sourced from a hardcoded
+  string in `scripts/generate-brand-images.ts`, fixed in both the checked-in file and the
+  generator source so a future re-run does not reintroduce it. `/pricing`'s poster `SectionHeading`
+  now passes `reveal={false}` (the component already supported this prop, used elsewhere on the
+  same page for the FAQ heading) so the h1 no longer SSRs `opacity:0`, the same LCP-class fix
+  P9.5-T1a applied to the landing hero.
+- **A real "365days"-class bug, caught by diffing raw served HTML against the JSX source, not
+  assumed correct from review:** the Quickstart's step 3 sentence rendered as
+  "...response's <code>url</code>is the code's..." with the space after the `InlineCode` silently
+  dropped by the JSX/Turbopack whitespace collapse (the same failure class `d2af287`'s "365days"
+  incident and the T4 legal em-dash audit both already burned this codebase on). Fixed with an
+  explicit `{" "}`, reverified against the rebuilt `.next/server/app/developers.html`, not just the
+  source, plus a small script (`</(?:code|a|span)>` immediately followed by a word character) run
+  across every touched page's prerendered HTML to confirm no sibling instance existed anywhere
+  else in this unit's own new copy.
+
+Verified: `pnpm lint && pnpm typecheck && pnpm test` all green across every workspace package (694
+tests, unchanged count: 55 qr-engine + 138 worker + 23 shared + 478 web; this unit added zero new
+vitest tests, relying on the `Record<keyof ApiCode, ...>` compile-time coupling above instead for
+the one place hand-maintenance risk was highest), `pnpm build` keeps `/developers` at `○ (Static)`
+and every other route's render mode byte-identical to the T4 baseline. `.next/static/chunks`
+grepped clean for `shiki` (server-only, confirmed again). Live production-build review (`next
+start`) via the browser pane, both a full-page tall-viewport screenshot and (for the parts the
+pane's known hidden-tab/no-repaint-on-scroll limitations couldn't screenshot reliably this round)
+a full `get_page_text` read-through of the entire rendered page, top to bottom. Full local e2e run
+(`pnpm test:e2e`, `next start -p 3100`): 48/48 green, including 6 new/extended assertions (login
+sign-off count, quickstart step/copy-button count, quickstart cross-links, per-endpoint params
+tables, the 404-by-design callout, pricing h1 opacity) and the entire pre-existing money-path +
+auth-scanner-safety suites, confirming nothing else broke. Static-HTML em-dash sweep across every
+marketing page's prerendered output (`/`, `/developers`, `/pricing`, `/terms`, `/privacy`,
+`/_not-found`): zero on every page this unit touched; the 9 remaining on `/` are all inside
+section 09's build-time verbatim excerpt of `packages/qr-engine/src/guardrails.ts`'s real source
+comments (`lib/guardrails-excerpt.ts`), correctly left alone, since "fixing" them would mean
+editing qr-engine's own source comments (a different package, out of scope) and would break the
+excerpt's own "never hand-copied" honesty guarantee.
 
 ## Phase ledger
 

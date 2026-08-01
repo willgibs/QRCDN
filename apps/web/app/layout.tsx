@@ -7,11 +7,11 @@ import { ThemeProvider } from "@/components/theme-provider";
 export const metadata: Metadata = {
   metadataBase: new URL("https://www.qrcdn.com"),
   title: {
-    default: "QRCDN — QR codes with a brand system",
+    default: "QRCDN: QR codes with a brand system",
     template: "%s · QRCDN",
   },
   description:
-    "Set your brand's QR identity once. Every code inherits it — static or dynamic, hosted fast globally, retargetable forever.",
+    "Set your brand's QR identity once. Every code inherits it: static or dynamic, hosted fast globally, retargetable forever.",
 };
 
 export default function RootLayout({

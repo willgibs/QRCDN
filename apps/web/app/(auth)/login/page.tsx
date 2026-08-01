@@ -77,7 +77,11 @@ export default async function LoginPage(props: PageProps<"/login">) {
           </div>
         </Reveal>
 
-        <p className="mt-8 font-mono text-xs text-muted-foreground">
+        {/* P9.5-T5 rider: hidden at lg+, where the value panel's own
+            sign-off (below) already renders this same line, so showing
+            both duplicated it in the same viewport. Still the only
+            sign-off below lg, where the value panel is display:none. */}
+        <p className="mt-8 font-mono text-xs text-muted-foreground lg:hidden">
           your code never dies
         </p>
       </div>

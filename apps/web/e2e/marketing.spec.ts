@@ -114,6 +114,28 @@ test.describe("marketing site", () => {
     await expect(page.getByRole("heading", { name: "Sign in or sign up" })).toBeVisible();
   });
 
+  test("login: mono sign-off renders exactly once at desktop viewport (P9.5-T5 rider)", async ({
+    page,
+  }) => {
+    // Pre-fix, the card's own sign-off and the lg+ value panel's sign-off
+    // both rendered "your code never dies" at once: two copies visible in
+    // the same viewport. Both <p> elements still exist in the DOM (the
+    // card's is lg:hidden, not removed), so this scopes to :visible rather
+    // than plain getByText, the same `:visible` CSS pseudo-class technique
+    // comparison-section.tsx's own e2e coverage already established for
+    // picking "whichever DOM variant the current viewport actually shows".
+    await page.goto("/login");
+    const signOffs = page.locator("p", { hasText: "your code never dies" });
+    await expect(signOffs).toHaveCount(2);
+    await expect(page.locator("p:visible", { hasText: "your code never dies" })).toHaveCount(1);
+
+    // Below lg, the value panel is display:none, so the card's own
+    // sign-off (unaffected by this rider) is the only one anywhere, DOM or
+    // visible.
+    await page.setViewportSize({ width: 390, height: 844 });
+    await expect(page.locator("p:visible", { hasText: "your code never dies" })).toHaveCount(1);
+  });
+
   test("/robots.txt allows crawling and points at the sitemap", async ({ request }) => {
     const response = await request.get("/robots.txt");
     expect(response.ok()).toBe(true);
@@ -427,5 +449,79 @@ test.describe("marketing site", () => {
     // T3b's job once that body copy lands).
     await page.goto("/");
     await expect(page.getByText("destination updated live")).toHaveCount(0);
+  });
+
+  // P9.5-T5: /developers content ascent (Quickstart + comprehensive
+  // per-endpoint reference) plus the /pricing h1 LCP rider.
+
+  test("developers quickstart: five steps, each copy-pasteable sample has a copy button", async ({
+    page,
+  }) => {
+    await page.goto("/developers");
+    const quickstart = page.locator("#quickstart");
+    await expect(quickstart.getByRole("heading", { level: 3 })).toHaveCount(5);
+    // Steps 2 and 5 each render a request + response CodeBlock (2 copy
+    // buttons apiece); steps 1/3/4 are prose/inline-code only, 4 total,
+    // matching the spec's own "≥4" proof line exactly.
+    const copyButtons = quickstart.getByRole("button", { name: "Copy code" });
+    expect(await copyButtons.count()).toBeGreaterThanOrEqual(4);
+  });
+
+  test("developers quickstart: steps link down to their full reference entries", async ({ page }) => {
+    await page.goto("/developers");
+    const quickstart = page.locator("#quickstart");
+    await expect(quickstart.getByRole("link", { name: "POST /codes" })).toHaveAttribute(
+      "href",
+      "#create-code",
+    );
+    // Regex, not a string literal: lib/e2e-safety.test.ts's static scan
+    // flags a hardcoded uppercase run inside e2e/'s SLUG_CHARSET as a
+    // potential real-slug literal; "PATCH" is an HTTP method, not a slug,
+    // exempt by construction as a regex (same "PATCH"/"QRCDN" precedent
+    // already used elsewhere in this file).
+    await expect(quickstart.getByRole("link", { name: /PATCH \/codes/ })).toHaveAttribute(
+      "href",
+      "#update-code",
+    );
+    await expect(
+      quickstart.getByText("Scan the same print again. New destination, same code."),
+    ).toBeVisible();
+  });
+
+  test("developers reference: every endpoint renders a parameters table", async ({ page }) => {
+    await page.goto("/developers");
+    // The 5 real endpoints under app/api/v1/** as of P9.5-T5 (verified
+    // against the actual route handlers, not assumed): list/create/get/
+    // update codes, plus per-code analytics.
+    for (const id of ["list-codes", "create-code", "get-code", "update-code", "code-analytics"]) {
+      const endpoint = page.locator(`#${id}`);
+      await expect(endpoint.getByText("Parameters", { exact: true })).toBeVisible();
+      await expect(endpoint.locator("table").first()).toBeVisible();
+      await expect(endpoint.getByText("Response fields", { exact: true })).toBeVisible();
+      await expect(endpoint.getByText("Errors", { exact: true })).toBeVisible();
+    }
+  });
+
+  test("developers reference: the 404 property is documented as a feature", async ({ page }) => {
+    await page.goto("/developers");
+    await expect(page.getByText("By design", { exact: true })).toBeVisible();
+    await expect(
+      page.getByText("Ownership and nonexistence look identical from the outside, on purpose."),
+    ).toBeVisible();
+  });
+
+  test("pricing h1: renders without opacity:0 in served HTML (P9.5-T5 rider)", async ({ request }) => {
+    // Same technique as the hero h1 test above: raw served bytes, not a
+    // post-hydration computed style. SectionHeading defaults to a
+    // scroll-triggered Reveal, which SSRs a static opacity:0 on whatever
+    // it wraps. /pricing's own doc comment now says reveal={false} on this
+    // one call for exactly this reason (P9.5-T4 flagged the gap; T5 closes
+    // it).
+    const response = await request.get("/pricing");
+    const html = await response.text();
+    const h1Match = html.match(/<h1\b[^>]*>[\s\S]*?<\/h1>/);
+    expect(h1Match, "expected an <h1> in the served HTML").toBeTruthy();
+    expect(h1Match?.[0]).not.toMatch(/opacity\s*:\s*0(?!\.)/);
+    expect(h1Match?.[0]).toContain("Two plans");
   });
 });

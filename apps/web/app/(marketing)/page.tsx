@@ -13,8 +13,8 @@ import { ManifestoSection } from "@/components/marketing/manifesto-section";
 import { PricingTeaser } from "@/components/marketing/pricing-teaser";
 import { ClosingSection } from "@/components/marketing/closing-section";
 
-// Title/description only, and only `description` is set here — the root
-// layout's `title.default` ("QRCDN — QR codes with a brand system") IS the
+// Title/description only, and only `description` is set here: the root
+// layout's `title.default` ("QRCDN: QR codes with a brand system") IS the
 // site title for `/`, so this page deliberately does not export a `title`
 // (p9-marketing.md's route architecture note; Next's metadata resolution
 // inherits the nearest ancestor's resolved title as-is when a segment omits
@@ -24,7 +24,7 @@ import { ClosingSection } from "@/components/marketing/closing-section";
 // segment — no code change needed here.
 export const metadata: Metadata = {
   description:
-    "Design your brand's QR identity once, then generate static or dynamic codes on persistent short URLs — retargetable forever, measured to the scan, free forever for a few dynamic codes.",
+    "Design your brand's QR identity once, then generate static or dynamic codes on persistent short URLs: retargetable forever, measured to the scan, free forever for a few dynamic codes.",
 };
 
 // The atomic swap (P9-U2): this file replaces the create-next-app scaffold

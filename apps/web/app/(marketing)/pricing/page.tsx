@@ -164,10 +164,15 @@ function PricingMatrix() {
 export default function PricingPage() {
   return (
     <>
-      {/* Poster head + plan cards. Plain eyebrow, no ordinal — /pricing
+      {/* Poster head + plan cards. Plain eyebrow, no ordinal: /pricing
           doesn't use the landing's numbered sections. titleAs="h1" reaches
           text-display (the "one true page-title context" SectionHeading's
-          own doc comment reserves that scale for). */}
+          own doc comment reserves that scale for). P9.5-T5 rider:
+          reveal={false}, since SectionHeading defaults to a scroll-triggered
+          Reveal, which SSRs opacity:0 on whatever it wraps (fine for a
+          below-the-fold section, wrong for this h1: /pricing's own LCP
+          candidate). Same fix P9.5-T1a already applied to the landing
+          hero's h1, flagged as a gap here at T4 and closed now. */}
       <Section divider="none">
         <SectionHeading
           eyebrow="Pricing"
@@ -180,6 +185,7 @@ export default function PricingPage() {
               {MONTHLY_USD} monthly. No quote form, no call.
             </>
           }
+          reveal={false}
         />
 
         <SectionBody className="mt-10 max-w-4xl">

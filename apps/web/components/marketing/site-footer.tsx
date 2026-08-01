@@ -2,6 +2,12 @@ import Link from "next/link";
 import { ModuleMark } from "@/components/brand/magic";
 import { ThemeToggle } from "@/components/marketing/theme-toggle";
 
+// GitHub repo URL — the same literal open-source-section.tsx's own
+// REPO_URL uses. Not imported from there: that component is landing-only
+// (a Section), and this file is sitewide chrome that would otherwise pull
+// in a whole marketing-section module for one string.
+const REPO_URL = "https://github.com/willgibs/QRCDN";
+
 const COLUMNS = [
   {
     heading: "Product",
@@ -12,13 +18,18 @@ const COLUMNS = [
   },
   {
     heading: "Developers",
-    links: [{ href: "/developers", label: "API reference" }],
+    links: [
+      { href: "/developers", label: "API reference" },
+      { href: REPO_URL, label: "GitHub", external: true },
+    ],
   },
   {
     heading: "Legal",
     links: [
       { href: "/terms", label: "Terms" },
       { href: "/privacy", label: "Privacy" },
+      { href: "/changelog", label: "Changelog" },
+      { href: "https://status.qrcdn.com", label: "Status", external: true },
     ],
   },
 ] as const;
@@ -32,6 +43,14 @@ const COLUMNS = [
  * Real hrefs only, matching SiteNav: /pricing, /terms, /privacy don't exist
  * until P9-U3/U4 but are linked anyway per the spec's route architecture
  * note — an `href="#"` placeholder would be a defect.
+ *
+ * P9.5-T6 additive links: Changelog + Status (external, status.qrcdn.com —
+ * a separate Worker, see workers/status) beside Terms/Privacy in Legal
+ * (no dedicated Resources column exists yet); GitHub (external) beside API
+ * reference in Developers. `link.external` (a per-link flag, not a column-
+ * level one — most links stay internal `next/link`s) renders a plain
+ * `<a target="_blank" rel="noopener noreferrer">` instead, the same
+ * distinction `LearnMoreLink`'s own `external` prop already draws.
  */
 export function SiteFooter() {
   return (
@@ -65,12 +84,23 @@ export function SiteFooter() {
               <ul className="flex flex-col gap-2.5">
                 {col.links.map((link) => (
                   <li key={link.href}>
-                    <Link
-                      href={link.href}
-                      className="text-sm text-muted-foreground transition-colors duration-(--duration-fast) ease-(--motion-ease-out) hover:text-foreground"
-                    >
-                      {link.label}
-                    </Link>
+                    {"external" in link && link.external ? (
+                      <a
+                        href={link.href}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-sm text-muted-foreground transition-colors duration-(--duration-fast) ease-(--motion-ease-out) hover:text-foreground"
+                      >
+                        {link.label}
+                      </a>
+                    ) : (
+                      <Link
+                        href={link.href}
+                        className="text-sm text-muted-foreground transition-colors duration-(--duration-fast) ease-(--motion-ease-out) hover:text-foreground"
+                      >
+                        {link.label}
+                      </Link>
+                    )}
                   </li>
                 ))}
               </ul>

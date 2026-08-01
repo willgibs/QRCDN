@@ -78,19 +78,26 @@ deduplicated `uptime-alert` issue on failure and closes it on recovery.
 Honest limits: **not a pager** (no escalation or acknowledgement), and it cannot detect
 its own absence — GitHub disables scheduled workflows after 60 days of repo inactivity.
 Cadence is hourly because at 15-minute intervals this one workflow would consume
-~2,880 min/mo, more than the entire free budget that applies once the repo goes private.
+~2,880 min/mo — more than the 2,000 free min/mo a *private* repo would carry. Public
+repos get unmetered Actions minutes (see below), so this ceiling is a permanent
+non-issue rather than a future one; the hourly cadence stays anyway as the sensible
+operational default, not because the budget currently requires it.
 
-## Repo visibility + fork-PR posture (P7.5-A, 2026-07-23)
+## Repo visibility + fork-PR posture (P7.5-A, 2026-07-23; superseded at P9.5-T6, 2026-08-01)
 
-The repo is **public** (board decision: free unmetered Actions while building; flip
-back private before launch — on the P10 checklist, with a re-audit of every
-visibility-dependent assumption at that point). Standing posture: GitHub does not
-expose repo secrets to fork-PR workflow runs; `backup.yml` triggers only on
-schedule/`workflow_dispatch` (never `pull_request`); first-time-contributor runs
-require maintainer approval (GitHub default). Backup artifacts are AES-256-CBC
-encrypted (`BACKUP_PASSPHRASE` repo secret; decrypt one-liner in the workflow
-header) because public-repo artifacts are downloadable by any logged-in GitHub
-user. Never add a secret-consuming job to a `pull_request` trigger while public.
+The repo is **public, permanently** — MIT-licensed open source, board-approved at
+P9.5 (`docs/guides/p9.5-ascent.md`; canon line: *"if we ever disappear, the path off
+is public"*). This reverses what this section originally said: the P10 checklist used
+to carry a "flip back private before launch" line, with a re-audit of every
+visibility-dependent assumption at that point. That item is gone — there is no future
+private flip to re-audit against. Standing posture, unchanged and now load-bearing
+permanently rather than temporarily: GitHub does not expose repo secrets to fork-PR
+workflow runs; `backup.yml` triggers only on schedule/`workflow_dispatch` (never
+`pull_request`); first-time-contributor runs require maintainer approval (GitHub
+default). Backup artifacts are AES-256-CBC encrypted (`BACKUP_PASSPHRASE` repo secret;
+decrypt one-liner in the workflow header) because public-repo artifacts are
+downloadable by any logged-in GitHub user. Never add a secret-consuming job to a
+`pull_request` trigger.
 
 ## Cost posture and upgrade triggers (D15, reproduced)
 

@@ -29,8 +29,10 @@
 # disables schedules after 60 days of repo inactivity), silence is indistinguish-
 # able from health. Cadence is hourly, not every few minutes, because at 15-min
 # intervals this single workflow would consume ~2,880 min/mo — more than the
-# entire free Actions budget that applies once the repo goes private before
-# launch (P10). Durability is the promise here, not latency.
+# free Actions budget a private repo would carry (2,000 min/mo). The repo is
+# staying public for good (open-source reversal, docs/guides/p9.5-ascent.md),
+# so that ceiling doesn't actually apply here, but the hourly cadence stays as
+# the sensible default regardless. Durability is the promise here, not latency.
 
 name: Uptime canary
 

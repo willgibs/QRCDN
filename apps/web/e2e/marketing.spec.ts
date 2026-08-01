@@ -1,5 +1,6 @@
 import { test, expect } from "./fixtures";
 import { PLAN_LIMITS, PRICING } from "../lib/entitlements";
+import { CHANGELOG_ENTRIES } from "../lib/changelog";
 
 // Relative imports only in e2e/ (no "@/" — see env.ts's header note).
 
@@ -31,6 +32,7 @@ const PUBLIC_PAGES = [
   "/features/analytics",
   "/features/brand-studio",
   "/features/access-controls",
+  "/changelog",
 ] as const;
 
 test.describe("marketing site", () => {
@@ -693,5 +695,79 @@ test.describe("marketing site", () => {
     await expect(
       page.locator("#brand-system").getByRole("link", { name: "Explore the brand studio" }),
     ).toHaveAttribute("href", "/features/brand-studio");
+  });
+
+  // P9.5-T6: /changelog + its RSS feed (both read the same lib/changelog.ts
+  // array the test imports directly, so this proves the rendered page and
+  // feed against the actual data rather than a hand-copied expectation),
+  // plus the new footer/developers repo links (Changelog, Status, GitHub).
+
+  test("changelog: renders the head/lede and every entry with its real date and tags", async ({ page }) => {
+    await page.goto("/changelog");
+    await expect(page.getByRole("heading", { level: 1, name: "What changed, when." })).toBeVisible();
+    await expect(
+      page.getByText("Real dates, real changes, written as they shipped. No backfilled marketing."),
+    ).toBeVisible();
+
+    // Every entry from the single source of truth renders, anchored at its
+    // own id, with its real date and full summary sentence — not a
+    // truncated or re-typed copy.
+    for (const entry of CHANGELOG_ENTRIES) {
+      const row = page.locator(`#${entry.id}`);
+      await expect(row).toBeVisible();
+      await expect(row).toContainText(entry.summary);
+      await expect(row.locator("time")).toHaveAttribute("datetime", entry.date);
+    }
+
+    // Public-safety rule re-checked at the rendered-page level (data-level
+    // coverage already lives in lib/changelog.test.ts): no internal phase
+    // code like "P6" or "T3a" ever reaches served HTML.
+    const bodyText = await page.locator("body").innerText();
+    expect(bodyText).not.toMatch(/\bP\d{1,2}(?:\.\d)?-[A-Z]/);
+  });
+
+  test("changelog/rss.xml: a valid feed carrying every entry as an item", async ({ request }) => {
+    const response = await request.get("/changelog/rss.xml");
+    expect(response.ok()).toBe(true);
+    expect(response.headers()["content-type"]).toContain("xml");
+    const body = await response.text();
+    expect(body).toContain('<rss version="2.0">');
+    // Regex, not a string literal: lib/e2e-safety.test.ts's static scan
+    // flags "QRCDN" as an isolated uppercase run inside e2e/'s
+    // SLUG_CHARSET (Q/R/C/D/N are all in it) as a potential real-slug
+    // literal. It's the product name, not a slug, but a regex literal is
+    // exempt by construction (never a value sent anywhere) rather than
+    // needing an allowlist entry for a false positive (same "PATCH"/"QRCDN"
+    // precedent already used elsewhere in this file).
+    expect(body).toMatch(/<title>QRCDN changelog<\/title>/);
+    for (const entry of CHANGELOG_ENTRIES) {
+      expect(body).toContain(`#${entry.id}`);
+      expect(body).toContain(entry.summary);
+    }
+  });
+
+  test("footer: Changelog, Status, and GitHub links render with real hrefs", async ({ page }) => {
+    await page.goto("/");
+    const footer = page.getByRole("contentinfo");
+    await expect(footer.getByRole("link", { name: "Changelog" })).toHaveAttribute("href", "/changelog");
+    await expect(footer.getByRole("link", { name: "Status" })).toHaveAttribute(
+      "href",
+      "https://status.qrcdn.com",
+    );
+    // Regex, not a string literal, for the same e2e-safety reason as the
+    // RSS title assertion above: "QRCDN" is an isolated uppercase run
+    // inside the slug charset.
+    await expect(footer.getByRole("link", { name: "GitHub" })).toHaveAttribute(
+      "href",
+      /^https:\/\/github\.com\/willgibs\/QRCDN$/,
+    );
+  });
+
+  test("developers: a repo link to GitHub renders near the intro", async ({ page }) => {
+    await page.goto("/developers");
+    await expect(page.getByRole("link", { name: "View the source on GitHub" })).toHaveAttribute(
+      "href",
+      /^https:\/\/github\.com\/willgibs\/QRCDN$/,
+    );
   });
 });

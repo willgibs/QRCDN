@@ -1,0 +1,61 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "qrcdn-status",
+  "main": "src/index.ts",
+  // The locally installed wrangler/workerd binary (4.112.0) only ships
+  // support up to this date — a newer value (matching "today," or even
+  // workers/redirect's own "2026-07-22") fails local `wrangler dev`
+  // outright ("newest date supported by this server binary is
+  // 2026-07-21"), a well-known wrangler quirk: local dev's bundled workerd
+  // only knows about dates as of its own build, while the real Cloudflare
+  // edge (what `wrangler deploy` actually runs on) is always current. This
+  // Worker uses no runtime feature exotic enough for the exact date to
+  // matter; picked so `wrangler dev` also works locally for verification.
+  "compatibility_date": "2026-07-21",
+  // Required for P1 to work at all — found live, not anticipated. qrcdn.com
+  // (workers/redirect) and status.qrcdn.com (this Worker) are both inside
+  // the SAME Cloudflare zone (qrcdn.com covers all its subdomains), and by
+  // default a Worker's fetch() to another Worker on its own zone does not
+  // go out to the public Internet: Cloudflare intercepts it internally, and
+  // since workers/redirect runs on a Route (not a Custom Domain), that
+  // interception fails outright (edge error 1042, surfaced to the caller as
+  // a 522) rather than reaching the Worker. Confirmed against Cloudflare's
+  // own docs after reproducing the failure on the FIRST live deploy: a
+  // direct external curl to qrcdn.com succeeded every time, while this
+  // Worker's own fetch() to the identical URL 522'd twice in a row — a
+  // platform routing nuance, not a bug in either Worker. This flag forces
+  // fetch() to always route as genuine public-Internet traffic, which is
+  // also the semantically correct behavior for an honest external-style
+  // probe (it observes exactly what a real scanner sees, not an internal
+  // shortcut) — not merely a workaround. Config-only, confined to this
+  // file: does not touch, require, or redeploy workers/redirect.
+  "compatibility_flags": ["global_fetch_strictly_public"],
+  // Cloudflare-native logging only (same posture as workers/redirect's own
+  // wrangler.jsonc — see that file's comment and docs/guides/infra.md's
+  // Observability section for why: the Sentry Worker SDK cost the redirect
+  // Worker 37x its bundle size for a Worker with nothing latency-critical
+  // to protect. This Worker is smaller still and never sits on a user's
+  // critical path (it only runs when someone loads status.qrcdn.com
+  // directly), so the same zero-dependency posture applies with even less
+  // reason to reconsider it.
+  "observability": { "enabled": true },
+  // Pinned to the SAME Cloudflare account as workers/redirect
+  // (docs/guides/infra.md's account registry; this task's own CRITICAL
+  // SAFETY instruction). The founder's login also spans a second, unrelated
+  // account ("Partyreel Team"), and an unpinned wrangler deploy has landed
+  // there once before by accident (P5-U3 incident, docs/STATUS.md) — this
+  // value is intentionally identical to workers/redirect/wrangler.jsonc's
+  // own account_id, never inferred from whichever account happens to be
+  // active in the CLI session.
+  "account_id": "7982310e22cd9430e06c34942acf3b9a",
+  // Custom Domain, not a zone route: wrangler provisions the DNS record for
+  // status.qrcdn.com automatically on first deploy. This is a brand-new
+  // subdomain with no prior DNS entry — distinct from the qrcdn.com/* zone
+  // ROUTE workers/redirect attaches to an existing apex record. This Worker
+  // deploys standalone under its own name ("qrcdn-status") with its own
+  // Custom Domain: it shares only the Cloudflare account with
+  // workers/redirect (above) — no KV, no routes, no config keys in common —
+  // so a deploy here can never touch workers/redirect's Worker, route, or
+  // DNS record, or any partyreel worker.
+  "routes": [{ "pattern": "status.qrcdn.com", "custom_domain": true }],
+}

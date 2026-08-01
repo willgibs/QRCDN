@@ -9,10 +9,12 @@
 # incompatible with pg_dump-style operations). Dumps land as private-repo
 # Actions artifacts with 14-day retention.
 #
-# Encryption (P7.5-A1): the repo is PUBLIC (board decision, 2026-07-23 — free
-# Actions while building; private again before launch), and public-repo
-# artifacts are downloadable by any logged-in GitHub user. Dumps are therefore
-# encrypted before upload: AES-256-CBC via openssl with PBKDF2, passphrase in
+# Encryption (P7.5-A1): the repo is PUBLIC, permanently (board decision,
+# 2026-07-23, for free Actions while building; the original plan to go
+# private again before launch was reversed at P9.5-T6 — open source, MIT,
+# for good), and public-repo artifacts are downloadable by any logged-in
+# GitHub user. Dumps are therefore encrypted before upload: AES-256-CBC via
+# openssl with PBKDF2, passphrase in
 # the BACKUP_PASSPHRASE repo secret (a copy also lives in apps/web/.env.local
 # so restores never depend on GitHub). Decrypt a downloaded artifact with:
 #   openssl enc -d -aes-256-cbc -pbkdf2 -pass env:BACKUP_PASSPHRASE \

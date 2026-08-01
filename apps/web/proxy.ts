@@ -44,6 +44,11 @@ export const config = {
      * - pricing|terms|privacy (P9-U1) — static marketing pages, landing at
      *   P9-U3 (/pricing) and P9-U4 (/terms, /privacy). Public, no auth
      *   cookie work to do.
+     * - changelog (P9.5-T6) — /changelog and its nested /changelog/rss.xml
+     *   route handler; same "static marketing page, no auth cookie work to
+     *   do" reasoning as pricing/terms/privacy above. A bare prefix match
+     *   (not `changelog$`) is deliberate and consistent with every other
+     *   term in this list — it also covers the nested rss.xml route.
      * - the bare `$` alternative (P9-U1) — a zero-width end-of-string
      *   assertion, i.e. this excludes `/` itself. It has to be zero-width:
      *   after the matcher's leading slash is stripped there's nothing left
@@ -61,6 +66,6 @@ export const config = {
      *   unit after harvest into app/(marketing)'s real pages
      *   (docs/guides/p9-marketing.md's U5 migration table).
      */
-    "/((?!_next/static|_next/image|icon|apple-icon|opengraph-image|sitemap\\.xml|robots\\.txt|developers|u/[^/]+|p/[^/]+|api/v1|pricing|terms|privacy|$|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico)$).*)",
+    "/((?!_next/static|_next/image|icon|apple-icon|opengraph-image|sitemap\\.xml|robots\\.txt|developers|u/[^/]+|p/[^/]+|api/v1|pricing|terms|privacy|changelog|$|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico)$).*)",
   ],
 };

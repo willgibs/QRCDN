@@ -1,6 +1,6 @@
 # Status
 
-_Last updated: 2026-08-01 (P9.5-T-F2 landed: /features/brand-studio + /features/access-controls feature pages, landing doorways 02/03/04 live, D2 amended). Update this file at every phase boundary or significant commit._
+_Last updated: 2026-08-01 (P9.5-T6 landed: /changelog + RSS, status.qrcdn.com live on its own Worker, OSS pack — LICENSE/README/SECURITY/CONTRIBUTING — committed, repo-goes-private mentions aligned with the P9.5 open-source reversal). Update this file at every phase boundary or significant commit._
 
 ## Current phase
 
@@ -485,6 +485,125 @@ pages read cleanly section to section in both themes, and
 `document.documentElement.scrollWidth === innerWidth` at 390px confirmed
 zero horizontal overflow anywhere on either page.
 
+**T6 (this commit): changelog, status.qrcdn.com, and the OSS pack.** Spec:
+`t6-build-spec.md` (scratchpad). Three deliverables, all live.
+
+- **`/changelog` + RSS.** `lib/changelog.ts` is the single typed source
+  (`CHANGELOG_ENTRIES`, `CHANGELOG_TAGS`) both `/changelog` (poster head,
+  `reveal={false}` per the now-standard LCP fix) and the new
+  `/changelog/rss.xml` route handler (`force-static`, since a GET Route
+  Handler defaults to dynamic as of Next 15+ per the bundled docs) render
+  from — never a second hand-copied list. 10 entries, curated by hand from
+  this file's own ledger + `git log`, real day-precision dates
+  (2026-07-21 → 2026-08-01), mono tags from the closed 8-tag set
+  (engine/studio/codes/api/analytics/worker/site/security), zero internal
+  phase codes anywhere (a co-located `lib/changelog.test.ts` statically
+  greps every id/summary for a `P\d+`/`T\d[a-c]?`/`Checkpoint [ABC]`-shaped
+  token so this can't silently regress later, the same "prove it, don't
+  hand-maintain it" posture `lib/pricing.test.ts` already established) and
+  no em dash (also tested). Footer gains a Resources-flavored cluster:
+  Changelog + Status land beside Terms/Privacy in the existing Legal
+  column (no Resources column exists yet, and the spec's own fallback was
+  "beside Terms/Privacy cleanly"); GitHub lands beside API reference in
+  the Developers column; `/developers`' own intro gained a "View the
+  source on GitHub" `LearnMoreLink` in the one natural slot that page has
+  for it.
+- **`workers/status` → status.qrcdn.com, live.** New dependency-free
+  workspace package: three parallel request-time probes (~3s timeout
+  each), a pure `evaluate.ts` (vitest-covered) deciding pass/fail from raw
+  attempts, a pure `render.ts` producing one self-contained dark-themed
+  HTML page (literal color values hand-copied from `globals.css`'s
+  dark-mode block, no import from `apps/web` — genuinely independent
+  infrastructure), and a thin `probe.ts`/`index.ts` I/O shell, mirroring
+  workers/redirect's own "pure decision layer, thin shell" split. P1's
+  contract was verified against `workers/redirect/src/{route,redirect-
+  decision,responses}.ts` directly before writing the probe, not assumed:
+  an unknown-but-slug-shaped path is NOT a 404 — it resolves to
+  `{kind:"unclaimed"}` and gets the exact same 302 + `Cache-Control:
+  no-store` contract a real scan gets, just pointed at `/u/{slug}`. The
+  probe asserts exactly those two invariants (status 302, header present)
+  and deliberately not the `Location` value, so a future presentational
+  change to the unclaimed page can't false-positive this monitor. P3
+  verified against `lib/api-auth.ts`'s `authenticateApiRequest`: a
+  missing/malformed Authorization header is a 401 before any code-core
+  logic runs, so 401 for a keyless request IS the healthy state.
+  **Real platform issue found and fixed on the first live deploy, not
+  anticipated in planning:** `qrcdn.com` (workers/redirect) and
+  `status.qrcdn.com` (this Worker) share one Cloudflare zone, and a
+  Worker's `fetch()` to another Worker on its own zone does not reach the
+  public Internet by default — Cloudflare intercepts it internally, and
+  since workers/redirect runs on a Route (not a Custom Domain) that
+  interception fails outright (edge error 1042, surfaced as a bare 522).
+  Reproduced twice live (direct external `curl qrcdn.com` succeeded both
+  times at the same moment this Worker's own P1 fetch 522'd), confirmed
+  against Cloudflare's own docs, fixed with **one config-only line** in
+  `workers/status/wrangler.jsonc` (`compatibility_flags:
+  ["global_fetch_strictly_public"]`) that touches nothing in
+  workers/redirect — and is the semantically MORE correct behavior for an
+  honest external-style probe regardless, not merely a workaround.
+  Deployed via `wrangler deploy` from `workers/status/` with the existing
+  local OAuth session (same account as workers/redirect, confirmed via
+  `wrangler whoami` before deploying; `account_id` pinned in
+  `wrangler.jsonc` per the P5-U3 incident precedent); Custom Domain
+  `status.qrcdn.com` provisioned automatically, zero manual DNS. Live
+  double-curl proof: both requests returned `200`, `Cache-Control:
+  no-store`, "All systems normal," all three probes passing. `wrangler
+  dev`'s bundled workerd binary only supports compatibility dates up to
+  2026-07-21 (this session's real date is later) — `compatibility_date`
+  pinned to that value so local `wrangler dev` verification stays
+  possible; this Worker uses nothing runtime-exotic enough for the exact
+  date to matter.
+- **OSS pack.** Root `LICENSE` (MIT, copyright (c) 2026 QRCDN), `README.md`
+  (the spec's content verbatim — the architecture table's six paths were
+  already accurate against the real tree, including the brand-new
+  `workers/status` row; added a real CI badge,
+  `github.com/willgibs/QRCDN/actions/workflows/ci.yml/badge.svg`, since
+  `.github/workflows/ci.yml` genuinely exists — the spec's "keep the CI
+  badge only if the URL is real" condition read as permission to add one,
+  not an instruction to keep something already there), `SECURITY.md`
+  (hello@qrcdn.com, no bounty claim, no fake SLA), `CONTRIBUTING.md`
+  ("built in the open, developed as a cathedral," the standing repo rules
+  as contributor guardrails). **Repo-goes-private mentions aligned with
+  the P9.5 open-source reversal**, found by grep across `docs/` and
+  `.github/`, not just the two files the spec named: `docs/guides/
+  infra.md`'s "Repo visibility" section rewritten (was "flip back private
+  before launch — P10 checklist"; now permanent, with the P10 item
+  explicitly noted gone) plus its uptime-cadence sentence; the live
+  `uptime.yml` and `backup.yml` workflow comments corrected (both are
+  operational code, not historical record); `docs/guides/
+  p8-proof-protection.md` got a **dated amendment note** rather than a
+  silent rewrite, preserving what P8 actually shipped against (this
+  file's own established convention — see D2/D8/D12 in DECISIONS.md).
+  Deliberately left untouched: this file's own P7.5 Part A paragraph
+  (historical record of what was true when it was written) and the P9.5
+  OPEN entry + `p9.5-ascent.md` (both already state the reversal
+  correctly).
+
+Verified: `pnpm lint && pnpm typecheck && pnpm test` all green across
+every workspace package including the new `workers/status`
+(730 tests: 23 shared + 25 workers/status + 55 qr-engine + 138
+workers/redirect + 489 web, +11 web from `lib/changelog.test.ts`),
+`pnpm build` keeps `/changelog` and `/changelog/rss.xml` at `○ (Static)`
+with every other route's render mode byte-identical to the T-F2
+baseline. Full local e2e run (`pnpm test:e2e`, `next start -p 3100`, real
+cloud Supabase fixture): **66/66 green** (62 baseline + 4 new: changelog
+entries/dates render from the live import, the RSS feed is valid and
+carries every entry, the three new footer links resolve to real hrefs,
+`/developers`' new GitHub link renders) — fixture created and torn down
+cleanly. Two new literal strings ("QRCDN" in the GitHub URL and the RSS
+`<title>`) tripped `lib/e2e-safety.test.ts`'s static slug-charset scanner
+(Q/R/C/D/N all fall inside the narrow uppercase slug charset) — fixed via
+regex literals, the same exemption-by-construction precedent T3c/T4
+already established for "PATCH"/"QRCDN" elsewhere in this file, not by
+weakening the guardrail.
+
+No deviations from the spec's substance. Judgment calls, all recorded
+above: `wrangler.jsonc` (not the spec's literal `wrangler.toml`) to match
+workers/redirect's existing config format; the CI badge added rather than
+found-and-kept; footer link placement (Legal column, not a new Resources
+column); the `global_fetch_strictly_public` fix, found live rather than
+anticipated.
+
 ## Phase ledger
 
 | Phase | Status | Ref |
@@ -512,7 +631,7 @@ zero horizontal overflow anywhere on either page.
 
 ## Environment quick refs
 
-Supabase project `qrcdn` = `yklhpbhfowuvxlwlalhf` (free tier, org `mmfclcuvgwdmpwtnzgvw`, region `us-east-1`) · Vercel team `willgibs`, project `qrcdn` (a stray CLI-created project `web` was deleted 2026-07-22 — always confirm `.vercel/project.json` says `qrcdn` before env/deploy operations) · GitHub `willgibs/QRCDN` · DNS on Cloudflare, Worker `qrcdn-redirect` (same account also runs two unrelated Workers `partyreel-export`/`partyreel-backup` — never touch those). Costs: $0 while building; $25/mo at launch (details: `docs/guides/infra.md`).
+Supabase project `qrcdn` = `yklhpbhfowuvxlwlalhf` (free tier, org `mmfclcuvgwdmpwtnzgvw`, region `us-east-1`) · Vercel team `willgibs`, project `qrcdn` (a stray CLI-created project `web` was deleted 2026-07-22 — always confirm `.vercel/project.json` says `qrcdn` before env/deploy operations) · GitHub `willgibs/QRCDN` · DNS on Cloudflare, Workers `qrcdn-redirect` (qrcdn.com/*) and `qrcdn-status` (status.qrcdn.com, live since P9.5-T6) both on the "Will Gibson" account, `7982310e22cd9430e06c34942acf3b9a` (same account also runs two unrelated Workers `partyreel-export`/`partyreel-backup` — never touch those). Costs: $0 while building; $25/mo at launch (details: `docs/guides/infra.md`).
 
 ## Operating model (from founder, session 2)
 

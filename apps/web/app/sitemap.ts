@@ -1,7 +1,8 @@
 import type { MetadataRoute } from "next";
 
 // The entire public, indexable surface (P9-U5; +2 feature pages at
-// P9.5-T-F1; +2 more at P9.5-T-F2) — nine static marketing pages.
+// P9.5-T-F1; +2 more at P9.5-T-F2; +/changelog at P9.5-T6) — ten static
+// marketing pages.
 // Everything else is either auth-gated (the (app) routes), a deliberately
 // noindex existence-probing surface (/login, /u/{slug}, /p/{slug} —
 // crawlable per app/robots.ts but left off this list on purpose, same
@@ -49,6 +50,11 @@ export default function sitemap(): MetadataRoute.Sitemap {
       url: `${BASE_URL}/developers`,
       changeFrequency: "monthly",
       priority: 0.7,
+    },
+    {
+      url: `${BASE_URL}/changelog`,
+      changeFrequency: "weekly",
+      priority: 0.5,
     },
     {
       url: `${BASE_URL}/terms`,

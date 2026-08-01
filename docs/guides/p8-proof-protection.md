@@ -88,6 +88,15 @@ goes private (P10) is uptime (~720 min/mo) + backup (~30) ≈ **750 of 2,000 fre
 minutes** — which is exactly why the canary is hourly, not every 15 minutes (that alone
 would exceed the entire budget).
 
+*Amended at P9.5-T6 (2026-08-01):* "once the repo goes private (P10)" above was the
+plan when this was written and is no longer the plan — the board reversed it at P9.5:
+the repo is open source (MIT) and stays public permanently, not just "while building."
+The 750-of-2,000-min/mo arithmetic itself is unaffected (public repos get unmetered
+Actions minutes, so it was already not a live constraint at the time this was written
+either), and the hourly canary cadence this paragraph justifies is unchanged — only the
+"private repo, someday" premise is stale. Left in place above rather than rewritten,
+per this file's own nature as a dated record of what P8 shipped against.
+
 ## Units
 
 | Unit | Contents |

@@ -10,8 +10,14 @@ import { Callout } from "@/components/marketing/developers/callout";
 import { ErrorsTable } from "@/components/marketing/developers/errors-table";
 import { Quickstart } from "@/components/marketing/developers/quickstart";
 import { ApiToc, type TocItem } from "@/components/marketing/developers/api-toc";
+import { LearnMoreLink } from "@/components/marketing/learn-more-link";
 import { API_ENDPOINTS, PIPELINE_ERRORS } from "@/lib/api-reference";
 import { PLAN_LIMITS } from "@/lib/entitlements";
+
+// Same repo URL open-source-section.tsx's own REPO_URL and the footer's
+// GitHub link use (P9.5-T6) — a plain literal here rather than a shared
+// export, matching this file's existing style of self-contained constants.
+const REPO_URL = "https://github.com/willgibs/QRCDN";
 
 export const metadata: Metadata = {
   title: "API",
@@ -69,6 +75,11 @@ export default function DevelopersPage() {
             API key. Retargeting changes where a code points without touching the printed
             QR, because your code never dies.
           </p>
+          <div className="mt-4">
+            <LearnMoreLink href={REPO_URL} external>
+              View the source on GitHub
+            </LearnMoreLink>
+          </div>
         </div>
 
         <div className="mt-14 lg:grid lg:grid-cols-[14rem_1fr] lg:gap-12">

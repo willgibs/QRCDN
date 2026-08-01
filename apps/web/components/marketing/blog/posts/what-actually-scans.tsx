@@ -64,7 +64,7 @@ export function WhatActuallyScansPost() {
         Every failing configuration in the campaign had an effective ratio of roughly 0.418 or
         higher. Every passing configuration stayed at roughly 0.407 or lower. There is a gap
         between those two numbers, and it is not an accident that our thresholds live inside it:
-        we warn at 0.395 and refuse at 0.412.
+        we warn at 0.395 and call it an error at 0.412.
       </P>
       <Pull>
         The thresholds are not where things break. They sit in the last stretch of ground where

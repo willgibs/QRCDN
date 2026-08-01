@@ -31,7 +31,21 @@ import { cn } from "@/lib/utils";
  * fake input/button chrome inside each card is `aria-hidden` — decoration
  * only, same convention `ProductWindow`'s traffic-light dots use; the real
  * information (heading, route label) stays regular readable text.
- */
+ *
+ * `layout` (P9.5-T-F1, additive — the landing's own `<StateCards />` call
+ * omits it and keeps today's byte-identical behavior): the landing squeezes
+ * this into a 280px sidebar beside `RetargetTheatre`, which is why the
+ * original grid forces back down to 1 column at `lg` after widening to 3 at
+ * `sm` (`sm:grid-cols-3 lg:grid-cols-1` — deliberate, not an oversight, for
+ * that one narrow container). `/features/dynamic-codes` hosts these cards
+ * as a section's own full-width body, not a sidebar, where forcing 1 column
+ * at `lg` would leave three cards stacked and oddly narrow on a wide page.
+ * `layout="grid"` keeps 3 columns at every breakpoint from `sm` up instead
+ * — true reuse via an additive prop, not a forked copy of this component. */
+const LAYOUT_CLASS: Record<"sidebar" | "grid", string> = {
+  sidebar: "sm:grid-cols-3 lg:grid-cols-1",
+  grid: "sm:grid-cols-3 lg:grid-cols-3",
+};
 
 const DEMO_SLUG = "K7M2X9A";
 
@@ -63,11 +77,11 @@ function MockButton({ children }: { children: ReactNode }) {
   );
 }
 
-export function StateCards() {
+export function StateCards({ layout = "sidebar" }: { layout?: "sidebar" | "grid" } = {}) {
   const expired = statusMeta("active", "2024-01-01T00:00:00.000Z");
 
   return (
-    <div className="grid gap-4 sm:grid-cols-3 lg:grid-cols-1">
+    <div className={cn("grid gap-4", LAYOUT_CLASS[layout])}>
       <StateCard routeLabel={`/u/${DEMO_SLUG}`}>
         <div className="flex flex-col gap-1.5">
           <p className="text-sm font-semibold text-foreground">This code isn&apos;t live right now.</p>

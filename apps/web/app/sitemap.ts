@@ -1,11 +1,11 @@
 import type { MetadataRoute } from "next";
 
-// The entire public, indexable surface (P9-U5) — five static marketing
-// pages. Everything else is either auth-gated (the (app) routes), a
-// deliberately noindex existence-probing surface (/login, /u/{slug},
-// /p/{slug} — crawlable per app/robots.ts but left off this list on
-// purpose, same reasoning as that file's own comment), or non-HTML
-// (/api/*, /auth/*).
+// The entire public, indexable surface (P9-U5; +2 feature pages at
+// P9.5-T-F1) — seven static marketing pages. Everything else is either
+// auth-gated (the (app) routes), a deliberately noindex existence-probing
+// surface (/login, /u/{slug}, /p/{slug} — crawlable per app/robots.ts but
+// left off this list on purpose, same reasoning as that file's own
+// comment), or non-HTML (/api/*, /auth/*).
 //
 // lastModified is omitted: none of these pages has a real per-page
 // "last edited" timestamp anywhere in the system (no CMS, no DB row), and
@@ -24,6 +24,16 @@ export default function sitemap(): MetadataRoute.Sitemap {
       url: `${BASE_URL}/pricing`,
       changeFrequency: "weekly",
       priority: 0.9,
+    },
+    {
+      url: `${BASE_URL}/features/dynamic-codes`,
+      changeFrequency: "monthly",
+      priority: 0.8,
+    },
+    {
+      url: `${BASE_URL}/features/analytics`,
+      changeFrequency: "monthly",
+      priority: 0.8,
     },
     {
       url: `${BASE_URL}/developers`,

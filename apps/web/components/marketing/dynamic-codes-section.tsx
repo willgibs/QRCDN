@@ -3,7 +3,7 @@ import { MonoStrip } from "@/components/marketing/mono-strip";
 import { LearnMoreLink } from "@/components/marketing/learn-more-link";
 import { RetargetTheatre } from "@/components/marketing/retarget-theatre";
 import { StateCards } from "@/components/marketing/state-cards";
-import { FEATURE_DOORWAYS_ENABLED } from "@/lib/marketing-flags";
+import { DYNAMIC_CODES_DOORWAY_ENABLED } from "@/lib/marketing-flags";
 
 // 04 — Dynamic codes (P9.5-T3a: migrated onto Section/SectionHeading, copy
 // deck v3 head/lede/mono strips applied; the guarantee strip's text also
@@ -36,7 +36,7 @@ export function DynamicCodesSection() {
           deactivated, and a downgrade never breaks a printed code.
         </MonoStrip>
         <MonoStrip icon={false}>302 + no-store · retarget live in seconds · ≤ 5 min worst case</MonoStrip>
-        {FEATURE_DOORWAYS_ENABLED && (
+        {DYNAMIC_CODES_DOORWAY_ENABLED && (
           <LearnMoreLink href="/features/dynamic-codes">Explore dynamic codes</LearnMoreLink>
         )}
       </SectionBody>

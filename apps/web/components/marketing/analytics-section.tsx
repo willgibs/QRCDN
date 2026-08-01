@@ -1,7 +1,7 @@
 import { Section, SectionHeading, SectionBody } from "@/components/marketing/section";
 import { MonoStrip } from "@/components/marketing/mono-strip";
 import { LearnMoreLink } from "@/components/marketing/learn-more-link";
-import { FEATURE_DOORWAYS_ENABLED } from "@/lib/marketing-flags";
+import { ANALYTICS_DOORWAY_ENABLED } from "@/lib/marketing-flags";
 import { DashboardWindow } from "./dashboard-window";
 
 // 06 — Analytics (P9.5-T3a: migrated onto Section/SectionHeading, copy
@@ -30,7 +30,7 @@ export function AnalyticsSection() {
 
       <SectionBody delay={0.15} className="mt-8 flex flex-col items-start gap-3">
         <MonoStrip>sha256(ip + daily rotating salt) → raw IPs never stored</MonoStrip>
-        {FEATURE_DOORWAYS_ENABLED && (
+        {ANALYTICS_DOORWAY_ENABLED && (
           <LearnMoreLink href="/features/analytics">Explore analytics</LearnMoreLink>
         )}
       </SectionBody>

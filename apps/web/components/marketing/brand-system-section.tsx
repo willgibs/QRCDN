@@ -1,7 +1,7 @@
 import { Section, SectionHeading, SectionBody } from "@/components/marketing/section";
 import { MonoStrip } from "@/components/marketing/mono-strip";
 import { LearnMoreLink } from "@/components/marketing/learn-more-link";
-import { FEATURE_DOORWAYS_ENABLED } from "@/lib/marketing-flags";
+import { BRAND_STUDIO_DOORWAY_ENABLED } from "@/lib/marketing-flags";
 import { KitContactSheet } from "./kit-contact-sheet";
 
 // 03 — Brand system (P9.5-T3a: migrated onto Section/SectionHeading, copy
@@ -29,7 +29,7 @@ export function BrandSystemSection() {
 
       <SectionBody delay={0.15} className="mt-8 flex flex-col items-start gap-4">
         <MonoStrip>style frozen per code at mint · re-renders identical forever</MonoStrip>
-        {FEATURE_DOORWAYS_ENABLED && (
+        {BRAND_STUDIO_DOORWAY_ENABLED && (
           <LearnMoreLink href="/features/brand-studio">Explore the brand studio</LearnMoreLink>
         )}
       </SectionBody>

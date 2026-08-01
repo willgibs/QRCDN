@@ -21,7 +21,15 @@ import { PLAN_LIMITS, PRICING } from "../lib/entitlements";
  * the (app) routes already cover.
  */
 
-const PUBLIC_PAGES = ["/", "/pricing", "/terms", "/privacy", "/developers"] as const;
+const PUBLIC_PAGES = [
+  "/",
+  "/pricing",
+  "/terms",
+  "/privacy",
+  "/developers",
+  "/features/dynamic-codes",
+  "/features/analytics",
+] as const;
 
 test.describe("marketing site", () => {
   for (const path of PUBLIC_PAGES) {
@@ -148,6 +156,9 @@ test.describe("marketing site", () => {
     expect(response.ok()).toBe(true);
     const body = await response.text();
     expect(body).toContain("/pricing");
+    // P9.5-T-F1: both new feature pages.
+    expect(body).toContain("/features/dynamic-codes");
+    expect(body).toContain("/features/analytics");
   });
 
   test("pricing page numbers are read from entitlements.ts, not retyped", async ({ page }) => {
@@ -523,5 +534,75 @@ test.describe("marketing site", () => {
     expect(h1Match, "expected an <h1> in the served HTML").toBeTruthy();
     expect(h1Match?.[0]).not.toMatch(/opacity\s*:\s*0(?!\.)/);
     expect(h1Match?.[0]).toContain("Two plans");
+  });
+
+  // P9.5-T-F1: the two feature pages (/features/dynamic-codes,
+  // /features/analytics) and the landing doorways that now point at them.
+
+  test("features/dynamic-codes: renders the hero h1 and one section body marker", async ({
+    page,
+  }) => {
+    await page.goto("/features/dynamic-codes");
+    await expect(
+      page.getByRole("heading", { level: 1, name: "Repoint anything you have printed." }),
+    ).toBeVisible();
+    // A section-body marker distinct from the hero: the RetargetTheatre
+    // island (S2), the same reused component the landing's own #dynamic-
+    // codes section renders — proves the page composes it, not a copy.
+    await expect(
+      page.getByRole("img", { name: "A printed QR code with three destinations; tap one to retarget it" }),
+    ).toBeVisible();
+  });
+
+  test("features/dynamic-codes: honest plan table and FAQ render", async ({ page }) => {
+    await page.goto("/features/dynamic-codes");
+    await expect(page.getByRole("heading", { name: "What each plan holds." })).toBeVisible();
+    const table = page.getByRole("table");
+    await expect(table.getByText(String(PLAN_LIMITS.free.dynamicCodes), { exact: true })).toBeVisible();
+    await expect(table.getByText(String(PLAN_LIMITS.pro.dynamicCodes), { exact: true })).toBeVisible();
+    await expect(page.getByText("How fast is a retarget?")).toBeVisible();
+  });
+
+  test("features/analytics: renders the hero h1 and one section body marker", async ({ page }) => {
+    await page.goto("/features/analytics");
+    await expect(
+      page.getByRole("heading", { level: 1, name: "Every scan, counted honestly." }),
+    ).toBeVisible();
+    // Section-body marker: DashboardWindow (S1), reused as-is from the
+    // landing's own #analytics section.
+    await expect(page.getByText("Scan activity")).toBeVisible();
+  });
+
+  test("features/analytics: retention line and FAQ render from entitlements", async ({ page }) => {
+    await page.goto("/features/analytics");
+    await expect(page.getByRole("heading", { name: "History that matches your plan." })).toBeVisible();
+    await expect(
+      page.getByText(
+        `Free keeps ${PLAN_LIMITS.free.analyticsRetentionDays} days of scan history`,
+        { exact: false },
+      ),
+    ).toBeVisible();
+    await expect(page.getByText("Do you use cookies or fingerprinting?")).toBeVisible();
+    await expect(page.getByRole("link", { name: "per-code series and breakdowns" })).toHaveAttribute(
+      "href",
+      "/developers#code-analytics",
+    );
+  });
+
+  test("landing doorways: dynamic-codes and analytics link out, brand-studio does not", async ({
+    page,
+  }) => {
+    await page.goto("/");
+    // Sections 04 and 06: the doorway flags flipped on this unit.
+    await expect(
+      page.locator("#dynamic-codes").getByRole("link", { name: "Explore dynamic codes" }),
+    ).toHaveAttribute("href", "/features/dynamic-codes");
+    await expect(
+      page.locator("#analytics").getByRole("link", { name: "Explore analytics" }),
+    ).toHaveAttribute("href", "/features/analytics");
+    // Section 03 (brand system): /features/brand-studio doesn't exist yet,
+    // so its doorway flag stays off — the link must not render at all
+    // (real-hrefs-only rule; rendering it would 404).
+    await expect(page.getByRole("link", { name: "Explore the brand studio" })).toHaveCount(0);
   });
 });

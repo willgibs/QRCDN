@@ -23,7 +23,7 @@ import { downloadBlob, exportFilename, rasterizeSvgToPng } from "@/lib/export";
 import { brandQrStyles } from "@/lib/brand-qr";
 import { PREVIEW_PAYLOAD_DEFAULT, renderPreview } from "@/lib/preview";
 import { inkHexFromStyle } from "@/lib/qr-style-derive";
-import { FEATURE_DOORWAYS_ENABLED } from "@/lib/marketing-flags";
+import { BRAND_STUDIO_DOORWAY_ENABLED } from "@/lib/marketing-flags";
 import { Section, SectionHeading, SectionBody } from "@/components/marketing/section";
 import { MonoStrip } from "@/components/marketing/mono-strip";
 import { LearnMoreLink } from "@/components/marketing/learn-more-link";
@@ -571,7 +571,7 @@ export function Playground() {
 
       <SectionBody delay={0.15} className="mt-8 flex flex-col items-start gap-4">
         <MonoStrip>SVG + PNG export · instrument: live · engine: open source</MonoStrip>
-        {FEATURE_DOORWAYS_ENABLED && (
+        {BRAND_STUDIO_DOORWAY_ENABLED && (
           <LearnMoreLink href="/features/brand-studio">Explore the brand studio</LearnMoreLink>
         )}
       </SectionBody>

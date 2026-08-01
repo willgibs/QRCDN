@@ -6,8 +6,10 @@ import { PLAN_LIMITS } from "@/lib/entitlements";
 
 // 07 — API (P9.5-T3a: migrated onto Section/SectionHeading, copy deck v3
 // head/lede/mono strip applied). Doorway points at a real, already-shipped
-// page (/developers) — not gated behind FEATURE_DOORWAYS_ENABLED like the
-// /features/* doorways elsewhere on this page. P9.5-T3c: the body's single
+// page (/developers) — not gated behind a lib/marketing-flags.ts flag like
+// the /features/* doorways elsewhere on this page (those gate on a
+// per-page flag each, one per unbuilt destination — see that file's own
+// header comment). P9.5-T3c: the body's single
 // static code block is replaced by `ApiConsole` — three tabs (Create ·
 // Retarget · Analytics), each pane's request/response read straight from
 // `lib/api-reference.ts` (the same data /developers renders), server-

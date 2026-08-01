@@ -1,6 +1,6 @@
 # Status
 
-_Last updated: 2026-08-01 (P9.5-T5 landed: /developers content ascent, Quickstart + comprehensive per-endpoint reference). Update this file at every phase boundary or significant commit._
+_Last updated: 2026-08-01 (P9.5-T-F1 landed: /features/dynamic-codes + /features/analytics feature pages, landing doorways 04/06 live). Update this file at every phase boundary or significant commit._
 
 ## Current phase
 
@@ -226,6 +226,109 @@ section 09's build-time verbatim excerpt of `packages/qr-engine/src/guardrails.t
 comments (`lib/guardrails-excerpt.ts`), correctly left alone, since "fixing" them would mean
 editing qr-engine's own source comments (a different package, out of scope) and would break the
 excerpt's own "never hand-copied" honesty guarantee.
+
+**T-F chunk 1 (this commit): the first two feature pages, /features/dynamic-codes +
+/features/analytics.** Spec: the combined CEO deck + build spec for T-F chunk 1
+(scratchpad `tf1-deck-and-spec.md`) — deck strings verbatim-locked, page-depth copy
+composing the landing's already-proven section-04/06 components rather than a new
+visual system. Both routes render `○ (Static)`, zero new client JS (the only client
+island either page uses is `RetargetTheatre`, already shipped and already bundled
+for the landing).
+
+- **True reuse, not forks.** `RetargetTheatre` and `DashboardWindow` render with zero
+  prop changes ("reused as-is," per the deck). `StateCards` gained one additive
+  `layout?: "sidebar" | "grid"` prop (default `"sidebar"`, byte-identical to the
+  landing's existing behavior) — its original grid forces back to 1 column at `lg`
+  specifically to fit the landing's 280px sidebar, which read sparse as a standalone
+  section's full-width body, so `/features/dynamic-codes` passes `layout="grid"`
+  instead. `ClosingSection` gained additive `title`/`lede` props (defaults byte-
+  identical to today's landing copy) — the dynamic-codes page's own closing CTA head
+  is verbatim identical to the existing default, so it reuses the component with
+  zero props at all; the analytics page overrides `title` only. Net-new, shared
+  between both pages: `components/marketing/features/feature-hero.tsx` (the
+  centered/air hero shape, built from `Section`/`SectionHeading`/`MonoStrip` —
+  deliberately NOT the landing's own bespoke `Hero`, which isn't in this chunk's
+  reuse list and carries machinery specific to its one headline) and `faq-list.tsx`
+  (a static, always-open `<dl>` Q&A list — deliberately NOT `PricingFaq`'s
+  `"use client"` accordion pattern, since the zero-new-client-JS non-negotiable rules
+  out a second interactive island). Net-new, single-page: `address-layers-diagram.tsx`
+  (dynamic-codes S1's authored two-layer diagram — the shared `QrTile`, sacred-still
+  as always, plus a dashed-border "destination row" mock whose dashed/solid contrast
+  against the QR tile's own solid gradient border carries "one of these changes and
+  one doesn't" without a caption having to say so; connected by a plain `lucide-react`
+  arrow, already a project dependency, inert SVG output in a server component).
+- **Doorway-flag refactor, forced by the chunking itself.** `lib/marketing-flags.ts`'s
+  single `FEATURE_DOORWAYS_ENABLED` assumed every `/features/*` page would land in one
+  unit; chunk 1 ships two of what turned out to be **four** consumers (grep found a
+  second `/features/brand-studio` doorway in `playground.tsx`/section 02, beyond the
+  already-known one in `brand-system-section.tsx`/section 03 — the deck's own build
+  notes didn't anticipate this second call site). Split into three named flags —
+  `DYNAMIC_CODES_DOORWAY_ENABLED`/`ANALYTICS_DOORWAY_ENABLED` now `true`,
+  `BRAND_STUDIO_DOORWAY_ENABLED` stays `false` (both of ITS call sites) — so the two
+  real pages go live without exposing the two links to a page that doesn't exist yet
+  (SiteNav/SiteFooter's standing "real hrefs only" rule).
+- **Honest-content check (the task's own required D2/D8 + Worker-source cross-check).**
+  Both numeric claims are TRUE of the shipped product, verified against the Worker
+  source directly, not assumed from the decision log's prose:
+  - **"≤ 5 min worst case" / "the hard ceiling is five minutes of edge cache."**
+    `workers/redirect/src/index.ts`'s read-through KV backfill and
+    `kv-sync-endpoint.ts`'s write-through sync both literally write
+    `{ expirationTtl: 300 }` (5 minutes) — confirmed by reading both call sites, not
+    inferred. **Finding, not a blocker:** D2's own prose ("worst-case staleness ≈
+    60s," from `KV.get(slug, {cacheTtl: 60})`) predates this — the P5 STATUS entry
+    documents the 60s→300s change (a real bug found and fixed: KV backfill entries
+    originally had no TTL at all, so an unavailable write-through could pin a stale
+    destination forever; the fix capped it at 300s) but D2 itself was never amended
+    to match, unlike D8's own explicit "Amended at P6" pattern. The Worker source is
+    the ground truth for what the product actually does today, and it matches the
+    deck exactly; D2's stale "≈60s" sentence is a decision-log hygiene gap worth a
+    future one-line fix, not a reason to withhold this claim.
+  - **Hourly rollup.** `supabase/migrations/20260723000007_scan_rollup.sql` schedules
+    `cron.schedule('rollup_scan_daily_hourly', '5 * * * *', ...)` — literally hourly,
+    matching D8's own already-amended "Amended at P6... hourly, not nightly" text and
+    the deck's "An hourly job rolls logs into daily counts per code" / "Totals update
+    hourly by design" lines exactly. No discrepancy.
+  Both FAQ claims about live vs. rolled-up numbers (today tile live, `scanCount` up to
+  an hour stale) match the T5 STATUS entry's own findings from reading the API route
+  handlers directly. No claim required stopping.
+- **Judgment calls, not deck deviations** (the deck left these unspecified): both FAQ
+  sections needed a `SectionHeading`'s required `title`, which the deck gives Q&A
+  pairs for but no section head — invented "Before you print." (dynamic-codes) and
+  "Before you trust the numbers." (analytics), same class of gap-fill /pricing's own
+  "Before you pick a plan." already set precedent for. The honest plans-and-limits
+  table's "Retargets" row has no `PlanLimits` field behind it (D14: retargeting is
+  unconditionally unlimited on both plans, never a numeric cap) — its "Unlimited"/
+  "Unlimited" cells are the one static pair in an otherwise `PRICING_ROWS`-sourced
+  table (`dynamicCodes`/`accessControls`/`apiMonthlyRequests` rows all read the exact
+  strings `/pricing` itself renders, not re-derived a second way).
+- **Sitemap + OG.** `app/sitemap.ts` gains both routes (priority 0.8, monthly).
+  `scripts/generate-brand-images.ts` extended with two independent SVG builders
+  (`buildDynamicCodesOgSvg`/`buildAnalyticsOgSvg`, same canvas language as the
+  existing pricing/legal builders, kept independent per the file's own established
+  reasoning) and two new deep-linking QR payloads
+  (`HTTPS://QRCDN.COM/FEATURES/DYNAMIC-CODES`, `.../FEATURES/ANALYTICS` — both
+  self-verified via the existing zxing-wasm decode-before-write gate). Re-running the
+  generator reproduced every pre-existing image byte-identical (git-diff-confirmed)
+  and wrote the two new OG PNGs + alt-text files.
+
+Verified: `pnpm lint && pnpm typecheck && pnpm test` all green across every workspace
+package (694 tests, unchanged count: 55 qr-engine + 138 worker + 23 shared + 478 web —
+this unit's new logic is compositional, not new pure functions, so it's covered by e2e
+rather than new vitest cases, same reasoning T5 gave), `pnpm build` keeps
+`/features/dynamic-codes` and `/features/analytics` at `○ (Static)` and every other
+route's render mode byte-identical to the T5 baseline. Full local e2e run
+(`pnpm test:e2e`, `next start -p 3100`, real cloud Supabase fixture): 55/55 green,
+including 6 new/extended assertions (both pages' PUBLIC_PAGES 200-with-no-`href="#"`
+sweep, hero h1 + one section-body marker each, honest plan table + FAQ, retention line
++ FAQ + the analytics-endpoint-anchor link, landing doorways present on 04/06 and
+absent for brand-studio, sitemap contains both new paths) plus the entire pre-existing
+marketing/money-path/auth-scanner-safety suites, confirming nothing else broke. Live
+production-build review (`next start`, throwaway port) at desktop/1280px and
+375px mobile, both themes, via the browser pane's documented `!important`-override
+workaround for the hidden-tab rAF freeze: both pages read cleanly section to section,
+the two-layer diagram's connecting arrow correctly reflows from a rightward to a
+downward orientation at the mobile breakpoint, and `scrollWidth === innerWidth` at
+375px confirmed zero horizontal overflow anywhere on either page.
 
 ## Phase ledger
 

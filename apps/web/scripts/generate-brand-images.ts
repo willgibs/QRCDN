@@ -29,6 +29,14 @@
  *   - app/(marketing)/privacy/opengraph-image.png (1200x630, byte-identical
  *     to the terms PNG)
  *   - app/(marketing)/privacy/opengraph-image.alt.txt
+ *
+ * P9.5-T-F1 adds two feature-page OGs, each with its own payload (unlike
+ * the legal pair, these are NOT byte-identical to each other or to any
+ * earlier output — two distinct headlines, two distinct deep-link QRs):
+ *   - app/(marketing)/features/dynamic-codes/opengraph-image.png (1200x630)
+ *   - app/(marketing)/features/dynamic-codes/opengraph-image.alt.txt
+ *   - app/(marketing)/features/analytics/opengraph-image.png (1200x630)
+ *   - app/(marketing)/features/analytics/opengraph-image.alt.txt
  */
 
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
@@ -63,6 +71,13 @@ const OG_PAYLOAD = "HTTPS://QRCDN.COM";
 // not just the origin), so scanning this card lands a visitor on the real
 // /pricing page, not just the homepage.
 const OG_PRICING_PAYLOAD = "HTTPS://QRCDN.COM/PRICING";
+
+// The two feature-page OGs (P9.5-T-F1) deep-link to their own real routes,
+// same host-canonicalization-preserves-path reasoning as OG_PRICING_PAYLOAD
+// above. "-" is inside the QR alphanumeric charset alongside "/" and ":",
+// so both payloads stay uppercase alphanumeric-mode encodable end to end.
+const OG_DYNAMIC_CODES_PAYLOAD = "HTTPS://QRCDN.COM/FEATURES/DYNAMIC-CODES";
+const OG_ANALYTICS_PAYLOAD = "HTTPS://QRCDN.COM/FEATURES/ANALYTICS";
 
 // ---------------------------------------------------------------------
 // sRGB hex palette — exported brand assets are sRGB hex only, never oklch
@@ -170,6 +185,28 @@ function renderOgQr(): QrRender {
 function renderPricingOgQr(): QrRender {
   const { svg, sideLength } = renderQr({
     data: OG_PRICING_PAYLOAD,
+    style: brandQrStyles.precision.light,
+    quietZone: 4,
+  });
+  const inner = svg.replace(/^<svg[^>]*>/, "").replace(/<\/svg>$/, "");
+  return { inner, sideLength };
+}
+
+/** Same pattern again, pointed at OG_DYNAMIC_CODES_PAYLOAD (P9.5-T-F1). */
+function renderDynamicCodesOgQr(): QrRender {
+  const { svg, sideLength } = renderQr({
+    data: OG_DYNAMIC_CODES_PAYLOAD,
+    style: brandQrStyles.precision.light,
+    quietZone: 4,
+  });
+  const inner = svg.replace(/^<svg[^>]*>/, "").replace(/<\/svg>$/, "");
+  return { inner, sideLength };
+}
+
+/** Same pattern again, pointed at OG_ANALYTICS_PAYLOAD (P9.5-T-F1). */
+function renderAnalyticsOgQr(): QrRender {
+  const { svg, sideLength } = renderQr({
+    data: OG_ANALYTICS_PAYLOAD,
     style: brandQrStyles.precision.light,
     quietZone: 4,
   });
@@ -335,6 +372,101 @@ function buildLegalOgSvg(qr: QrRender): string {
 }
 
 // ---------------------------------------------------------------------
+// Dynamic-codes feature OG (1200x630) —
+// app/(marketing)/features/dynamic-codes/opengraph-image.png (P9.5-T-F1)
+//
+// Same canvas language as the builders above; kept fully independent of
+// them for the same reason buildPricingOgSvg() gave: this script's outputs
+// are committed, byte-verified PNGs, and editing one builder must never be
+// able to perturb another's already-verified bytes. Headline is the real
+// H1 (deck-locked, verbatim), simply wrapped across two lines to fit the
+// canvas — not a rewritten summary of it.
+// ---------------------------------------------------------------------
+
+function buildDynamicCodesOgSvg(qr: QrRender): string {
+  const W = 1200;
+  const H = 630;
+
+  const tile = { x: 768, y: 135, w: 360, h: 360, rx: 28 };
+  const tileCenterX = tile.x + tile.w / 2;
+  const tileCenterY = tile.y + tile.h / 2;
+  const qrBox = 272;
+  const qrX = tile.x + (tile.w - qrBox) / 2;
+  const qrY = tile.y + (tile.h - qrBox) / 2;
+
+  const leftX = 88;
+
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}">
+    <rect width="${W}" height="${H}" fill="${DARK_BACKGROUND}"/>
+    ${gridTextureFragment(W, H)}
+
+    ${moduleMarkFragment(leftX, 146, 30, DARK_PRIMARY)}
+    <text x="${leftX + 42}" y="169" font-family="Inter" font-weight="700" font-size="24" letter-spacing="-0.3" fill="${DARK_FOREGROUND}">QRCDN</text>
+
+    <text x="${leftX}" y="342" font-family="Inter" font-weight="700" font-size="66" letter-spacing="-1.3" fill="${DARK_FOREGROUND}">Repoint anything</text>
+    <text x="${leftX}" y="416" font-family="Inter" font-weight="700" font-size="66" letter-spacing="-1.3" fill="${DARK_FOREGROUND}">you have printed.</text>
+
+    <text x="${leftX}" y="472" font-family="Inter" font-weight="400" font-size="20" letter-spacing="1.5" fill="${DARK_MUTED_FOREGROUND}">302 + no-store, never 301</text>
+
+    <defs>
+      <filter id="glow" x="-80%" y="-80%" width="260%" height="260%">
+        <feGaussianBlur stdDeviation="38"/>
+      </filter>
+    </defs>
+    <ellipse cx="${tileCenterX}" cy="${tileCenterY + 18}" rx="230" ry="185" fill="${DARK_PRIMARY}" opacity="0.35" filter="url(#glow)"/>
+
+    <rect x="${tile.x}" y="${tile.y}" width="${tile.w}" height="${tile.h}" rx="${tile.rx}" fill="${QR_PAPER}"/>
+    ${qrGroupFragment(qr, qrX, qrY, qrBox)}
+  </svg>`;
+}
+
+// ---------------------------------------------------------------------
+// Analytics feature OG (1200x630) —
+// app/(marketing)/features/analytics/opengraph-image.png (P9.5-T-F1)
+//
+// Same canvas language and independence rationale as
+// buildDynamicCodesOgSvg() above. Headline is the real H1 (deck-locked,
+// verbatim), wrapped across two lines at its own natural comma break.
+// ---------------------------------------------------------------------
+
+function buildAnalyticsOgSvg(qr: QrRender): string {
+  const W = 1200;
+  const H = 630;
+
+  const tile = { x: 768, y: 135, w: 360, h: 360, rx: 28 };
+  const tileCenterX = tile.x + tile.w / 2;
+  const tileCenterY = tile.y + tile.h / 2;
+  const qrBox = 272;
+  const qrX = tile.x + (tile.w - qrBox) / 2;
+  const qrY = tile.y + (tile.h - qrBox) / 2;
+
+  const leftX = 88;
+
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}">
+    <rect width="${W}" height="${H}" fill="${DARK_BACKGROUND}"/>
+    ${gridTextureFragment(W, H)}
+
+    ${moduleMarkFragment(leftX, 146, 30, DARK_PRIMARY)}
+    <text x="${leftX + 42}" y="169" font-family="Inter" font-weight="700" font-size="24" letter-spacing="-0.3" fill="${DARK_FOREGROUND}">QRCDN</text>
+
+    <text x="${leftX}" y="342" font-family="Inter" font-weight="700" font-size="66" letter-spacing="-1.3" fill="${DARK_FOREGROUND}">Every scan,</text>
+    <text x="${leftX}" y="416" font-family="Inter" font-weight="700" font-size="66" letter-spacing="-1.3" fill="${DARK_FOREGROUND}">counted honestly.</text>
+
+    <text x="${leftX}" y="472" font-family="Inter" font-weight="400" font-size="20" letter-spacing="1.5" fill="${DARK_MUTED_FOREGROUND}">raw ips never stored</text>
+
+    <defs>
+      <filter id="glow" x="-80%" y="-80%" width="260%" height="260%">
+        <feGaussianBlur stdDeviation="38"/>
+      </filter>
+    </defs>
+    <ellipse cx="${tileCenterX}" cy="${tileCenterY + 18}" rx="230" ry="185" fill="${DARK_PRIMARY}" opacity="0.35" filter="url(#glow)"/>
+
+    <rect x="${tile.x}" y="${tile.y}" width="${tile.w}" height="${tile.h}" rx="${tile.rx}" fill="${QR_PAPER}"/>
+    ${qrGroupFragment(qr, qrX, qrY, qrBox)}
+  </svg>`;
+}
+
+// ---------------------------------------------------------------------
 // apple-icon.png (180x180) — app/apple-icon.png
 // ---------------------------------------------------------------------
 
@@ -399,6 +531,18 @@ async function main() {
     `[generate-brand-images] QR self-verify OK — decoded payload: "${pricingDecoded}"`,
   );
 
+  const dynamicCodesQr = renderDynamicCodesOgQr();
+  const dynamicCodesDecoded = await verifyQrDecodesTo(dynamicCodesQr, OG_DYNAMIC_CODES_PAYLOAD);
+  console.log(
+    `[generate-brand-images] QR self-verify OK — decoded payload: "${dynamicCodesDecoded}"`,
+  );
+
+  const analyticsQr = renderAnalyticsOgQr();
+  const analyticsDecoded = await verifyQrDecodesTo(analyticsQr, OG_ANALYTICS_PAYLOAD);
+  console.log(
+    `[generate-brand-images] QR self-verify OK — decoded payload: "${analyticsDecoded}"`,
+  );
+
   const appleIconPng = rasterize(buildAppleIconSvg(), 180);
   const ogPng = rasterize(buildHomepageOgSvg(qr), 1200);
   const ogAlt =
@@ -420,6 +564,14 @@ async function main() {
   const legalOgAltPrivacy =
     "QRCDN Privacy Policy: the fine print, in plain language. A styled QR code beside the QRCDN wordmark on a dark canvas.";
 
+  const dynamicCodesOgPng = rasterize(buildDynamicCodesOgSvg(dynamicCodesQr), 1200);
+  const dynamicCodesOgAlt =
+    "QRCDN dynamic codes: repoint anything you have printed. A styled QR code beside the QRCDN wordmark on a dark canvas.";
+
+  const analyticsOgPng = rasterize(buildAnalyticsOgSvg(analyticsQr), 1200);
+  const analyticsOgAlt =
+    "QRCDN scan analytics: every scan, counted honestly. A styled QR code beside the QRCDN wordmark on a dark canvas.";
+
   const appleIconPath = join(WEB_ROOT, "app/apple-icon.png");
   const marketingDir = join(WEB_ROOT, "app/(marketing)");
   const ogPngPath = join(marketingDir, "opengraph-image.png");
@@ -437,10 +589,21 @@ async function main() {
   const privacyOgPngPath = join(privacyDir, "opengraph-image.png");
   const privacyOgAltPath = join(privacyDir, "opengraph-image.alt.txt");
 
+  const featuresDir = join(marketingDir, "features");
+  const dynamicCodesDir = join(featuresDir, "dynamic-codes");
+  const dynamicCodesOgPngPath = join(dynamicCodesDir, "opengraph-image.png");
+  const dynamicCodesOgAltPath = join(dynamicCodesDir, "opengraph-image.alt.txt");
+
+  const analyticsDir = join(featuresDir, "analytics");
+  const analyticsOgPngPath = join(analyticsDir, "opengraph-image.png");
+  const analyticsOgAltPath = join(analyticsDir, "opengraph-image.alt.txt");
+
   mkdirSync(marketingDir, { recursive: true });
   mkdirSync(pricingDir, { recursive: true });
   mkdirSync(termsDir, { recursive: true });
   mkdirSync(privacyDir, { recursive: true });
+  mkdirSync(dynamicCodesDir, { recursive: true });
+  mkdirSync(analyticsDir, { recursive: true });
   writeFileSync(appleIconPath, appleIconPng);
   writeFileSync(ogPngPath, ogPng);
   writeFileSync(ogAltPath, ogAlt);
@@ -450,6 +613,10 @@ async function main() {
   writeFileSync(termsOgAltPath, legalOgAltTerms);
   writeFileSync(privacyOgPngPath, legalOgPng);
   writeFileSync(privacyOgAltPath, legalOgAltPrivacy);
+  writeFileSync(dynamicCodesOgPngPath, dynamicCodesOgPng);
+  writeFileSync(dynamicCodesOgAltPath, dynamicCodesOgAlt);
+  writeFileSync(analyticsOgPngPath, analyticsOgPng);
+  writeFileSync(analyticsOgAltPath, analyticsOgAlt);
 
   console.log(`[generate-brand-images] wrote ${appleIconPath} (${appleIconPng.length} bytes)`);
   console.log(`[generate-brand-images] wrote ${ogPngPath} (${ogPng.length} bytes)`);
@@ -464,6 +631,14 @@ async function main() {
     `[generate-brand-images] wrote ${privacyOgPngPath} (${legalOgPng.length} bytes, byte-identical to ${termsOgPngPath})`,
   );
   console.log(`[generate-brand-images] wrote ${privacyOgAltPath}`);
+  console.log(
+    `[generate-brand-images] wrote ${dynamicCodesOgPngPath} (${dynamicCodesOgPng.length} bytes)`,
+  );
+  console.log(`[generate-brand-images] wrote ${dynamicCodesOgAltPath}`);
+  console.log(
+    `[generate-brand-images] wrote ${analyticsOgPngPath} (${analyticsOgPng.length} bytes)`,
+  );
+  console.log(`[generate-brand-images] wrote ${analyticsOgAltPath}`);
 }
 
 main().catch((err) => {

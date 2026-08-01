@@ -12,15 +12,28 @@ import { Section, SectionHeading, SectionBody } from "@/components/marketing/sec
  * mapping. Divider stays the Section default (hairline): the pricing
  * teaser immediately above is also `surface="default"`, so same-surface
  * neighbors get the hairline seam per the Section system's own rule.
+ *
+ * `title`/`lede` (P9.5-T-F1, additive — the landing's own `<ClosingSection
+ * />` call omits both and keeps today's byte-identical copy): the
+ * dynamic-codes feature-page deck's own closing CTA head ("Print something
+ * that can change its mind.") is verbatim identical to this section's
+ * existing landing copy, so that page reuses this component with zero
+ * props at all. The analytics feature page's closing head differs ("Know
+ * what your print is doing."), so it overrides `title` only — `lede`, the
+ * button, and the mono sign-off stay the same evergreen, page-agnostic
+ * copy everywhere this component is used, true reuse rather than a forked
+ * per-page copy.
  */
-export function ClosingSection() {
+export function ClosingSection({
+  title = "Print something that can change its mind.",
+  lede = "Start free. No card, no trial clock.",
+}: {
+  title?: string;
+  lede?: string;
+} = {}) {
   return (
     <Section variant="centered" rhythm="air">
-      <SectionHeading
-        titleAs="h2"
-        title="Print something that can change its mind."
-        lede="Start free. No card, no trial clock."
-      />
+      <SectionHeading titleAs="h2" title={title} lede={lede} />
 
       <SectionBody delay={0.15} className="mt-8 flex flex-col items-center gap-5">
         <Button

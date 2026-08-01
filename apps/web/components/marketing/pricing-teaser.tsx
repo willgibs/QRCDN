@@ -2,11 +2,13 @@ import Link from "next/link";
 import { Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Eyebrow, Reveal } from "@/components/brand/magic";
+import { Section, SectionHeading, SectionBody } from "@/components/marketing/section";
 import { PLAN_LIMITS } from "@/lib/entitlements";
 import { ANNUAL_MONTHLY_EQUIV_USD, ANNUAL_SAVINGS_PCT, ANNUAL_USD } from "@/lib/pricing";
 import { LearnMoreLink } from "./learn-more-link";
 
+// 11 — Pricing (P9.5-T3a: migrated onto Section/SectionHeading, copy deck
+// v3 head/lede applied; no mono strip for this section per the deck).
 // Compact card pair only — the full feature matrix + monthly/annual toggle
 // lives on /pricing (components/marketing/pricing-plans.tsx). Every figure
 // below is read from lib/entitlements.ts / lib/pricing.ts; nothing here is a
@@ -14,7 +16,7 @@ import { LearnMoreLink } from "./learn-more-link";
 // toggle) per the copy deck — "compact" means no interactive billing switch.
 const FREE_FEATURES = [
   "Unlimited static codes",
-  `${PLAN_LIMITS.free.dynamicCodes} dynamic codes — free forever`,
+  `${PLAN_LIMITS.free.dynamicCodes} dynamic codes, free forever`,
   `${PLAN_LIMITS.free.brandKits} brand kit · ${PLAN_LIMITS.free.analyticsRetentionDays}-day analytics`,
 ];
 
@@ -26,16 +28,21 @@ const PRO_FEATURES = [
 
 export function PricingTeaser() {
   return (
-    <section>
-      <div className="mx-auto max-w-6xl px-6 py-16">
-        <Reveal className="mb-10 max-w-xl">
-          <Eyebrow>Pricing</Eyebrow>
-          <h2 className="font-display text-4xl font-semibold tracking-tight">
-            Simple, honest pricing.
-          </h2>
-        </Reveal>
+    <Section>
+      <SectionHeading
+        eyebrow="Pricing"
+        index="11"
+        title="Free forever means forever."
+        lede={
+          <>
+            $0 gets {PLAN_LIMITS.free.dynamicCodes} dynamic codes that never stop redirecting. $
+            {ANNUAL_MONTHLY_EQUIV_USD}/mo when you print at scale.
+          </>
+        }
+        className="mb-10"
+      />
 
-        <Reveal delay={0.1} className="grid max-w-3xl gap-6 sm:grid-cols-2">
+      <SectionBody className="grid max-w-3xl gap-6 sm:grid-cols-2">
           <Card>
             <CardHeader>
               <CardTitle className="font-display text-xl">Free</CardTitle>
@@ -66,7 +73,7 @@ export function PricingTeaser() {
                   <span className="text-sm font-normal text-muted-foreground">/mo</span>
                 </p>
                 <p className="font-mono text-xs text-muted-foreground">
-                  billed annually — ${ANNUAL_USD}/yr · save {ANNUAL_SAVINGS_PCT}%
+                  billed annually: ${ANNUAL_USD}/yr · save {ANNUAL_SAVINGS_PCT}%
                 </p>
               </CardHeader>
               <CardContent className="flex flex-col gap-2.5">
@@ -81,18 +88,17 @@ export function PricingTeaser() {
                   <Link href="/login">Start free</Link>
                 </Button>
                 <p className="text-center text-xs text-muted-foreground">
-                  Paid checkout opens at launch — start free today and
+                  Paid checkout opens at launch. Start free today and
                   everything carries over.
                 </p>
               </CardFooter>
             </Card>
           </div>
-        </Reveal>
+      </SectionBody>
 
-        <div className="mt-6">
-          <LearnMoreLink href="/pricing">Compare everything</LearnMoreLink>
-        </div>
+      <div className="mt-6">
+        <LearnMoreLink href="/pricing">Compare everything</LearnMoreLink>
       </div>
-    </section>
+    </Section>
   );
 }

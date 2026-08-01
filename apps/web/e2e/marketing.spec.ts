@@ -91,10 +91,51 @@ test.describe("marketing site", () => {
     // Scoped to the Playground section specifically — BrandSystemSection's
     // StudioWindow mock also renders a ScannabilityChip further down the
     // same page (both were part of the same d2af287 fix), so an unscoped
-    // text search would match twice.
+    // text search would match twice. Heading text is the P9.5-T3a copy
+    // deck v3 head ("Design it here. It's yours." — was "Design one right
+    // now." pre-T3a).
     const playgroundSection = page
       .locator("section")
-      .filter({ has: page.getByRole("heading", { name: "Design one right now." }) });
+      .filter({ has: page.getByRole("heading", { name: "Design it here. It's yours." }) });
     await expect(playgroundSection.getByRole("status")).toContainText(/scannable/i);
+  });
+
+  test("hero h1: renders the v4 headline and never SSRs at opacity 0", async ({ page, request }) => {
+    // Raw, unrendered HTML (no JS) — the actual bytes the server sent, not
+    // a browser's post-hydration computed style (which could self-correct
+    // via JS even if the initial markup shipped broken). The hard rule:
+    // the h1 (the hero's LCP candidate) must never carry a static
+    // opacity:0 anywhere in its own served markup — only the `hero-enter`
+    // keyframes' 0% frame (an external stylesheet rule, not inline on the
+    // element) may say opacity:0.
+    const response = await request.get("/");
+    const html = await response.text();
+    const h1Match = html.match(/<h1\b[^>]*>[\s\S]*?<\/h1>/);
+    expect(h1Match, "expected exactly one <h1> in the served HTML").toBeTruthy();
+    expect(h1Match?.[0]).not.toMatch(/opacity\s*:\s*0(?!\.)/);
+
+    // Text content, not markup structure: "The modern" / "QR platform." are
+    // two separate block-level spans (P9.5-T3a hero v4), so there is no
+    // space character between them in `textContent` even though they
+    // render on separate lines — assert with optional whitespace between
+    // the two halves rather than a literal single-space string.
+    await page.goto("/");
+    const h1Text = await page.locator("h1").first().textContent();
+    expect(h1Text?.replace(/\s+/g, " ").trim()).toMatch(/The modern\s*QR platform\.?/);
+  });
+
+  test("pillar strip: renders 5 doorway links", async ({ page }) => {
+    await page.goto("/");
+    const strip = page.getByRole("navigation", { name: "Jump to a section" });
+    await expect(strip.getByRole("link")).toHaveCount(5);
+  });
+
+  test("hero tagline is removed", async ({ page }) => {
+    // P9.5-T3a: the old "destination updated live..." mono caption under
+    // the network/orbit artwork is gone from every breakpoint — its
+    // content resurfaces inside section 04 instead (not asserted here,
+    // T3b's job once that body copy lands).
+    await page.goto("/");
+    await expect(page.getByText("destination updated live")).toHaveCount(0);
   });
 });

@@ -2,10 +2,11 @@
 
 import { motion, useReducedMotion } from "motion/react";
 import { useEffect, useState } from "react";
-import { renderQr } from "@qrcdn/qr-engine";
-import { brandQrStyles } from "@/lib/brand-qr";
 import { cn } from "@/lib/utils";
 import { EASE_OUT } from "@/components/brand/magic";
+import { DESTINATION_HUES, HUE_CLASSES, type DestinationLabel } from "./destination-hues";
+import { OrbitStage } from "./orbit-stage";
+import { QrTile } from "./qr-tile";
 
 /**
  * The hero artwork: a scan network. One printed code at the center; animated
@@ -22,8 +23,11 @@ import { EASE_OUT } from "@/components/brand/magic";
  * framed product windows use. Only the chip-cycling interval and entrance
  * motion need to be client-side here.
  *
- * Three stage variants, one per breakpoint tier (P9.5-T1a):
- *  - below md: the compact chip-only fallback (untouched — no SVG paths).
+ * Three stage variants, one per breakpoint tier:
+ *  - below md: OrbitStage (./orbit-stage.tsx, P9.5-T3a) — a different
+ *    artwork entirely (a packet riding a ring between destinations), not a
+ *    layout variant of this file's network-trace stages, so it lives in
+ *    its own file and is just mounted here.
  *  - md–lg (768–1279): a compact two-chip SVG stage (below), sized to
  *    render its chip text at 100% (no `scale()` transform) — the four-chip
  *    stage previously covered this whole range via `scale-[0.66]`/
@@ -36,17 +40,24 @@ import { EASE_OUT } from "@/components/brand/magic";
  *    a scaled box, so the stage can resize fluidly across 768–1279 while
  *    every chip's own font-size stays exactly as authored.
  *  - xl+ (1280px): the original four-chip stage, unchanged.
+ *
+ * P9.5-T3a: the tile's payload is the marketing site itself
+ * (HTTPS://WWW.QRCDN.COM, uppercase for alphanumeric mode) — scanning the
+ * hero lands you on the page you're already looking at, which is the
+ * point, and drops the need for a slug caption (removed, all stages). Each
+ * destination chip/node/flowing-packet now tints toward its own hue
+ * (./destination-hues.ts's shared label->hue map, also consumed by
+ * OrbitStage so a destination's color never drifts between the two hero
+ * artwork stages) instead of the single site accent. `QrTile` itself moved
+ * to ./qr-tile.tsx this unit (shared with OrbitStage, avoiding a circular
+ * import between the two).
  */
 
-const QR_DATA = "HTTPS://QRCDN.COM/K7M2X9A";
-const lightQr = renderQr({ data: QR_DATA, style: brandQrStyles.precision.light }).svg;
-const darkQr = renderQr({ data: QR_DATA, style: brandQrStyles.precision.dark }).svg;
-
-const DESTINATIONS = [
-  { label: "yourcafe.com/menu", x: 150, y: 70, side: "left" as const },
-  { label: "instagram.com/drop", x: 150, y: 230, side: "left" as const },
-  { label: "tickets.io/tour-2026", x: 850, y: 70, side: "right" as const },
-  { label: "g.page/cafe-norte/review", x: 850, y: 230, side: "right" as const },
+const DESTINATIONS: { label: DestinationLabel; x: number; y: number; side: "left" | "right" }[] = [
+  { label: "yourcafe.com/menu", x: 150, y: 70, side: "left" },
+  { label: "instagram.com/drop", x: 150, y: 230, side: "left" },
+  { label: "tickets.io/tour-2026", x: 850, y: 70, side: "right" },
+  { label: "g.page/cafe-norte/review", x: 850, y: 230, side: "right" },
 ];
 
 const PATHS = [
@@ -69,9 +80,9 @@ const COMPACT_VIEW_W = 640;
 // that breakpoint (no margin to spare), and 130/510 measured ~6px short
 // (verified via getBoundingClientRect against a live 768px viewport,
 // silently clipped by the hero's overflow-hidden rather than scrolling).
-const COMPACT_DESTINATIONS = [
-  { label: DESTINATIONS[0].label, x: 155, side: "left" as const },
-  { label: DESTINATIONS[2].label, x: 485, side: "right" as const },
+const COMPACT_DESTINATIONS: { label: DestinationLabel; x: number; side: "left" | "right" }[] = [
+  { label: DESTINATIONS[0].label, x: 155, side: "left" },
+  { label: DESTINATIONS[2].label, x: 485, side: "right" },
 ];
 
 // Same S-curve grammar as PATHS: a cubic Bezier from the QR tile's edge to
@@ -84,51 +95,25 @@ const COMPACT_PATHS = [
   "M382 100 C418 84 460 84 485 100",
 ];
 
-function QrTile({ className }: { className?: string }) {
-  return (
-    <div
-      className={cn(
-        "rounded-3xl bg-gradient-to-b from-primary/40 via-border/70 to-border/30 p-px shadow-2xl shadow-primary/15",
-        className,
-      )}
-    >
-      <div className="flex flex-col gap-2 rounded-[calc(1.5rem-1px)] bg-card/90 p-3.5 backdrop-blur-xl">
-        <div className="rounded-xl bg-qr-bg p-2.5">
-          <div
-            className="[&_svg]:h-auto [&_svg]:w-full dark:hidden"
-            dangerouslySetInnerHTML={{ __html: lightQr }}
-          />
-          <div
-            className="hidden [&_svg]:h-auto [&_svg]:w-full dark:block"
-            dangerouslySetInnerHTML={{ __html: darkQr }}
-          />
-        </div>
-        <p className="text-center font-mono text-[10px] tracking-wide text-muted-foreground">
-          qrcdn.com/K7M2X9A
-        </p>
-      </div>
-    </div>
-  );
-}
-
 function DestinationChip({
   label,
   active,
   className,
   style,
 }: {
-  label: string;
+  label: DestinationLabel;
   active: boolean;
   className?: string;
   style?: React.CSSProperties;
 }) {
+  const hueClasses = HUE_CLASSES[DESTINATION_HUES[label]];
   return (
     <div
       style={style}
       className={cn(
         "flex items-center gap-2 rounded-full border px-3.5 py-1.5 font-mono text-[11px] whitespace-nowrap transition-colors duration-300",
         active
-          ? "border-primary/50 bg-accent text-accent-foreground shadow-md shadow-primary/10"
+          ? cn(hueClasses.border, hueClasses.bg, "text-foreground shadow-md")
           : "border-border bg-card/70 text-muted-foreground",
         className,
       )}
@@ -136,7 +121,7 @@ function DestinationChip({
       <span
         className={cn(
           "size-1.5 rounded-full transition-colors duration-300",
-          active ? "bg-primary" : "bg-muted-foreground/40",
+          active ? hueClasses.dot : "bg-muted-foreground/40",
         )}
       />
       {label}
@@ -189,7 +174,8 @@ export function ScanNetwork() {
                   )}
                 />
               ))}
-              {/* the live trace: an energy packet flowing along the active path */}
+              {/* the live trace: an energy packet flowing along the active path,
+                  tinted to the active destination's hue (P9.5-T3a) */}
               {!reduced && (
                 <path
                   key={`flow-${active}`}
@@ -197,7 +183,10 @@ export function ScanNetwork() {
                   fill="none"
                   strokeWidth="2"
                   strokeLinecap="round"
-                  className="animate-qr-flow stroke-primary"
+                  className={cn(
+                    "animate-qr-flow",
+                    HUE_CLASSES[DESTINATION_HUES[DESTINATIONS[active].label]].stroke,
+                  )}
                 />
               )}
             </svg>
@@ -266,7 +255,8 @@ export function ScanNetwork() {
                 )}
               />
             ))}
-            {/* the live trace: an energy packet flowing along the active path */}
+            {/* the live trace: an energy packet flowing along the active path,
+                tinted to the active destination's hue (P9.5-T3a) */}
             {!reduced && (
               <path
                 key={`compact-flow-${compactActive}`}
@@ -275,7 +265,10 @@ export function ScanNetwork() {
                 strokeWidth="2"
                 strokeLinecap="round"
                 vectorEffect="non-scaling-stroke"
-                className="animate-qr-flow-compact stroke-primary"
+                className={cn(
+                  "animate-qr-flow-compact",
+                  HUE_CLASSES[DESTINATION_HUES[COMPACT_DESTINATIONS[compactActive].label]].stroke,
+                )}
               />
             )}
           </svg>
@@ -329,34 +322,12 @@ export function ScanNetwork() {
         </div>
       </div>
 
-      {/* Compact stage — below md */}
-      <div className="flex flex-col items-center gap-4 md:hidden">
-        <motion.div
-          className="w-[180px]"
-          initial={{
-            opacity: 0,
-            transform: reduced ? "scale(1)" : "scale(0.96)",
-          }}
-          animate={{ opacity: 1, transform: "scale(1)" }}
-          transition={{ duration: 0.6, delay: 0.2, ease: EASE_OUT }}
-        >
-          <QrTile />
-        </motion.div>
-        <div className="flex max-w-full flex-wrap items-center justify-center gap-2 px-4">
-          {DESTINATIONS.slice(0, 3).map((dest, i) => (
-            <DestinationChip
-              key={dest.label}
-              label={dest.label}
-              active={i === active % 3}
-            />
-          ))}
-        </div>
+      {/* Orbit stage — below md (P9.5-T3a, replaces the old chip-pile
+          fallback). Own file: it's a self-contained rAF engine, not a
+          layout variant of this component's chip-cycling state. */}
+      <div className="md:hidden">
+        <OrbitStage />
       </div>
-
-      <p className="mt-5 text-center font-mono text-xs text-muted-foreground">
-        <span className="text-primary">●</span> destination updated live — the
-        printed code never changes
-      </p>
     </div>
   );
 }

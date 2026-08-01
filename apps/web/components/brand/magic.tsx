@@ -93,10 +93,15 @@ export function ModuleMark({ className }: { className?: string }) {
 
 /**
  * Standard eyebrow: module mark + tracked mono caps. `index` (P9.5-T1b,
- * optional — existing call sites are unaffected) renders an ordinal
- * ("01 —") before the label, for `SectionHeading`'s numbered-section
- * treatment; muted further than the label itself so the number reads as a
- * secondary cue, not competing with it.
+ * optional — existing call sites are unaffected) renders an ordinal ("01")
+ * before the label, for `SectionHeading`'s numbered-section treatment;
+ * muted further than the label itself so the number reads as a secondary
+ * cue, not competing with it. No separator glyph between the ordinal and
+ * the label — the flex `gap-2.5` plus the ordinal's own lighter tint
+ * already reads as two distinct tokens; an early draft used an em dash
+ * here, which the P9.5-T3a no-em-dash copy rule (docs/guides/design-
+ * system.md) caught before this prop had ever been exercised in
+ * production (T3a is its first real consumer).
  */
 export function Eyebrow({
   children,
@@ -108,7 +113,7 @@ export function Eyebrow({
   return (
     <p className="mb-3 flex items-center gap-2.5 font-mono text-xs uppercase tracking-[0.2em] text-muted-foreground">
       <ModuleMark />
-      {index && <span className="text-muted-foreground/70">{index} —</span>}
+      {index && <span className="text-muted-foreground/70">{index}</span>}
       {children}
     </p>
   );

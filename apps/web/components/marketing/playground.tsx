@@ -13,7 +13,6 @@ import { Slider } from "@/components/ui/slider";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { ArtifactStage } from "@/components/brand/artifact-stage";
 import { glowTileOn } from "@/components/brand/glow-tile";
-import { Eyebrow, Reveal } from "@/components/brand/magic";
 import { ColorField } from "@/components/studio/color-controls";
 import { ScannabilityChip } from "@/components/studio/scannability-chip";
 import { DOT_STYLES, EYE_FRAMES, DotSwatch, EyeSwatch } from "@/components/qr/shape-swatches";
@@ -21,6 +20,10 @@ import { downloadBlob, exportFilename, rasterizeSvgToPng } from "@/lib/export";
 import { brandQrStyles } from "@/lib/brand-qr";
 import { PREVIEW_PAYLOAD_DEFAULT, renderPreview } from "@/lib/preview";
 import { inkHexFromStyle } from "@/lib/qr-style-derive";
+import { FEATURE_DOORWAYS_ENABLED } from "@/lib/marketing-flags";
+import { Section, SectionHeading, SectionBody } from "@/components/marketing/section";
+import { MonoStrip } from "@/components/marketing/mono-strip";
+import { LearnMoreLink } from "@/components/marketing/learn-more-link";
 
 /**
  * The anonymous landing playground (P9-U2) — "Design one right now,"
@@ -132,20 +135,16 @@ export function Playground() {
   const canExport = !renderError;
 
   return (
-    <section className="border-b border-border/60 bg-surface-studio">
-      <div className="mx-auto max-w-6xl px-6 py-16">
-        <Reveal className="mb-10 max-w-xl">
-          <Eyebrow>The studio</Eyebrow>
-          <h2 className="font-display text-4xl font-semibold tracking-tight">
-            Design one right now.
-          </h2>
-          <p className="mt-2 text-muted-foreground">
-            No account, no watermark — the real engine and the same
-            scannability instrument the studio uses. The file is yours.
-          </p>
-        </Reveal>
+    <Section id="studio" variant="showcase" surface="floor" divider="none">
+      <SectionHeading
+        eyebrow="The studio"
+        index="02"
+        title="Design it here. It's yours."
+        lede="No account, no watermark: the real engine and the same scannability instrument the studio uses."
+        className="mb-10"
+      />
 
-        <Reveal delay={0.1} className="grid gap-6 lg:grid-cols-[1fr_360px]">
+      <SectionBody className="grid gap-6 lg:grid-cols-[1fr_360px]">
           <Card>
             <CardHeader>
               <CardTitle className="text-base">Style controls</CardTitle>
@@ -279,8 +278,14 @@ export function Playground() {
               </p>
             </div>
           </div>
-        </Reveal>
-      </div>
-    </section>
+      </SectionBody>
+
+      <SectionBody delay={0.15} className="mt-8 flex flex-col items-start gap-4">
+        <MonoStrip>SVG + PNG export · instrument: live · engine: open source</MonoStrip>
+        {FEATURE_DOORWAYS_ENABLED && (
+          <LearnMoreLink href="/features/brand-studio">Explore the brand studio</LearnMoreLink>
+        )}
+      </SectionBody>
+    </Section>
   );
 }

@@ -1,11 +1,13 @@
 import type { Metadata } from "next";
 import { Hero } from "@/components/marketing/hero";
+import { HowItWorksSection } from "@/components/marketing/how-it-works-section";
 import { Playground } from "@/components/marketing/playground";
 import { BrandSystemSection } from "@/components/marketing/brand-system-section";
 import { DynamicCodesSection } from "@/components/marketing/dynamic-codes-section";
 import { AnalyticsSection } from "@/components/marketing/analytics-section";
 import { ApiSection } from "@/components/marketing/api-section";
 import { PricingTeaser } from "@/components/marketing/pricing-teaser";
+import { ClosingSection } from "@/components/marketing/closing-section";
 
 // Title/description only, and only `description` is set here — the root
 // layout's `title.default` ("QRCDN — QR codes with a brand system") IS the
@@ -28,16 +30,31 @@ export const metadata: Metadata = {
 // docs/guides/p9-marketing.md — /explore is deleted at P9-U5). No data
 // fetching, no dynamic APIs anywhere in the tree, so `/` renders fully
 // static (`○ (Static)` in `next build` output).
+//
+// P9.5-T3a: every section below (including the two new ones,
+// HowItWorksSection/ClosingSection) is now built on the T1
+// Section/SectionHeading/SectionBody primitives, carrying the copy deck
+// v3 eyebrow ordinals the deck itself uses (01, 02, 03, 04, 06, 07, 11) —
+// 05 (guardrails) and 08-10 (comparison/open-source/manifesto) are new
+// sections that land at T3c, so the ordinal sequence intentionally skips
+// them for now rather than renumbering what already exists. Surface
+// alternation (tint -> floor -> default -> tint -> floor -> default ->
+// default -> default) follows the Section system's own rule: a divider
+// is only a hairline between two same-surface neighbors, "none" (implicit
+// via each section's own surface change, or explicit where the default
+// would otherwise draw a redundant seam) everywhere a surface changes.
 export default function HomePage() {
   return (
     <>
       <Hero />
+      <HowItWorksSection />
       <Playground />
       <BrandSystemSection />
       <DynamicCodesSection />
       <AnalyticsSection />
       <ApiSection />
       <PricingTeaser />
+      <ClosingSection />
     </>
   );
 }

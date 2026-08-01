@@ -75,6 +75,27 @@ keys generate real utilities (`p-gutter`, `text-h2`, `max-w-page`, etc.) — the
 arbitrary-property syntax (`py-(--spacing-section)`) was not needed anywhere; token values would
 be identical either way.
 
+### D13 amendment (P9.5-T3a): destination-identity palette
+
+A second color family, additive to Layer 0/1 the same way the T1b type-scale amendment was
+additive to Layer 2: `--dest-1`/`--dest-2`/`--dest-3`/`--dest-4` (declared in `:root`/`.dark`
+beside the other Layer 1 colors, mapped through the *original* `@theme inline` block as
+`--color-dest-1..4` — like every color token, they vary by mode and need the `inline`
+re-evaluation, the same reasoning `--surface-tint` and the code colors already established).
+`--dest-1` IS `--primary` (violet is always "destination one," the first demo chip); 2-4 are new
+hues (amber/teal/rose), hand-picked to sit at the same lightness/chroma register as `--primary`
+in both modes so none of the four reads as louder or weaker than the others.
+
+**Where these may be used:** only the hero/network "which destination is currently live" story —
+`ScanNetwork`'s chip border/dot/flowing-packet-stroke and `OrbitStage`'s node/chip/packet/trail
+(`components/marketing/destination-hues.ts`'s shared label→hue map, so a given destination's
+color never drifts between the two stages). **Where they may not be used:** anywhere in UI
+chrome — buttons, links, focus rings, form controls, the accent gradient. D13's single-accent-
+violet lock is unchanged; this is a second, narrowly-scoped family for one specific storytelling
+purpose, not a reopening of the brand's "one accent" rule. A future surface wanting to depict
+"several distinct live things at once" outside the hero should reuse this family (via the same
+shared map, extended if it needs a fifth label) rather than inventing a third palette.
+
 ## Dark mode mechanics
 
 - Class strategy: `@custom-variant dark (&:is(.dark *));` in `globals.css` — Tailwind's `dark:` variant fires off a `.dark` ancestor class, not `prefers-color-scheme` directly.
@@ -150,13 +171,15 @@ pieces these lean on (`HeroBackdrop`, `ArtifactStage`, `AccentText`,
 brand primitives" below) rather than under `components/marketing/` itself — same
 reasoning as `HeroBackdrop`'s own move out of `components/explore/`.
 
-**`section.tsx`** (P9.5-T1b) — the landing's future section primitive:
-`Section`/`SectionHeading`/`SectionBody`, built against the token families above.
-Full contract (variants, rhythm/surface/divider options, the dead-measure/
-centered-count/hairline rules) is doc-commented in the file itself rather than
-duplicated here — the landing sections themselves are **not yet migrated onto
-it** (T3a's job); its only consumer this unit is the `/developers` pilot below.
-Shared with it: **`lib/highlight.ts`/`lib/code-theme.ts`/`code-block.tsx`**
+**`section.tsx`** (P9.5-T1b, landing-migrated at P9.5-T3a) — the landing's section
+primitive: `Section`/`SectionHeading`/`SectionBody`, built against the token
+families above. Full contract (variants, rhythm/surface/divider options, the
+dead-measure/centered-count/hairline rules) is doc-commented in the file itself
+rather than duplicated here. As of T1b its only consumer was the `/developers`
+pilot below; T3a migrated every landing section onto it (how-it-works, studio/
+playground, brand system, dynamic codes, analytics, API, pricing teaser, closing)
+— see "Landing copy & hero v4 (P9.5-T3a)" below for that unit's copy/composition
+rules. Shared with it: **`lib/highlight.ts`/`lib/code-theme.ts`/`code-block.tsx`**
 (shiki syntax highlighting, server-rendered, themed off the code-color tokens
 above) and **`developers/`** (the extracted `/developers` page pieces —
 `lib/api-reference.ts`'s typed endpoint data, `components/marketing/developers/`'s
@@ -311,6 +334,50 @@ had both axes backwards and looked *almost* plausible on paper).
 - **Known pitfall (verified live):** shadcn variants shipping `transition-all` silently override the press-feedback system — `transition-all` was removed from `button.tsx`/`toggle.tsx` variants; never reintroduce it.
 - **App-phase transition mapping** (P4/P6, from the transitions.dev catalog): Modal open/close (create/edit dialogs), Toast (Sonner already themed), Panel reveal (studio side panels), Success check (code created/saved), Skeleton loader and reveal (analytics loading), Input clear with dissolve + Error state shake (form validation), Tabs sliding (code-type/pricing toggles), Toggle switch (settings), Notification badge (scan alerts), Number pop-in/Spinning counter (dashboard stats), **3D tilt** (studio preview artifact, `TiltStage` — round 3, see "Luminous staging grammar" above for the recipe).
 - **Reference set for marketing craft** (founder-endorsed): lazy.so, genie.io (framed product windows, alternating sections), withpipeline.com (connective line-art + centered icon hero — our ScanNetwork descends from this), stellar.work (scale + restraint), transitions.dev (micro-interactions).
+
+## Landing copy & hero v4 (P9.5-T3a)
+
+- **No em dashes, anywhere in customer-facing copy** (board rule, copy deck v3).
+  Restructure with colons, periods, or commas instead — en dashes inside numeric
+  ranges (`5-10`, `2020-2026`) are unaffected; this is about the em dash
+  specifically, as a known AI-writing tell. Applies to every string a visitor
+  reads: headings, ledes, mono strips, button labels, alt text, meta
+  descriptions. Checked per-string at review time, not by an automated gate yet
+  — grep for the literal character before calling a copy-touching unit done.
+- **Poster-H1 principle.** The hero's `text-display` clamp (globals.css, P9.5-T3a
+  type bump: 48px → 94px over 360–1440, up from 44 → 88; `text-lede` bumped in
+  tandem, 17px → 19px, down slightly from a 20px ceiling so the sub stays
+  "slightly bigger," not competing with the headline) exists so a two-line,
+  plain-spoken headline can own the viewport at genuinely poster scale — "The
+  modern" / "QR platform." reads as a category claim, not a product blurb.
+  `titleAs="h1"` on `SectionHeading` reaches this same scale; it's reserved for
+  the one true page-title context per page. The hero itself doesn't use
+  `SectionHeading` (its CSS `hero-enter` entrance system is incompatible with
+  `SectionHeading`'s `Reveal` wrapping) but shares the `text-display`/`text-lede`
+  utilities directly.
+- **Hero v4 recipe (current).** No eyebrow. Two-line H1, `AccentText` on line two
+  only. One-sentence sub at `text-lede`. Two CTAs (primary pill + ghost). A
+  five-chip mono pillar strip (`components/marketing/pillar-strip.tsx`) closes
+  the hero as its own `hero-enter` stagger step (studio/dynamic-codes/analytics/
+  api section anchors + the GitHub repo). Desktop/compact breakpoints (md and up)
+  keep the `ScanNetwork` traces, now tinted per-destination via the
+  destination-identity palette above; <md swaps to `OrbitStage`
+  (`components/marketing/orbit-stage.tsx`) — a single packet riding a ring
+  between three destinations, ported from the board-approved A1-R2 reference
+  artifact (geometry/easing/trail math kept faithful, DOM manipulation adapted to
+  React refs + rAF). Exactly one of the two auto-advances at any given
+  breakpoint — they're breakpoint-exclusive, which is what keeps this inside the
+  "one auto-advancing element per viewport" motion budget. `QrTile`
+  (`components/marketing/qr-tile.tsx`) is the one shared artifact both stages
+  render: payload is the marketing site itself (`HTTPS://WWW.QRCDN.COM`, scanning
+  the hero lands you on the page you're already looking at), no slug caption
+  underneath (there's no destination slug to caption when the payload IS the
+  site).
+- **Tagline removed.** The mono line that used to run under the network
+  ("destination updated live...") is gone from every breakpoint — its content
+  resurfaces as part of section 04's dynamic-codes story instead of sitting as
+  hero decoration. Don't re-add a caption under the hero artwork; if a future
+  unit wants one, it belongs in the section that story is actually about.
 
 ## The quality floor (founder-set, checkpoint A close)
 

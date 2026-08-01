@@ -33,6 +33,10 @@
   --color-sidebar-primary: var(--sidebar-primary);
   --color-sidebar-foreground: var(--sidebar-foreground);
   --color-sidebar: var(--sidebar);
+  --color-dest-4: var(--dest-4);
+  --color-dest-3: var(--dest-3);
+  --color-dest-2: var(--dest-2);
+  --color-dest-1: var(--dest-1);
   --color-chart-5: var(--chart-5);
   --color-chart-4: var(--chart-4);
   --color-chart-3: var(--chart-3);
@@ -107,7 +111,7 @@
      generated `text-<name>` utility alongside font-size, so one class
      sets all three together instead of three utilities that can drift
      out of sync across call sites. ---- */
-  --text-display: clamp(2.75rem, 1.83rem + 4.07vw, 5.5rem); /* 44 → 88 over 360–1440 */
+  --text-display: clamp(3rem, 2.04rem + 4.26vw, 5.875rem); /* 48 → 94 over 360–1440 (P9.5-T3a type bump: was 44 → 88; resolves ≈3.08rem at 390, +6.8% at 1440) */
   --text-display--line-height: 1;
   --text-display--letter-spacing: -0.035em;
   --text-h1: clamp(2.25rem, 1.75rem + 2.22vw, 3.75rem); /* 36 → 60 over 360–1440 */
@@ -119,7 +123,7 @@
   --text-h3: clamp(1.375rem, 1.29rem + 0.37vw, 1.625rem); /* 22 → 26 over 360–1440 */
   --text-h3--line-height: 1.2;
   --text-h3--letter-spacing: -0.015em;
-  --text-lede: clamp(1.0625rem, 1rem + 0.28vw, 1.25rem); /* 17 → 20 over 360–1440 */
+  --text-lede: clamp(1.0625rem, 1.02rem + 0.19vw, 1.1875rem); /* 17 → 19 over 360–1440 (P9.5-T3a type bump: was 17 → 20; floor unchanged, ceiling gentled since --text-display grew instead) */
   --text-lede--line-height: 1.5;
   --text-eyebrow: 0.6875rem; /* 11px fixed — a label, not a heading; no fluid range */
   --text-eyebrow--line-height: 1;
@@ -179,6 +183,19 @@
   --surface-tint: oklch(0.98 0.003 280);
   --qr-fg: #131316;
   --qr-bg: #ffffff;
+  /* Destination-identity hues (P9.5-T3a) — a second color family, scoped
+     ONLY to the hero/network "which destination is live" story (the
+     ScanNetwork chips/traces and the <md OrbitStage). UI chrome (buttons,
+     links, focus rings, the accent gradient) stays single-accent violet
+     per D13 — these four never appear outside destination identity.
+     --dest-1 IS --primary (violet is always "destination one," the first
+     demo chip); 2-4 are new hues, hand-picked to stay legible at the same
+     lightness/chroma register as --primary in both modes. See
+     docs/guides/design-system.md's destination-palette amendment. */
+  --dest-1: var(--primary);
+  --dest-2: oklch(0.62 0.14 78); /* amber */
+  --dest-3: oklch(0.55 0.12 195); /* teal */
+  --dest-4: oklch(0.58 0.15 350); /* rose */
   /* Shiki code-block palette (P9.5-T1b) — near-monochrome, one accent.
      fg/bg alias --foreground/--muted directly (stay in sync automatically).
      comment/punctuation/number/property are color-mix blends of
@@ -240,6 +257,12 @@
   --surface-tint: oklch(0.155 0.004 280);
   --qr-fg: #ececf1;
   --qr-bg: #101013;
+  /* Destination-identity hues, dark-mode values (P9.5-T3a) — --dest-1
+     follows --primary automatically (redeclared above); 2-4 lift in
+     lightness the same way --primary itself does light->dark. */
+  --dest-2: oklch(0.76 0.13 80);
+  --dest-3: oklch(0.70 0.12 195);
+  --dest-4: oklch(0.72 0.13 350);
   /* Shiki code-block palette — same formulas as :root; they resolve
      differently here because --foreground/--muted-foreground/--primary
      already do. See the :root block above for the full rationale. */
@@ -374,6 +397,9 @@
 }
 .hero-enter-3 {
   animation-delay: 160ms;
+}
+.hero-enter-4 {
+  animation-delay: 240ms;
 }
 @media (prefers-reduced-motion: reduce) {
   .hero-enter {

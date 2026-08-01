@@ -80,7 +80,15 @@ export function Section({
       data-slot="section"
       data-variant={variant}
       data-surface={surface}
-      className={cn("relative", SURFACE_CLASS[surface], className)}
+      // scroll-mt-24 (P9.5-T3a): the pillar strip's #studio/#dynamic-codes/
+      // #analytics/#api anchors are the first real in-page jump targets any
+      // Section carries. SiteNav is sticky top-0 (~57px tall); without this
+      // a jumped-to section's heading lands directly under the nav bar.
+      // Applied unconditionally (harmless on sections with no id — nothing
+      // ever scrolls to an element with no fragment pointing at it), same
+      // 6rem value components/marketing/developers/section.tsx already uses
+      // for its own anchor headings.
+      className={cn("relative scroll-mt-24", SURFACE_CLASS[surface], className)}
     >
       {effectiveDivider === "hairline" && (
         <div aria-hidden className="border-t border-border/60" />

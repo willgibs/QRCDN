@@ -2,12 +2,16 @@ import { Section, SectionHeading, SectionBody } from "@/components/marketing/sec
 import { MonoStrip } from "@/components/marketing/mono-strip";
 import { LearnMoreLink } from "@/components/marketing/learn-more-link";
 import { FEATURE_DOORWAYS_ENABLED } from "@/lib/marketing-flags";
-import { StudioWindow } from "./studio-window";
+import { KitContactSheet } from "./kit-contact-sheet";
 
 // 03 — Brand system (P9.5-T3a: migrated onto Section/SectionHeading, copy
-// deck v3 head/lede/mono strip applied). Body (StudioWindow) unchanged
-// this chunk. Mono strip cites D5 (style frozen per code at mint) — see
-// docs/DECISIONS.md.
+// deck v3 head/lede/mono strip applied). P9.5-T3b: body replaced — the old
+// `StudioWindow` kit-window mock read as a second builder (the board's
+// exact note), so it's retired (zero other importers, grep-verified) in
+// favor of `KitContactSheet`: one kit style rendered across several
+// real-world print artifacts, saying "set once, appears everywhere"
+// instead of showing another editor. Mono strip cites D5 (style frozen per
+// code at mint) — see docs/DECISIONS.md.
 export function BrandSystemSection() {
   return (
     <Section variant="split" divider="none">
@@ -20,7 +24,7 @@ export function BrandSystemSection() {
       />
 
       <SectionBody className="max-w-5xl">
-        <StudioWindow />
+        <KitContactSheet />
       </SectionBody>
 
       <SectionBody delay={0.15} className="mt-8 flex flex-col items-start gap-4">

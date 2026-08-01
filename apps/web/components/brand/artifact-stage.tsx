@@ -1,6 +1,20 @@
 import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
 
+/** Default vs. `wide` sizing for the two ink-tinted glow layers — a plain
+ *  lookup, not a computed/interpolated className, since Tailwind's compiler
+ *  needs every arbitrary-percentage class to appear as a literal string
+ *  somewhere in source to generate it (see destination-hues.ts's own note on
+ *  the same constraint for `bg-dest-${n}`-style template strings). */
+const OUTER_FIELD_SIZE = {
+  default: "h-[110%] w-[120%]",
+  wide: "h-[124%] w-[136%]",
+} as const;
+const INNER_HALO_SIZE = {
+  default: "h-[108%] w-[108%]",
+  wide: "h-[118%] w-[120%]",
+} as const;
+
 /**
  * Presentational, server-safe staging wrapper for a luminous "artifact" —
  * the Resend-grammar restage of QRCDN's floating product visuals (first
@@ -27,10 +41,18 @@ export function ArtifactStage({
    *  brand violet primary so the stage still reads as luminous before a
    *  kit's ink color is known. */
   glowColor,
+  /** P9.5-T3b: widens the outer-field/inner-halo layers slightly beyond the
+   *  default sizing. Added for the landing playground specifically (its
+   *  mat sits closer to the section's own edges than the studio-era
+   *  consumers this component was first built for, so the default bloom
+   *  reads a touch tight there) — default `false` keeps every other
+   *  consumer byte-for-byte unchanged. */
+  wide = false,
   children,
   className,
 }: {
   glowColor?: string;
+  wide?: boolean;
   children: ReactNode;
   className?: string;
 }) {
@@ -52,7 +74,10 @@ export function ArtifactStage({
          *  "solid-under-blur technique" for why that's what lets this re-hue
          *  smoothly as the transition below fires. */}
         <div
-          className="absolute top-[57%] left-1/2 h-[110%] w-[120%] -translate-x-1/2 -translate-y-1/2 rounded-full opacity-[0.20] blur-3xl transition-[background-color] duration-(--duration-slow) ease-(--motion-ease-out) dark:opacity-[0.28]"
+          className={cn(
+            "absolute top-[57%] left-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full opacity-[0.20] blur-3xl transition-[background-color] duration-(--duration-slow) ease-(--motion-ease-out) dark:opacity-[0.28]",
+            wide ? OUTER_FIELD_SIZE.wide : OUTER_FIELD_SIZE.default,
+          )}
           style={{ backgroundColor: ink }}
         />
         {/* 3. Inner halo — NEW, tighter (just beyond the card) and less
@@ -61,7 +86,10 @@ export function ArtifactStage({
          *  edge rather than ambient room fill. Stays centered (not offset)
          *  — this is the "glow hugging the object" layer. */}
         <div
-          className="absolute top-1/2 left-1/2 h-[108%] w-[108%] -translate-x-1/2 -translate-y-1/2 rounded-full opacity-[0.14] blur-xl transition-[background-color] duration-(--duration-slow) ease-(--motion-ease-out) dark:opacity-[0.30]"
+          className={cn(
+            "absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full opacity-[0.14] blur-xl transition-[background-color] duration-(--duration-slow) ease-(--motion-ease-out) dark:opacity-[0.30]",
+            wide ? INNER_HALO_SIZE.wide : INNER_HALO_SIZE.default,
+          )}
           style={{ backgroundColor: ink }}
         />
         {/* 4. Floor-shadow ellipse — anchors the artifact to the stage floor

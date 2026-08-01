@@ -94,7 +94,39 @@ chrome — buttons, links, focus rings, form controls, the accent gradient. D13'
 violet lock is unchanged; this is a second, narrowly-scoped family for one specific storytelling
 purpose, not a reopening of the brand's "one accent" rule. A future surface wanting to depict
 "several distinct live things at once" outside the hero should reuse this family (via the same
-shared map, extended if it needs a fifth label) rather than inventing a third palette.
+shared map, extended if it needs a fifth label) rather than inventing a third palette. Also
+consumed at P9.5-T3b by `RetargetTheatre` (section 04's user-driven retarget demo), the third
+surface in "one recurring hue vocabulary."
+
+**`HUE_TINT` — srgb color-mix, board round 5 (live iOS Safari device testing).** The "active
+chip" tint used to be two things, both since replaced: Tailwind's own opacity-modifier utilities
+(`border-dest-N/50`, `bg-dest-N/10`) for border/background, and a hand-written `color-mix(in
+oklch, var(--dest-N) 40%, transparent)` inside `filter: drop-shadow(...)` for the glow
+(`HUE_GLOW`). Both failed identically on iOS Safari: `@supports (color: color-mix(in lab, red,
+red))` reports satisfied (verified via a throwaway `tailwindcss@4.3.3` compile — Tailwind's
+opacity utilities are generated behind exactly this `@supports` gate, with a solid-color
+fallback for browsers that don't support `color-mix` at all), so the browser takes the color-mix
+branch rather than the safe solid fallback, then paints that specific oklab/oklch-space mix as
+fully transparent — worst inside a `filter:` context. Fixed by moving every active-chip
+border/background/glow off both the Tailwind opacity utilities and the hand-written oklch mix
+onto `HUE_TINT` (`{ soft, strong }` per hue, `color-mix(in srgb, var(--dest-N) 10%/50%,
+transparent)`) and a color-mix-free `HUE_GLOW` (`drop-shadow(0 0 8px var(--dest-N))` — a solid
+color needs no alpha to read as a soft glow once blurred), both consumed via inline `style`
+rather than a class, since Tailwind has no way to choose the mix space per utility. `srgb` is a
+plain, linear, universally-rendered space; verified live in WebKit at 390×844 post-fix
+(`getComputedStyle` on the active chip resolved real `color(srgb ...)`/`drop-shadow(lab(...))`
+values, not transparent).
+
+Fixing this also caught a second, independent, same-severity bug in `OrbitStage` specifically:
+its active chip pill is an SVG `<rect>`, and the old Tailwind classes set `background-color`/
+`border-color` — properties with **no effect on an SVG shape's paint in any browser** (SVG rects
+only respond to `fill`/`stroke`; confirmed empirically, not assumed, by computed-style inspection
+of a throwaway styled `<rect>`). `HUE_TINT`'s values now feed `fill`/`stroke` directly for the
+SVG consumer (`OrbitStage`) and `backgroundColor`/`borderColor` for the HTML-div consumer
+(`ScanNetwork`'s `DestinationChip`, `RetargetTheatre`'s chip buttons) — same values, the CSS
+property each element type actually needs. `HUE_CLASSES` (the plain-`var()` Tailwind lookup)
+lost its `border`/`bg` fields as part of this — `dot`/`stroke`/`fill`/`text` are untouched and
+still safe (verified: they compile to a bare `var(--dest-N)` reference, no `color-mix` involved).
 
 ## Dark mode mechanics
 
@@ -226,6 +258,7 @@ The Resend-grammar restage (P4): a product artifact staged on a recessed near-bl
 - **Solid/current-color-under-blur technique:** the outer field and inner halo are solid `background-color` under blur, not `radial-gradient` — `background-color` interpolates smoothly across a CSS transition, gradients don't, which is what lets both layers re-hue live as the user edits their ink color instead of hard-cutting between colors. The reflection streak extends the same trick to `color`: its gradient uses `via-current`, so transitioning `color` (not `background-color`) re-hues the whole streak the same way, because the gradient recomputes live from the interpolated `currentColor` on every frame of the transition.
 - **Light-mode adaptation:** every glow layer's opacity roughly halves (or more) in light mode — base bloom `0.08` light / `0.13` dark, outer field and inner halo carry the widest light/dark gap (inner halo `0.14` light / `0.30` dark, roughly 2×) since light surfaces need much less glow to read as luminous before they wash out, reflection streak `0.25` light / `0.40` dark. Tune further in live review; worst case a layer drops to `opacity-0` in light mode and the stage leans on the layers below it.
 - **Glow-opacity family vs. the texture ceiling:** glow opacities (`0.08`–`0.40` across the five layers) are a distinct, much stronger family than the ≤0.035 quiet-texture ceiling used for background motifs like `ModuleGridBackdrop`'s QR-module grid (`preview-stage.tsx`) — don't conflate the two. Texture is barely-there; glow is the focal luminosity effect.
+- **`wide` prop (P9.5-T3b).** `ArtifactStage` accepts an optional `wide?: boolean` (default `false`, byte-for-byte unchanged default sizing) that scales the outer-field/inner-halo layers up slightly (outer `110%/120%`→`124%/136%`, inner `108%/108%`→`118%/120%`). Added for the landing playground's preview stage specifically — its mat sits closer to the section's own edges than this component's original consumers, so the default bloom read a touch tight there. Two fixed literal class strings per layer (`wide` ? one set : the other), not a computed/interpolated percentage — Tailwind's compiler needs every arbitrary-value class to appear as a literal string in source to generate it (same constraint `destination-hues.ts`'s own doc comment calls out for `` `bg-dest-${n}` ``-style template strings).
 - **Frames stay reserved for window-chrome.** The glass gradient-border frame treatment (still used by `ProductWindow`, browser-chrome mockups) is for surfaces that need to read as a *window onto* a product screen. A staged artifact that *is* the product (the QR itself) uses `ArtifactStage` + a seamless paper-hex mat instead — don't reach for a frame here.
 
 ### Studio vs. marketing staging (P4 founder round 3, note 2)
@@ -378,6 +411,143 @@ had both axes backwards and looked *almost* plausible on paper).
   resurfaces as part of section 04's dynamic-codes story instead of sitting as
   hero decoration. Don't re-add a caption under the hero artwork; if a future
   unit wants one, it belongs in the section that story is actually about.
+- **Board round 5 (folded into P9.5-T3b).** Three small hero-level fixes,
+  live-device-testing-driven: the accent line's trailing period is dropped
+  ("QR platform." → "QR platform" — a copy call, not a re-opening of the
+  no-em-dash rule above); the pillar strip is now `hidden md:block` (it was
+  pushing `ScanNetwork`/`OrbitStage` down, and the board wants the orbit
+  stage higher above the fold on mobile — unchanged at `md` and up); `QrTile`
+  (`components/marketing/qr-tile.tsx`) tightened its inner paddings (card
+  layer 14px→10px, qr-box layer 10px→8px, outer tile footprint/border
+  untouched) so the printed code reads meaningfully larger in the same
+  footprint, landing at the top of the board's "15-20% larger code area"
+  ask (~20% at the hero's own ~176px tile) — the qr-box's own padding is a
+  presentational margin only, not the scannability quiet zone (`renderQr`'s
+  SVG already bakes in the real D6 quiet zone regardless of this box's CSS
+  padding). A fourth round-5 fix — `OrbitStage`'s active-chip styling
+  invisible on iOS Safari — is documented in the destination-identity
+  palette amendment below, since it's a `HUE_TINT`/color-mix fix, not a
+  layout one.
+
+## Landing product-story bodies (P9.5-T3b)
+
+T3a migrated every landing section onto `Section`/`SectionHeading` and carried the
+deck's heads/ledes/mono strips, but left every section **body** untouched. T3b
+rebuilds four of them (02 studio, 03 brand system, 04 dynamic codes, 06 analytics)
+per the board's own body-level notes ("studio and brand system builders nearly
+identical", "dynamic codes very bland, no real magic", "analytics: would love a bit
+more"). Patterns worth carrying forward, by section:
+
+- **02 · Studio (`playground.tsx`) — preset shelf.** Three named `ToggleGroup`
+  presets ("Café Norte", "Second Story", "Personal" — the same three demo-kit
+  identities `StudioWindow` used to define, kept alive here even though that
+  component itself is retired this unit) set `dots.style`/`eyes.frame`/ink
+  immediately (discrete values snap; their own selected-state chrome cross-fades
+  via a plain `transition-colors`) and tween `sizeRatio` (the one continuous
+  control) over 300ms. **The tween is `setInterval`-driven, not
+  `motion`/`framer-motion`'s rAF-based `animate()`** — a real bug, not just a
+  testing artifact: `animate()`'s `onUpdate` callback only fires on animation
+  frames, which a backgrounded/hidden tab never produces (verified two ways:
+  `requestAnimationFrame` scheduled in this repo's own Claude-browser-pane test
+  tab never fired even after 10+ seconds, while `setTimeout` fired reliably;
+  and the preset chip visibly never reached its target value end-to-end through
+  the UI before the fix). A real user backgrounding their tab mid-click would hit
+  the exact same stall in production. Fixed with a hand-rolled `cubicBezierEase`
+  (Newton-Raphson solver matching the project's real `EASE_OUT` curve exactly,
+  same "hand-roll the exact curve locally" precedent as `orbit-stage.tsx`'s own
+  `easeInOutCubic`) driving a plain `setInterval` loop — `setInterval` keeps
+  firing regardless of tab visibility, so the tween (and therefore the live QR
+  re-render it drives on every tick) can't get stuck. `motion.div`/`motion.circle`
+  declarative `animate` props (the rest of the codebase's motion, including
+  `RetargetTheatre` below) are unaffected by this finding — they're a completely
+  different, well-precedented usage (OrbitStage itself already gates its own
+  logical state transitions on rAF completion the same way), and this repo's
+  hidden-test-tab rAF freeze is a known, already-documented testing-only
+  limitation for that usage (see "Testing note" above), not evidence those call
+  sites are broken. The redesign was specifically about the ONE spot on the page
+  that used `animate()` imperatively for a bespoke numeric tween with no existing
+  precedent to preserve.
+- **02 · Studio — scannability meter.** A compact contrast-ratio bar plotting
+  `scannabilityReport(style).worstContrast` against `CONTRAST_ERROR_MIN`/
+  `CONTRAST_WARN_MIN` (newly exported from `@qrcdn/qr-engine`, see
+  `docs/guides/qr-engine.md` — added specifically so a live UI never re-types
+  these numbers). Domain is a fixed 1:1-10:1 display range (not the theoretical
+  21:1 max) purely so the threshold ticks land somewhere legible; the number
+  rendered as text is always the real, unclamped ratio.
+- **02 · Studio — ink-hued bloom widens.** `ArtifactStage`'s new `wide` prop
+  (see "Luminous staging grammar" above), plus the single Download button +
+  format `Popover` (SVG/PNG) with a brief `Check`-icon success state
+  (`justExported`, auto-reverts after 1.6s) replacing the old two side-by-side
+  export buttons.
+- **03 · Brand system (`kit-contact-sheet.tsx`) — contact sheet, not a second
+  builder.** The board's exact note ("studio and brand system builders nearly
+  identical") retired `StudioWindow` outright (zero other importers,
+  grep-verified) in favor of one shared `QrStyle` (`KIT_STYLE`, rounded dots +
+  leaf eyes + the D13-locked ink) rendered via `renderQr` at **module scope**
+  across 5 print artifacts (menu tent, sticker, ticket stub, table talker,
+  poster corner) with different payloads — "set once, appears everywhere" shown
+  with real bytes, not five independently hand-tuned mocks that could drift.
+  Zero client JS. Mats rotate ≤3deg (Tailwind's own `rotate-1/2/3` steps, no
+  arbitrary values needed) with a `motion-safe:` (not JS) hover-relax
+  micro-interaction — CSS-only motion still has to respect reduced-motion, and
+  `motion-safe:`/`motion-reduce:` are the zero-JS way to do that in a server
+  component. The playground's "Café Norte" preset (above) deliberately mirrors
+  this file's `KIT_STYLE` exactly (same dots/eyes/ink), a small continuity
+  thread between the two sections.
+- **04 · Dynamic codes (`retarget-theatre.tsx`) — the RetargetTheatre.** "Hero
+  watches, theatre drives" (board round 3): same visual grammar as
+  `ScanNetwork`/`OrbitStage` (a `QrTile`, destination chips in their shared hue,
+  a traveling packet) but fully visitor-driven, not auto-advancing — doesn't
+  touch the page's "one auto-advancing element" motion budget (the hero orbit
+  keeps that slot). The packet's curved travel path and its 3-keyframe
+  `cx`/`cy` animation are **derived from the same cubic-bezier control points**
+  (not eyeballed separately) — same discipline as `dashboard-window.tsx`'s
+  `smoothPath`. Chip labels are width-capped + wrap-allowed
+  (`max-w-[10rem] break-words`, not `whitespace-nowrap`) rather than positioned
+  via a percentage-of-viewBox guess for how much room the longest label needs —
+  a fixed cap can't overflow regardless of container width, verified at 375px.
+  `QrTile` itself is "sacred-still": nothing in this component ever wraps it in
+  a motion prop. Retired the section's old three feature-icon pills (Pause/
+  Protect/Expire) — the theatre plus the state-cards below now embody that same
+  claim concretely (a paused/archived code IS the `/u` fallback state-card, a
+  protected one IS the `/p` gate, an expired one IS the dashboard "Expired"
+  pill) instead of just naming it.
+- **04 · Dynamic codes (`state-cards.tsx`) — truthful, not illustrative.** Every
+  card mirrors a real route's actual copy/structure, checked against the source
+  before drawing anything (`app/u/[slug]/page.tsx`, `app/p/[slug]/page.tsx`).
+  Where there's no real distinct page for a claimed state — an expired code
+  decides `{kind: "unclaimed"}` in `redirect-decision.ts` and lands on the exact
+  same `/u` page as paused/archived, so there's no scan-facing "expired" screen
+  to depict — the honest move is showing the state where it's real instead
+  (the owner-facing dashboard's "Expired" status pill), captioned accordingly
+  rather than implying a scanner sees something that doesn't exist. That pill's
+  label/classes are imported from `components/codes/codes-table.tsx`'s
+  `statusMeta` directly rather than hand-copied, so this mock can never
+  silently drift from what the real dashboard renders (`lib/access.ts`'s
+  `codeState`/`isCodeExpired`, which that function calls, are pure/zero-import —
+  safe to reach from the marketing bundle). Fake input/button chrome inside each
+  card is `aria-hidden` (decoration only, same convention `ProductWindow`'s
+  traffic-light dots use); the real information (heading, route label) stays
+  regular readable text, not a heading element (these are mockup chrome, not
+  genuine page structure — a screen-reader user navigating by heading shouldn't
+  hit fake ones). Found in passing: `/u/[slug]/page.tsx`'s own subcopy has a
+  pre-existing em dash — out of this unit's scope (not a landing section) to
+  fix, so this card's mirrored copy uses a comma instead rather than
+  perpetuating it onto a new surface.
+- **06 · Analytics (`dashboard-window.tsx`) — one window, more instrument.**
+  Breakdown rows (Top countries/Devices) are a bar-list enrichment beyond what
+  the real per-code `Breakdown` component renders (label+count only, no bars) —
+  this static window has never been a literal screenshot of the authenticated
+  app (it already diverges for bundle-size reasons, see the file's own P9.5-T1a
+  note), so the enrichment doesn't need pixel parity, only plausible honesty:
+  Devices is a closed enumeration and deliberately sums to the exact chart
+  total; Countries is an open "top 4 of many" list and deliberately does not.
+  Third "Today so far" stat tile carries a `motion-safe:animate-pulse` dot —
+  ambient state, ties into no auto-advancing narrative, still gated behind
+  reduced motion because it's still motion. Retention row moved from a
+  `MonoStrip` below the section into a footer strip inside `DashboardWindow`'s
+  own chrome (bookending the header bar) — numbers still read from
+  `PLAN_LIMITS` only, just imported one file over.
 
 ## The quality floor (founder-set, checkpoint A close)
 

@@ -88,16 +88,79 @@ test.describe("marketing site", () => {
 
   test("landing playground opens scannable (print-truth default, d2af287)", async ({ page }) => {
     await page.goto("/");
-    // Scoped to the Playground section specifically — BrandSystemSection's
-    // StudioWindow mock also renders a ScannabilityChip further down the
-    // same page (both were part of the same d2af287 fix), so an unscoped
-    // text search would match twice. Heading text is the P9.5-T3a copy
-    // deck v3 head ("Design it here. It's yours." — was "Design one right
-    // now." pre-T3a).
+    // Scoped to the Playground section specifically — P9.5-T3b's
+    // RetargetTheatre (section 04) also renders a role="status" region (its
+    // destination readout), so an unscoped role query would match more than
+    // one element and trip Playwright's strict mode. Heading text is the
+    // P9.5-T3a copy deck v3 head ("Design it here. It's yours." — was
+    // "Design one right now." pre-T3a).
     const playgroundSection = page
       .locator("section")
       .filter({ has: page.getByRole("heading", { name: "Design it here. It's yours." }) });
     await expect(playgroundSection.getByRole("status")).toContainText(/scannable/i);
+  });
+
+  test("playground preset shelf: renders 3 presets and applies one", async ({ page }) => {
+    await page.goto("/");
+    const playgroundSection = page
+      .locator("section")
+      .filter({ has: page.getByRole("heading", { name: "Design it here. It's yours." }) });
+
+    // All 3 named presets render (text-based, not role-based — avoids
+    // coupling the test to Radix ToggleGroup's exact internal role choice).
+    await expect(playgroundSection.getByText("Café Norte", { exact: true })).toBeVisible();
+    await expect(playgroundSection.getByText("Second Story", { exact: true })).toBeVisible();
+    await expect(playgroundSection.getByText("Personal", { exact: true })).toBeVisible();
+
+    // Clicking one actually applies it: Café Norte's sizeRatio (0.88) shows
+    // up in the Module size readout once the ~300ms control transition
+    // settles (Playwright's toBeVisible auto-retries past that).
+    await playgroundSection.getByText("Café Norte", { exact: true }).click();
+    await expect(playgroundSection.getByText("88%", { exact: true })).toBeVisible();
+  });
+
+  test("dynamic codes: RetargetTheatre responds to a tap and state-cards render", async ({ page }) => {
+    await page.goto("/");
+    const section = page.locator("#dynamic-codes");
+
+    // Three destination chips, hue-labeled per destination-hues.ts.
+    const chips = section.getByRole("button", { name: /Retarget the code to/ });
+    await expect(chips).toHaveCount(3);
+
+    // Idle hint shows before any tap.
+    await expect(section.getByText("tap a destination")).toBeVisible();
+
+    // Tapping a chip flips the destination readout beneath the stage —
+    // wait for the packet travel (≤800ms per spec) to land.
+    const first = chips.first();
+    const label = await first.getAttribute("aria-label");
+    await first.click();
+    await expect(section.getByText(/302 · no-store ·/)).toBeVisible({ timeout: 2000 });
+    if (label) {
+      const destination = label.replace("Retarget the code to ", "");
+      await expect(section.getByText(`302 · no-store · ${destination}`)).toBeVisible();
+    }
+
+    // The retired hero tagline's new home.
+    await expect(section.getByText("the printed code never changes")).toBeVisible();
+
+    // Truthful state-cards: /u fallback, /p gate, dashboard "Expired" pill.
+    await expect(section.getByText(/^\/u\//)).toBeVisible();
+    await expect(section.getByText(/^\/p\//)).toBeVisible();
+    await expect(section.getByText("Expired")).toBeVisible();
+  });
+
+  test("analytics window: breakdown rows and retention row render from entitlements", async ({ page }) => {
+    await page.goto("/");
+    const section = page.locator("#analytics");
+    await expect(section.getByText("Top countries")).toBeVisible();
+    await expect(section.getByText("Devices")).toBeVisible();
+    await expect(section.getByText("Today so far")).toBeVisible();
+    await expect(
+      section.getByText(
+        `${PLAN_LIMITS.free.analyticsRetentionDays}-day history free · ${PLAN_LIMITS.pro.analyticsRetentionDays}-day + city-level on Pro`,
+      ),
+    ).toBeVisible();
   });
 
   test("hero h1: renders the v4 headline and never SSRs at opacity 0", async ({ page, request }) => {
@@ -114,20 +177,31 @@ test.describe("marketing site", () => {
     expect(h1Match, "expected exactly one <h1> in the served HTML").toBeTruthy();
     expect(h1Match?.[0]).not.toMatch(/opacity\s*:\s*0(?!\.)/);
 
-    // Text content, not markup structure: "The modern" / "QR platform." are
-    // two separate block-level spans (P9.5-T3a hero v4), so there is no
-    // space character between them in `textContent` even though they
-    // render on separate lines — assert with optional whitespace between
-    // the two halves rather than a literal single-space string.
+    // Text content, not markup structure: "The modern" / "QR platform" are
+    // two separate block-level spans (P9.5-T3a hero v4; the trailing period
+    // was dropped at board round 5), so there is no space character between
+    // them in `textContent` even though they render on separate lines —
+    // assert with optional whitespace between the two halves rather than a
+    // literal single-space string. `\.?` stays optional rather than
+    // removed outright so this doesn't re-break if a period ever returns.
     await page.goto("/");
     const h1Text = await page.locator("h1").first().textContent();
     expect(h1Text?.replace(/\s+/g, " ").trim()).toMatch(/The modern\s*QR platform\.?/);
   });
 
-  test("pillar strip: renders 5 doorway links", async ({ page }) => {
+  test("pillar strip: renders 5 doorway links on desktop, hidden on mobile", async ({ page }) => {
     await page.goto("/");
-    const strip = page.getByRole("navigation", { name: "Jump to a section" });
+    // Plain CSS locator, not getByRole — the mobile half of this test needs
+    // to find the element even while `display:none` hides it from the
+    // accessibility tree, which getByRole's matching can't guarantee.
+    const strip = page.locator('nav[aria-label="Jump to a section"]');
     await expect(strip.getByRole("link")).toHaveCount(5);
+
+    // Board round 5: hidden below md — it was pushing ScanNetwork/OrbitStage
+    // down, and the board wants the orbit stage higher above the fold on
+    // mobile. Unchanged (still 5 links) at the desktop viewport above.
+    await page.setViewportSize({ width: 390, height: 844 });
+    await expect(strip).toBeHidden();
   });
 
   test("hero tagline is removed", async ({ page }) => {

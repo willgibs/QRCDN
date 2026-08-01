@@ -4,7 +4,7 @@ import { motion, useReducedMotion } from "motion/react";
 import { useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
 import { EASE_OUT } from "@/components/brand/magic";
-import { DESTINATION_HUES, HUE_CLASSES, type DestinationLabel } from "./destination-hues";
+import { DESTINATION_HUES, HUE_CLASSES, HUE_TINT, type DestinationLabel } from "./destination-hues";
 import { OrbitStage } from "./orbit-stage";
 import { QrTile } from "./qr-tile";
 
@@ -106,15 +106,23 @@ function DestinationChip({
   className?: string;
   style?: React.CSSProperties;
 }) {
-  const hueClasses = HUE_CLASSES[DESTINATION_HUES[label]];
+  const hue = DESTINATION_HUES[label];
+  const hueClasses = HUE_CLASSES[hue];
   return (
     <div
-      style={style}
+      // Board round 5: active border/background tint is inline style
+      // (HUE_TINT, srgb color-mix), not Tailwind's border-dest-N/50 /
+      // bg-dest-N/10 opacity-modifier classes — those compile through an
+      // oklab-space color-mix that iOS Safari mis-renders as invisible
+      // (see destination-hues.ts's HUE_TINT doc comment). Merges with any
+      // positioning style the caller already passes (chip left/right/top).
+      style={{
+        ...style,
+        ...(active ? { backgroundColor: HUE_TINT[hue].soft, borderColor: HUE_TINT[hue].strong } : {}),
+      }}
       className={cn(
         "flex items-center gap-2 rounded-full border px-3.5 py-1.5 font-mono text-[11px] whitespace-nowrap transition-colors duration-300",
-        active
-          ? cn(hueClasses.border, hueClasses.bg, "text-foreground shadow-md")
-          : "border-border bg-card/70 text-muted-foreground",
+        active ? "text-foreground shadow-md" : "border-border bg-card/70 text-muted-foreground",
         className,
       )}
     >

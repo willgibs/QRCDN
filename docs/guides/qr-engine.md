@@ -23,6 +23,7 @@ Read this when touching `packages/qr-engine`, `packages/shared/src/style.ts`, or
 | `effectiveEcc(style): EccLevel` | `guardrails.ts` | The ECC level the engine will *actually* use (never lower than requested) |
 | `effectiveLogoRatio(logo): number` | `guardrails.ts` | Linear knockout ratio including padding, at the floor version |
 | `contrastRatio`, `relativeLuminance` | `guardrails.ts` | WCAG-style contrast math |
+| `CONTRAST_ERROR_MIN`, `CONTRAST_WARN_MIN` | `guardrails.ts` | The real `3`/`4` contrast-ratio thresholds `scannabilityReport` evaluates against (P9.5-T3b: exported so a live UI — the landing playground's scannability meter — can plot them instead of re-typing) |
 | `logoFloorVersion(logo)` | `guardrails.ts` (not re-exported from `index.ts` — imported directly by `render.ts`) | Minimum symbol version for a knockout logo |
 
 Types: `RenderRequest`, `RenderResult`, `EncodedQr`, `EccLevel`, `ScannabilityReport`, `ScannabilityIssue`, `ScannabilityOptions`.
@@ -54,6 +55,8 @@ These are empirical, not theoretical (measured 2026-07-21 across two adversarial
 | `LOGO_EFFECTIVE_WARN` | `0.395` | Effective linear knockout ratio above this → `logo-over-recommended` warning |
 | `LOGO_EFFECTIVE_ERROR` | `0.412` | Above this → `logo-unscannable` error |
 | `LOGO_RATIO_ECC_Q_OK` | `0.316` | Effective ratio ceiling (≈10% area) for the ECC-Q exemption |
+| `CONTRAST_ERROR_MIN` (exported) | `3` | Contrast ratio below this → `low-contrast` error |
+| `CONTRAST_WARN_MIN` (exported) | `4` | Contrast ratio below this (and ≥ `CONTRAST_ERROR_MIN`) → `marginal-contrast` warning |
 
 Every failing config in the campaign had effective linear ratio ≥ ~0.418; every passing one ≤ ~0.407 — the warn/error thresholds sit inside that gap.
 

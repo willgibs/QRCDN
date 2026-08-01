@@ -1,4 +1,5 @@
 import { Card, CardContent } from "@/components/ui/card";
+import { PLAN_LIMITS } from "@/lib/entitlements";
 import { cn } from "@/lib/utils";
 import { ProductWindow } from "./product-window";
 
@@ -22,6 +23,14 @@ import { ProductWindow } from "./product-window";
  * the page DOM — never exported/downloaded — so CSS custom properties are
  * fine here; the sRGB-hex-only hard rule is about qr-engine's exported QR
  * assets, not in-page decoration).
+ *
+ * P9.5-T3b ("one window, more instrument"): breakdown rows (Top countries/
+ * Devices, bar-list enrichment beyond the real Breakdown component's plain
+ * label+count row — see the honest-register note above TOP_COUNTRIES/
+ * DEVICES), a third "Today so far" stat tile with a CSS-only pulsing dot
+ * (motion-safe-gated), and the retention row moved in from the section's
+ * own MonoStrip to live inside this window's chrome instead (a footer
+ * strip bookending the header bar).
  */
 const scans = [
   { day: "Jun 22", scans: 214 },
@@ -34,6 +43,32 @@ const scans = [
   { day: "Jul 13", scans: 833 },
   { day: "Jul 16", scans: 780 },
   { day: "Jul 19", scans: 941 },
+] as const;
+
+const SCAN_TOTAL = scans.reduce((sum, point) => sum + point.scans, 0);
+
+/**
+ * Breakdown rows (P9.5-T3b) — "Top countries"/"Devices", the same two
+ * labels + `<h3>`-then-`<ul>` shape `code-analytics-panel.tsx`'s real
+ * `Breakdown` component uses (that one has no bars; the bar fill here is a
+ * marketing-only enrichment, "depth," not a claim of pixel-identical
+ * product chrome — this static window has never been a literal screenshot,
+ * see the module header above). Demo counts are honest-register: Devices
+ * is a closed enumeration of every scan, so it sums to exactly SCAN_TOTAL;
+ * Countries is a "top 4 of many" list and deliberately does NOT sum to the
+ * total (a real top-N list never does — the remainder is everywhere else).
+ */
+const TOP_COUNTRIES = [
+  { label: "United States", count: 2540 },
+  { label: "United Kingdom", count: 890 },
+  { label: "Germany", count: 612 },
+  { label: "Canada", count: 401 },
+] as const;
+
+const DEVICES = [
+  { label: "Mobile", count: 4206 },
+  { label: "Desktop", count: 1180 },
+  { label: "Tablet", count: 245 },
 ] as const;
 
 // Static — mirrors RangeSelector's real labels (lib/analytics.ts's
@@ -108,15 +143,30 @@ function StatTile({
   label,
   value,
   caption,
+  live,
 }: {
   label: string;
   value: string;
   caption?: string;
+  /** "Today so far" only — a small pulsing dot reading as ambient live
+   *  state (CSS-only `animate-pulse`, gated behind `motion-safe:` so it
+   *  fully stops under prefers-reduced-motion). Not an auto-advancing
+   *  story element: nothing it shows ever changes, it's just texture that
+   *  says "this number is still counting." */
+  live?: boolean;
 }) {
   return (
     <Card>
       <CardContent className="flex flex-col gap-1">
-        <p className="text-xs text-muted-foreground">{label}</p>
+        <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
+          {label}
+          {live && (
+            <span
+              aria-hidden
+              className="size-1.5 rounded-full bg-emerald-500 motion-safe:animate-pulse"
+            />
+          )}
+        </span>
         <p className="font-display text-2xl font-semibold tabular-nums text-foreground">
           {value}
         </p>
@@ -126,9 +176,65 @@ function StatTile({
   );
 }
 
+/** Bar-list row shared by both breakdown columns — width is proportional to
+ *  that column's OWN max value (a bar-list convention, not a claim the
+ *  visible rows sum to 100%; see the honest-register note above
+ *  TOP_COUNTRIES/DEVICES for why that matters for one column and not the
+ *  other). */
+function BreakdownRow({
+  label,
+  count,
+  maxCount,
+}: {
+  label: string;
+  count: number;
+  maxCount: number;
+}) {
+  return (
+    <li className="flex items-center gap-3 text-sm">
+      <span className="w-24 shrink-0 truncate text-foreground sm:w-28">{label}</span>
+      <span className="h-1.5 flex-1 overflow-hidden rounded-full bg-muted">
+        <span
+          className="block h-full rounded-full bg-chart-1"
+          style={{ width: `${(count / maxCount) * 100}%` }}
+        />
+      </span>
+      <span className="w-12 shrink-0 text-right font-mono text-xs tabular-nums text-muted-foreground">
+        {count.toLocaleString()}
+      </span>
+    </li>
+  );
+}
+
+function Breakdown({
+  title,
+  rows,
+}: {
+  title: string;
+  rows: readonly { label: string; count: number }[];
+}) {
+  const maxCount = Math.max(...rows.map((row) => row.count));
+  return (
+    <div>
+      <h3 className="mb-2 font-mono text-xs uppercase tracking-[0.15em] text-muted-foreground">
+        {title}
+      </h3>
+      <ul className="flex flex-col gap-1.5">
+        {rows.map((row) => (
+          <BreakdownRow key={row.label} label={row.label} count={row.count} maxCount={maxCount} />
+        ))}
+      </ul>
+    </div>
+  );
+}
+
 export function DashboardWindow() {
-  const total = scans.reduce((sum, point) => sum + point.scans, 0);
+  const total = SCAN_TOTAL;
   const peak = scans.reduce((max, point) => (point.scans > max.scans ? point : max), scans[0]);
+  // Illustrative "so far today" figure — plausibly smaller than a full
+  // day's final count (Jul 19's 941), never re-typed against SCAN_TOTAL
+  // since "today" isn't part of the 10-point sample above.
+  const scansToday = 318;
 
   return (
     <ProductWindow url="qrcdn.com/codes">
@@ -196,10 +302,26 @@ export function DashboardWindow() {
           ))}
         </div>
 
-        <div className="mt-5 grid gap-4 sm:grid-cols-2">
+        <div className="mt-5 grid gap-4 sm:grid-cols-3">
           <StatTile label="Scans" value={total.toLocaleString()} caption={`last ${ACTIVE_RANGE}`} />
           <StatTile label="Peak day" value={peak.scans.toLocaleString()} caption={peak.day} />
+          <StatTile label="Today so far" value={scansToday.toLocaleString()} live />
         </div>
+
+        <div className="mt-6 grid gap-6 border-t border-border/60 pt-6 sm:grid-cols-2">
+          <Breakdown title="Top countries" rows={TOP_COUNTRIES} />
+          <Breakdown title="Devices" rows={DEVICES} />
+        </div>
+      </div>
+
+      {/* Retention row (P9.5-T3b) — moved inside the window's own chrome
+          (a footer strip bookending the "Scan activity" header bar above)
+          rather than living in a MonoStrip below the section, per the
+          spec's "enrich inside the same window frame" framing. Numbers
+          read straight from lib/entitlements.ts, never retyped (hard rule). */}
+      <div className="flex items-center justify-center border-t border-border/60 px-6 py-3 font-mono text-[11px] text-muted-foreground">
+        {PLAN_LIMITS.free.analyticsRetentionDays}-day history free ·{" "}
+        {PLAN_LIMITS.pro.analyticsRetentionDays}-day + city-level on Pro
       </div>
     </ProductWindow>
   );

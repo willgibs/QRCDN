@@ -35,6 +35,15 @@ import { PillarStrip } from "./pillar-strip";
  * anywhere on or above the h1. `ScanNetwork` keeps its own (below-the-fold,
  * client-island) entrance untouched; `HeroBackdrop` is presentational and
  * renders straight from the server.
+ *
+ * Board round 5 (folded into P9.5-T3b): the accent line's trailing period
+ * ("QR platform." → "QR platform") is dropped as a copy call, and the
+ * pillar strip is hidden below `md` (it was pushing `ScanNetwork`/
+ * `OrbitStage` down, and the board wants the orbit stage higher above the
+ * fold on mobile) — unchanged at `md` and up. See `qr-tile.tsx` and
+ * `destination-hues.ts` for this same round's other two fixes (QR fill
+ * ratio; iOS Safari color-mix/SVG-paint hardening for the orbit's active
+ * chip), both shared by every stage this component renders.
  */
 export function Hero() {
   return (
@@ -45,7 +54,7 @@ export function Hero() {
         <h1 className="hero-enter hero-enter-1 font-display text-display font-semibold text-foreground text-balance">
           <span className="block">The modern</span>
           <span className="block">
-            <AccentText>QR platform.</AccentText>
+            <AccentText>QR platform</AccentText>
           </span>
         </h1>
 
@@ -77,7 +86,11 @@ export function Hero() {
           </Button>
         </div>
 
-        <div className="hero-enter hero-enter-4 w-full max-w-lg">
+        {/* Board round 5: hidden below md — it was pushing the orbit stage
+            down, and the board wants the orbit higher above the fold on
+            mobile. Unchanged at md and up (own stagger step, same as
+            before). */}
+        <div className="hero-enter hero-enter-4 hidden w-full max-w-lg md:block">
           <PillarStrip />
         </div>
       </div>

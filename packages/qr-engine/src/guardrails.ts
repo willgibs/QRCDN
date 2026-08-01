@@ -17,6 +17,18 @@ const LOGO_EFFECTIVE_WARN = 0.395;
 const LOGO_EFFECTIVE_ERROR = 0.412;
 const LOGO_RATIO_ECC_Q_OK = 0.316;
 
+/**
+ * Contrast-ratio guardrails (WCAG-style, sRGB relative luminance below).
+ * Exported (P9.5-T3b) so a live UI instrument — the landing playground's
+ * scannability meter — can plot the real warn/fail thresholds instead of
+ * re-typing them; `scannabilityReport` below is still the only place that
+ * *evaluates* against them. Must stay analytic, never loosened by decode
+ * round-trip results (see docs/guides/qr-engine.md's "Why decode
+ * round-trips cannot validate contrast").
+ */
+export const CONTRAST_ERROR_MIN = 3;
+export const CONTRAST_WARN_MIN = 4;
+
 export function modulesForVersion(version: number): number {
   return 17 + 4 * version;
 }
@@ -141,17 +153,17 @@ export function scannabilityReport(
     if (relativeLuminance(color) > relativeLuminance(bg)) inverted = true;
   }
 
-  if (worst < 3) {
+  if (worst < CONTRAST_ERROR_MIN) {
     issues.push({
       code: "low-contrast",
       severity: "error",
-      message: `Foreground/background contrast is ${worst.toFixed(2)}:1 — below the 3:1 minimum; many scanners will fail.`,
+      message: `Foreground/background contrast is ${worst.toFixed(2)}:1, below the ${CONTRAST_ERROR_MIN}:1 minimum; many scanners will fail.`,
     });
-  } else if (worst < 4) {
+  } else if (worst < CONTRAST_WARN_MIN) {
     issues.push({
       code: "marginal-contrast",
       severity: "warning",
-      message: `Contrast ${worst.toFixed(2)}:1 is below the recommended 4:1 — may fail in poor lighting or on worn prints.`,
+      message: `Contrast ${worst.toFixed(2)}:1 is below the recommended ${CONTRAST_WARN_MIN}:1: may fail in poor lighting or on worn prints.`,
     });
   }
   if (inverted) {
@@ -159,7 +171,7 @@ export function scannabilityReport(
       code: "inverted",
       severity: "warning",
       message:
-        "Light modules on a dark background — some older scanners cannot read inverted codes.",
+        "Light modules on a dark background: some older scanners cannot read inverted codes.",
     });
   }
   if (style.logo) {
@@ -169,14 +181,14 @@ export function scannabilityReport(
         code: "logo-unscannable",
         severity: "error",
         message:
-          "Logo plus knockout padding covers too much of the code — decode testing shows codes this size fail to scan. Shrink the logo or reduce padding.",
+          "Logo plus knockout padding covers too much of the code: decode testing shows codes this size fail to scan. Shrink the logo or reduce padding.",
       });
     } else if (effective > LOGO_EFFECTIVE_WARN) {
       issues.push({
         code: "logo-over-recommended",
         severity: "warning",
         message:
-          "Logo plus padding is near the scannability limit — leaves little error-correction headroom for print wear.",
+          "Logo plus padding is near the scannability limit, leaving little error-correction headroom for print wear.",
       });
     }
     if (!style.logo.knockout && style.logo.sizeRatio > 0.25) {
@@ -184,7 +196,7 @@ export function scannabilityReport(
         code: "logo-no-knockout",
         severity: "warning",
         message:
-          "Large logo without module knockout overlaps data unpredictably — enable knockout or shrink the logo.",
+          "Large logo without module knockout overlaps data unpredictably: enable knockout or shrink the logo.",
       });
     }
   }
@@ -193,7 +205,7 @@ export function scannabilityReport(
       code: "sparse-dots",
       severity: "warning",
       message:
-        "Very small circular dots reduce inked area sharply — risky at small print sizes.",
+        "Very small circular dots reduce inked area sharply, risky at small print sizes.",
     });
   }
 

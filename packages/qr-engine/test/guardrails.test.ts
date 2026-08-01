@@ -1,6 +1,12 @@
 import { describe, expect, it } from "vitest";
 import { parseQrStyle } from "@qrcdn/shared";
-import { contrastRatio, effectiveEcc, scannabilityReport } from "../src";
+import {
+  CONTRAST_ERROR_MIN,
+  CONTRAST_WARN_MIN,
+  contrastRatio,
+  effectiveEcc,
+  scannabilityReport,
+} from "../src";
 
 describe("effectiveEcc", () => {
   it("passes through when no logo", () => {
@@ -59,6 +65,34 @@ describe("scannabilityReport", () => {
     );
     expect(report.issues.some((i) => i.code === "low-contrast")).toBe(true);
     expect(report.score).toBeLessThan(80);
+  });
+
+  // P9.5-T3b: CONTRAST_ERROR_MIN/CONTRAST_WARN_MIN are exported specifically
+  // so a live UI (the landing playground's scannability meter) can plot the
+  // real thresholds instead of re-typing them. This test locks the values
+  // AND proves scannabilityReport's own issue codes still flip exactly at
+  // those boundaries, so the exported constants can never silently drift
+  // out of sync with the analytic logic that actually uses them.
+  it("exports the real contrast thresholds, and issues flip exactly at them", () => {
+    expect(CONTRAST_ERROR_MIN).toBe(3);
+    expect(CONTRAST_WARN_MIN).toBe(4);
+
+    const justBelowError = scannabilityReport(
+      parseQrStyle({ v: 1, fill: { type: "solid", color: "#999999" } }),
+    );
+    expect(justBelowError.worstContrast).toBeLessThan(CONTRAST_ERROR_MIN);
+    expect(justBelowError.issues.map((i) => i.code)).toContain("low-contrast");
+
+    const betweenErrorAndWarn = scannabilityReport(
+      parseQrStyle({ v: 1, fill: { type: "solid", color: "#8a8a8a" } }),
+    );
+    expect(betweenErrorAndWarn.worstContrast).toBeGreaterThanOrEqual(CONTRAST_ERROR_MIN);
+    expect(betweenErrorAndWarn.worstContrast).toBeLessThan(CONTRAST_WARN_MIN);
+    expect(betweenErrorAndWarn.issues.map((i) => i.code)).toContain("marginal-contrast");
+
+    const cleanDefault = scannabilityReport(parseQrStyle({ v: 1 }));
+    expect(cleanDefault.worstContrast).toBeGreaterThanOrEqual(CONTRAST_WARN_MIN);
+    expect(cleanDefault.issues).toHaveLength(0);
   });
 
   it("gradient contrast is governed by the worst stop", () => {

@@ -15,6 +15,8 @@ export {
   effectiveLogoRatio,
   contrastRatio,
   relativeLuminance,
+  CONTRAST_ERROR_MIN,
+  CONTRAST_WARN_MIN,
 } from "./guardrails";
 export type {
   ScannabilityReport,

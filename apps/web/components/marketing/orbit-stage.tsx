@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { motion, useReducedMotion } from "motion/react";
 import { EASE_OUT } from "@/components/brand/magic";
 import { cn } from "@/lib/utils";
-import { DESTINATION_HUES, HUE_CLASSES, HUE_GLOW, HUE_VAR, type DestinationHue } from "./destination-hues";
+import { DESTINATION_HUES, HUE_CLASSES, HUE_GLOW, HUE_TINT, HUE_VAR, type DestinationHue } from "./destination-hues";
 import { QrTile } from "./qr-tile";
 
 /**
@@ -293,10 +293,20 @@ export function OrbitStage() {
                   height={dest.pill.height}
                   rx={13}
                   strokeWidth={1}
-                  className={cn(
-                    "transition-colors duration-(--duration-normal) ease-(--motion-ease-out)",
-                    active ? cn(hueClasses.bg, hueClasses.border) : "fill-card stroke-border",
-                  )}
+                  // Board round 5: active fill/stroke are inline style, not
+                  // Tailwind bg-*/border-* classes — those set background-
+                  // color/border-color, which have NO effect on an SVG
+                  // rect's paint (fill/stroke are the only properties that
+                  // do), and separately compiled through a color-mix space
+                  // iOS Safari mis-renders. HUE_TINT is srgb-space and
+                  // targets the correct SVG properties directly. See
+                  // destination-hues.ts's HUE_TINT doc comment for both.
+                  className="fill-card stroke-border transition-colors duration-(--duration-normal) ease-(--motion-ease-out)"
+                  style={
+                    active
+                      ? { fill: HUE_TINT[dest.hue].soft, stroke: HUE_TINT[dest.hue].strong }
+                      : undefined
+                  }
                 />
                 <text
                   x={dest.text.x}

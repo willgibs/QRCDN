@@ -37,6 +37,12 @@
  *   - app/(marketing)/features/dynamic-codes/opengraph-image.alt.txt
  *   - app/(marketing)/features/analytics/opengraph-image.png (1200x630)
  *   - app/(marketing)/features/analytics/opengraph-image.alt.txt
+ *
+ * P9.5-T-F2 adds the second pair of feature-page OGs, same pattern:
+ *   - app/(marketing)/features/brand-studio/opengraph-image.png (1200x630)
+ *   - app/(marketing)/features/brand-studio/opengraph-image.alt.txt
+ *   - app/(marketing)/features/access-controls/opengraph-image.png (1200x630)
+ *   - app/(marketing)/features/access-controls/opengraph-image.alt.txt
  */
 
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
@@ -78,6 +84,10 @@ const OG_PRICING_PAYLOAD = "HTTPS://QRCDN.COM/PRICING";
 // so both payloads stay uppercase alphanumeric-mode encodable end to end.
 const OG_DYNAMIC_CODES_PAYLOAD = "HTTPS://QRCDN.COM/FEATURES/DYNAMIC-CODES";
 const OG_ANALYTICS_PAYLOAD = "HTTPS://QRCDN.COM/FEATURES/ANALYTICS";
+
+// P9.5-T-F2's second pair, same reasoning.
+const OG_BRAND_STUDIO_PAYLOAD = "HTTPS://QRCDN.COM/FEATURES/BRAND-STUDIO";
+const OG_ACCESS_CONTROLS_PAYLOAD = "HTTPS://QRCDN.COM/FEATURES/ACCESS-CONTROLS";
 
 // ---------------------------------------------------------------------
 // sRGB hex palette — exported brand assets are sRGB hex only, never oklch
@@ -207,6 +217,28 @@ function renderDynamicCodesOgQr(): QrRender {
 function renderAnalyticsOgQr(): QrRender {
   const { svg, sideLength } = renderQr({
     data: OG_ANALYTICS_PAYLOAD,
+    style: brandQrStyles.precision.light,
+    quietZone: 4,
+  });
+  const inner = svg.replace(/^<svg[^>]*>/, "").replace(/<\/svg>$/, "");
+  return { inner, sideLength };
+}
+
+/** Same pattern again, pointed at OG_BRAND_STUDIO_PAYLOAD (P9.5-T-F2). */
+function renderBrandStudioOgQr(): QrRender {
+  const { svg, sideLength } = renderQr({
+    data: OG_BRAND_STUDIO_PAYLOAD,
+    style: brandQrStyles.precision.light,
+    quietZone: 4,
+  });
+  const inner = svg.replace(/^<svg[^>]*>/, "").replace(/<\/svg>$/, "");
+  return { inner, sideLength };
+}
+
+/** Same pattern again, pointed at OG_ACCESS_CONTROLS_PAYLOAD (P9.5-T-F2). */
+function renderAccessControlsOgQr(): QrRender {
+  const { svg, sideLength } = renderQr({
+    data: OG_ACCESS_CONTROLS_PAYLOAD,
     style: brandQrStyles.precision.light,
     quietZone: 4,
   });
@@ -467,6 +499,97 @@ function buildAnalyticsOgSvg(qr: QrRender): string {
 }
 
 // ---------------------------------------------------------------------
+// Brand-studio feature OG (1200x630) —
+// app/(marketing)/features/brand-studio/opengraph-image.png (P9.5-T-F2)
+//
+// Same canvas language and independence rationale as
+// buildDynamicCodesOgSvg()/buildAnalyticsOgSvg() above. Headline is the
+// real H1 (deck-locked, verbatim), wrapped across two lines at its own
+// natural break.
+// ---------------------------------------------------------------------
+
+function buildBrandStudioOgSvg(qr: QrRender): string {
+  const W = 1200;
+  const H = 630;
+
+  const tile = { x: 768, y: 135, w: 360, h: 360, rx: 28 };
+  const tileCenterX = tile.x + tile.w / 2;
+  const tileCenterY = tile.y + tile.h / 2;
+  const qrBox = 272;
+  const qrX = tile.x + (tile.w - qrBox) / 2;
+  const qrY = tile.y + (tile.h - qrBox) / 2;
+
+  const leftX = 88;
+
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}">
+    <rect width="${W}" height="${H}" fill="${DARK_BACKGROUND}"/>
+    ${gridTextureFragment(W, H)}
+
+    ${moduleMarkFragment(leftX, 146, 30, DARK_PRIMARY)}
+    <text x="${leftX + 42}" y="169" font-family="Inter" font-weight="700" font-size="24" letter-spacing="-0.3" fill="${DARK_FOREGROUND}">QRCDN</text>
+
+    <text x="${leftX}" y="342" font-family="Inter" font-weight="700" font-size="66" letter-spacing="-1.3" fill="${DARK_FOREGROUND}">Design the code</text>
+    <text x="${leftX}" y="416" font-family="Inter" font-weight="700" font-size="66" letter-spacing="-1.3" fill="${DARK_FOREGROUND}">itself.</text>
+
+    <text x="${leftX}" y="472" font-family="Inter" font-weight="400" font-size="20" letter-spacing="1.5" fill="${DARK_MUTED_FOREGROUND}">instrument: live · engine: open source</text>
+
+    <defs>
+      <filter id="glow" x="-80%" y="-80%" width="260%" height="260%">
+        <feGaussianBlur stdDeviation="38"/>
+      </filter>
+    </defs>
+    <ellipse cx="${tileCenterX}" cy="${tileCenterY + 18}" rx="230" ry="185" fill="${DARK_PRIMARY}" opacity="0.35" filter="url(#glow)"/>
+
+    <rect x="${tile.x}" y="${tile.y}" width="${tile.w}" height="${tile.h}" rx="${tile.rx}" fill="${QR_PAPER}"/>
+    ${qrGroupFragment(qr, qrX, qrY, qrBox)}
+  </svg>`;
+}
+
+// ---------------------------------------------------------------------
+// Access-controls feature OG (1200x630) —
+// app/(marketing)/features/access-controls/opengraph-image.png (P9.5-T-F2)
+//
+// Same canvas language and independence rationale as the builders above.
+// ---------------------------------------------------------------------
+
+function buildAccessControlsOgSvg(qr: QrRender): string {
+  const W = 1200;
+  const H = 630;
+
+  const tile = { x: 768, y: 135, w: 360, h: 360, rx: 28 };
+  const tileCenterX = tile.x + tile.w / 2;
+  const tileCenterY = tile.y + tile.h / 2;
+  const qrBox = 272;
+  const qrX = tile.x + (tile.w - qrBox) / 2;
+  const qrY = tile.y + (tile.h - qrBox) / 2;
+
+  const leftX = 88;
+
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}">
+    <rect width="${W}" height="${H}" fill="${DARK_BACKGROUND}"/>
+    ${gridTextureFragment(W, H)}
+
+    ${moduleMarkFragment(leftX, 146, 30, DARK_PRIMARY)}
+    <text x="${leftX + 42}" y="169" font-family="Inter" font-weight="700" font-size="24" letter-spacing="-0.3" fill="${DARK_FOREGROUND}">QRCDN</text>
+
+    <text x="${leftX}" y="342" font-family="Inter" font-weight="700" font-size="66" letter-spacing="-1.3" fill="${DARK_FOREGROUND}">Decide who</text>
+    <text x="${leftX}" y="416" font-family="Inter" font-weight="700" font-size="66" letter-spacing="-1.3" fill="${DARK_FOREGROUND}">gets through.</text>
+
+    <text x="${leftX}" y="472" font-family="Inter" font-weight="400" font-size="20" letter-spacing="1.5" fill="${DARK_MUTED_FOREGROUND}">controls live on the address, not the print</text>
+
+    <defs>
+      <filter id="glow" x="-80%" y="-80%" width="260%" height="260%">
+        <feGaussianBlur stdDeviation="38"/>
+      </filter>
+    </defs>
+    <ellipse cx="${tileCenterX}" cy="${tileCenterY + 18}" rx="230" ry="185" fill="${DARK_PRIMARY}" opacity="0.35" filter="url(#glow)"/>
+
+    <rect x="${tile.x}" y="${tile.y}" width="${tile.w}" height="${tile.h}" rx="${tile.rx}" fill="${QR_PAPER}"/>
+    ${qrGroupFragment(qr, qrX, qrY, qrBox)}
+  </svg>`;
+}
+
+// ---------------------------------------------------------------------
 // apple-icon.png (180x180) — app/apple-icon.png
 // ---------------------------------------------------------------------
 
@@ -543,6 +666,18 @@ async function main() {
     `[generate-brand-images] QR self-verify OK — decoded payload: "${analyticsDecoded}"`,
   );
 
+  const brandStudioQr = renderBrandStudioOgQr();
+  const brandStudioDecoded = await verifyQrDecodesTo(brandStudioQr, OG_BRAND_STUDIO_PAYLOAD);
+  console.log(
+    `[generate-brand-images] QR self-verify OK — decoded payload: "${brandStudioDecoded}"`,
+  );
+
+  const accessControlsQr = renderAccessControlsOgQr();
+  const accessControlsDecoded = await verifyQrDecodesTo(accessControlsQr, OG_ACCESS_CONTROLS_PAYLOAD);
+  console.log(
+    `[generate-brand-images] QR self-verify OK — decoded payload: "${accessControlsDecoded}"`,
+  );
+
   const appleIconPng = rasterize(buildAppleIconSvg(), 180);
   const ogPng = rasterize(buildHomepageOgSvg(qr), 1200);
   const ogAlt =
@@ -572,6 +707,14 @@ async function main() {
   const analyticsOgAlt =
     "QRCDN scan analytics: every scan, counted honestly. A styled QR code beside the QRCDN wordmark on a dark canvas.";
 
+  const brandStudioOgPng = rasterize(buildBrandStudioOgSvg(brandStudioQr), 1200);
+  const brandStudioOgAlt =
+    "QRCDN brand studio: design the code itself. A styled QR code beside the QRCDN wordmark on a dark canvas.";
+
+  const accessControlsOgPng = rasterize(buildAccessControlsOgSvg(accessControlsQr), 1200);
+  const accessControlsOgAlt =
+    "QRCDN access controls: decide who gets through. A styled QR code beside the QRCDN wordmark on a dark canvas.";
+
   const appleIconPath = join(WEB_ROOT, "app/apple-icon.png");
   const marketingDir = join(WEB_ROOT, "app/(marketing)");
   const ogPngPath = join(marketingDir, "opengraph-image.png");
@@ -598,12 +741,22 @@ async function main() {
   const analyticsOgPngPath = join(analyticsDir, "opengraph-image.png");
   const analyticsOgAltPath = join(analyticsDir, "opengraph-image.alt.txt");
 
+  const brandStudioDir = join(featuresDir, "brand-studio");
+  const brandStudioOgPngPath = join(brandStudioDir, "opengraph-image.png");
+  const brandStudioOgAltPath = join(brandStudioDir, "opengraph-image.alt.txt");
+
+  const accessControlsDir = join(featuresDir, "access-controls");
+  const accessControlsOgPngPath = join(accessControlsDir, "opengraph-image.png");
+  const accessControlsOgAltPath = join(accessControlsDir, "opengraph-image.alt.txt");
+
   mkdirSync(marketingDir, { recursive: true });
   mkdirSync(pricingDir, { recursive: true });
   mkdirSync(termsDir, { recursive: true });
   mkdirSync(privacyDir, { recursive: true });
   mkdirSync(dynamicCodesDir, { recursive: true });
   mkdirSync(analyticsDir, { recursive: true });
+  mkdirSync(brandStudioDir, { recursive: true });
+  mkdirSync(accessControlsDir, { recursive: true });
   writeFileSync(appleIconPath, appleIconPng);
   writeFileSync(ogPngPath, ogPng);
   writeFileSync(ogAltPath, ogAlt);
@@ -617,6 +770,10 @@ async function main() {
   writeFileSync(dynamicCodesOgAltPath, dynamicCodesOgAlt);
   writeFileSync(analyticsOgPngPath, analyticsOgPng);
   writeFileSync(analyticsOgAltPath, analyticsOgAlt);
+  writeFileSync(brandStudioOgPngPath, brandStudioOgPng);
+  writeFileSync(brandStudioOgAltPath, brandStudioOgAlt);
+  writeFileSync(accessControlsOgPngPath, accessControlsOgPng);
+  writeFileSync(accessControlsOgAltPath, accessControlsOgAlt);
 
   console.log(`[generate-brand-images] wrote ${appleIconPath} (${appleIconPng.length} bytes)`);
   console.log(`[generate-brand-images] wrote ${ogPngPath} (${ogPng.length} bytes)`);
@@ -639,6 +796,14 @@ async function main() {
     `[generate-brand-images] wrote ${analyticsOgPngPath} (${analyticsOgPng.length} bytes)`,
   );
   console.log(`[generate-brand-images] wrote ${analyticsOgAltPath}`);
+  console.log(
+    `[generate-brand-images] wrote ${brandStudioOgPngPath} (${brandStudioOgPng.length} bytes)`,
+  );
+  console.log(`[generate-brand-images] wrote ${brandStudioOgAltPath}`);
+  console.log(
+    `[generate-brand-images] wrote ${accessControlsOgPngPath} (${accessControlsOgPng.length} bytes)`,
+  );
+  console.log(`[generate-brand-images] wrote ${accessControlsOgAltPath}`);
 }
 
 main().catch((err) => {

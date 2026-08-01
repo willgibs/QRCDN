@@ -1,6 +1,6 @@
 # Status
 
-_Last updated: 2026-08-01 (P9.5-T-F1 landed: /features/dynamic-codes + /features/analytics feature pages, landing doorways 04/06 live). Update this file at every phase boundary or significant commit._
+_Last updated: 2026-08-01 (P9.5-T-F2 landed: /features/brand-studio + /features/access-controls feature pages, landing doorways 02/03/04 live, D2 amended). Update this file at every phase boundary or significant commit._
 
 ## Current phase
 
@@ -329,6 +329,161 @@ workaround for the hidden-tab rAF freeze: both pages read cleanly section to sec
 the two-layer diagram's connecting arrow correctly reflows from a rightward to a
 downward orientation at the mobile breakpoint, and `scrollWidth === innerWidth` at
 375px confirmed zero horizontal overflow anywhere on either page.
+
+**T-F chunk 2 (this commit): the second pair of feature pages,
+/features/brand-studio + /features/access-controls.** Spec: the combined CEO
+deck + build spec for T-F chunk 2 (scratchpad `tf2-deck-and-spec.md`). Same
+composition discipline as chunk 1: deck strings verbatim outside the four
+named truth-gate variants, page-depth copy composing already-proven landing
+components, zero new client JS.
+
+- **True reuse, not forks.** `KitContactSheet` and `GuardrailsPlot` render
+  with zero prop changes. `StateCards` gained one additive `only?:
+  "unclaimed" | "password" | "expired"` prop (default `undefined` — every
+  existing call keeps rendering all three cards, byte-identical): when set,
+  the grid wrapper is skipped and the single named `<StateCard>` renders
+  bare, so `/features/access-controls` can show exactly the password card
+  (S1) or the expired-code row (S2) the deck calls for. `Playground` gained
+  one additive `embedded?: boolean` prop (default `false`, landing call
+  site unchanged) — the one component in this chunk's reuse list that
+  bakes in its own `Section`/`SectionHeading`/closing doorway (unlike every
+  other reused body component), so `embedded=true` skips that outer shell
+  (the feature page supplies its own S2 head/lede instead) and always
+  drops the closing doorway link (a page can't doorway-link to itself).
+  `ClosingSection`'s existing `title` prop covers both new pages' closing
+  CTAs with no further changes. Net-new, shared with chunk 1:
+  `FeatureHero`/`FaqList` (unchanged, no new props needed).
+- **Doorway-flag state.** `lib/marketing-flags.ts`'s
+  `BRAND_STUDIO_DOORWAY_ENABLED` flips `true` (both call sites: section 02
+  `playground.tsx`, section 03 `brand-system-section.tsx` — the latter
+  gained `id="brand-system"` this unit, closing the one omission versus
+  every sibling doorway-bearing section, which all already had an anchor
+  id). A new `ACCESS_CONTROLS_DOORWAY_ENABLED` flips `true` for the one
+  natural slot the spec asked to look for: section 04 `dynamic-codes-
+  section.tsx`, beside the existing dynamic-codes doorway link — that
+  section's own state-cards already depict the password gate and the
+  expired-code row the new page expands on, so a second `LearnMoreLink`
+  drops in with zero layout change.
+- **All four truth-gate verdicts** (each proven against real source, not
+  assumed — full reasoning lives in both new page.tsx files' own header
+  comments):
+  - **G1 (studio export block behavior) — variant B, warn-only.** Proven
+    against `components/studio/studio-shell.tsx` (`handleExportSvg`/
+    `handleExportPng` call `downloadBlob`/`rasterizeSvgToPng` directly,
+    with no gate on the live `scannabilityReport` result) and
+    `components/studio/controls-rail.tsx` (the Export section's Download
+    buttons disable only while `exporting !== null`, never on
+    scannability state). `ScannabilityChip` is read-only instrumentation;
+    it never disables anything. Shipped: "...the studio warns before you
+    export, while you decide."
+  - **G2 (password check location + destination-in-HTML) — variant A.**
+    Proven against `workers/redirect/src/responses.ts`
+    (`scanRedirectToPasswordWall` only ever redirects to `/p/{slug}`, never
+    sees or checks a password), `app/p/[slug]/actions.ts` (`verifyCodeAccess`
+    is a `"use server"` action — the scrypt comparison runs server-side,
+    never in browser JS), and `app/p/[slug]/page.tsx` (fetches
+    `destination_url` but never renders it in the one branch where the gate
+    form actually shows — it's referenced only in the two branches that
+    redirect away before the gate renders). Shipped mono, verbatim:
+    "password checked server-side · destination never in the gate's HTML".
+  - **G3 (vanity slug rules)** — read from `lib/slug.ts`: 4-30 characters,
+    the narrow 30-symbol charset (digits 2-9 + A-Z minus I/L/O/U — the same
+    print-confusability charset as auto-generated slugs, D12's P7.5-U3
+    amendment), case-insensitive input normalized to uppercase, single-
+    attempt insert (collision -> `slug_taken`), plus the `RESERVED_SLUGS`
+    blocklist. Shipped mono: "4-30 chars · charset skips 0 O 1 I L U ·
+    reserved words blocked".
+  - **G4 (expiry revival)** — yes, immediately, by design. Read from
+    `lib/codes-core.ts`'s `setCodeAccessCore`, `lib/validation.ts`'s
+    `parseExpiresAt` (`null` explicitly clears `expires_at`; past dates are
+    "deliberately accepted... not a mistake to reject"), and
+    `lib/access.ts`'s `isCodeExpired`/`codeState` (purely derived from the
+    live `expires_at` value on every call — no separate "died once" flag
+    exists anywhere in the schema). Both S2's lede and S6 FAQ #3 ship this.
+  - **Two verify-before-shipping FAQ answers**, both confirmed true and
+    shipped close to verbatim: "Do controls slow the scan down?" (the
+    password/expiry checks are synchronous conditionals over the exact
+    `kvRecord`/`restResult` the Worker already fetched to resolve the
+    destination — `workers/redirect/src/index.ts` +
+    `redirect-decision.ts` — no extra lookup) and "Do gated scans still
+    count in analytics?" (yes: `index.ts` fires scan ingest based on
+    `resolveCodeId` alone, independent of the redirect `decision.kind` —
+    `ingest-decision.ts`'s `decideIngest` never inspects paused/protected/
+    expired state, matching `resolveCodeId`'s own doc comment, "a scan
+    against a paused code is still a scan").
+- **Deviation, flagged and sourced (not silent).** The deck's hero lede and
+  S2 lede both listed/described a code "scheduling" capability ("schedule
+  its start") alongside expiry. No such feature exists: `supabase/
+  migrations` shows `qr_codes` has `expires_at` and `password_hash` only
+  (no `starts_at`/`scheduled_at` column), `code-access-dialog.tsx` exposes
+  only "Expires" + "Password" inputs, and `lib/api-reference.ts` documents
+  no scheduling field on the public API's PATCH surface either. Per the
+  task's own directive ("a claim you cannot prove does not ship"), both
+  ledes drop the scheduling clause and describe only the real expiry
+  capability. `lib/pricing.ts`'s pre-existing "Expiry, password &
+  scheduling" row label carries the same imprecision but is a shared,
+  already-shipped `/pricing` surface out of this chunk's scope to edit —
+  S5's table on `/features/access-controls` overrides that one row's LABEL
+  text locally to "Expiry & password" (its free/pro VALUES are still read
+  unchanged from `PRICING_ROWS`) rather than perpetuating the claim on a
+  new page.
+- **Honest plans-and-limits tables**, same "import what exists, one static
+  pair for a policy fact" discipline chunk 1 established. Brand-studio:
+  brand kits + dynamic codes read `PRICING_ROWS`; static codes and export
+  formats have no `PlanLimits` field (D14: both unconditionally unlimited
+  on every plan) so they're the static pairs. Access-controls: vanity
+  slugs + bulk generation read `PRICING_ROWS`; pause/resume has no
+  `PlanLimits` field either — verified by reading `setCodePausedCore`
+  (`lib/codes-core.ts`) directly, which carries no plan gate at all
+  (matching D14's "retargeting always allowed, never deactivated"
+  framing) — so it's a static Included/Included pair, not assumed.
+- **Sitemap + OG.** `app/sitemap.ts` gains both routes (priority 0.8,
+  monthly, matching chunk 1's pair exactly).
+  `scripts/generate-brand-images.ts` extended with two more independent SVG
+  builders (`buildBrandStudioOgSvg`/`buildAccessControlsOgSvg`) and two new
+  deep-linking QR payloads (`HTTPS://QRCDN.COM/FEATURES/BRAND-STUDIO`,
+  `.../FEATURES/ACCESS-CONTROLS`, both self-verified via the existing
+  zxing-wasm decode-before-write gate). Re-running the generator reproduced
+  every one of the six pre-existing images byte-identical (git-diff-
+  confirmed zero changes to any existing PNG/alt-text file) and wrote the
+  four new files.
+- **D2 amendment (the task's own rider).** `docs/DECISIONS.md`'s D2 gained
+  an "Amended at P9.5" note, following D8's own pattern: the "~60s"
+  worst-case staleness prose was stale versus the real P5 fix — both KV
+  write call sites (`workers/redirect/src/index.ts`'s backfill,
+  `workers/redirect/src/kv-sync-endpoint.ts`'s write-through) have used
+  `expirationTtl: 300` since a real bug fix (an untimed backfill entry
+  could otherwise pin a stale destination forever if write-through sync
+  ever failed). Worst-case staleness is 300s, not 60s; `cacheTtl: 60` on
+  the initial `KV.get` is a separate, still-accurate read-cache hint. This
+  closes the exact "future one-line fix" chunk 1's own STATUS entry
+  flagged but didn't execute.
+
+Verified: `pnpm lint && pnpm typecheck && pnpm test` all green across every
+workspace package (694 tests, unchanged count: 55 qr-engine + 138 worker +
+23 shared + 478 web — this unit's new logic is compositional, covered by
+e2e rather than new vitest cases, same reasoning chunks 1 and T5 both
+gave), `pnpm build` keeps `/features/brand-studio` and
+`/features/access-controls` at `○ (Static)` and every other route's render
+mode byte-identical to the chunk-1 baseline. Full local e2e run (`pnpm
+test:e2e`, `next start -p 3100`, real cloud Supabase fixture): 61/61 green,
+including 6 new assertions (both pages' hero h1 + one section-body marker
+each, both pages' truth-gate mono/copy lines + honest plan table + FAQ, and
+the rewritten landing-doorways test covering all four now-live `/features/*`
+links — two of them, `#studio`/`#brand-system`, sharing one destination and
+one link string, scoped per-section to avoid a strict-mode violation) plus
+the entire pre-existing money-path/auth-scanner-safety/marketing suites,
+confirming nothing else broke. Live production-build review (`next start`,
+throwaway port) at 1280px desktop and 390px mobile, both themes, via the
+browser pane's documented `!important`-override workaround for the
+hidden-tab rAF freeze (re-applied after every fresh navigation, not just
+once, after an initial dark/mobile capture of `/features/access-controls`
+came back with several sections visually blank — confirmed as the
+known frozen-entrance-animation artifact, not a real bug, by re-navigating
+and re-injecting the override, which recovered every section): both new
+pages read cleanly section to section in both themes, and
+`document.documentElement.scrollWidth === innerWidth` at 390px confirmed
+zero horizontal overflow anywhere on either page.
 
 ## Phase ledger
 

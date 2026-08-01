@@ -41,11 +41,24 @@ import { cn } from "@/lib/utils";
  * as a section's own full-width body, not a sidebar, where forcing 1 column
  * at `lg` would leave three cards stacked and oddly narrow on a wide page.
  * `layout="grid"` keeps 3 columns at every breakpoint from `sm` up instead
- * — true reuse via an additive prop, not a forked copy of this component. */
+ * — true reuse via an additive prop, not a forked copy of this component.
+ *
+ * `only` (P9.5-T-F2, additive — every existing call omits it and keeps
+ * today's all-three-cards behavior): `/features/access-controls` wants
+ * exactly ONE of these cards per section (S1 "Gate it" wants only the
+ * password card, S2 "Time-box it" wants only the expired-code row), per
+ * the T-F2 spec's own instruction ("StateCards' password card ... via an
+ * additive prop"). When set, the grid wrapper is skipped entirely and the
+ * single requested `<StateCard>` renders bare — the caller supplies its
+ * own layout (a `Section`/`SectionBody` on the feature page), the same way
+ * `layout="grid"` lets `/features/dynamic-codes` supply its own wrapper
+ * sizing instead of this component guessing a container it can't see. */
 const LAYOUT_CLASS: Record<"sidebar" | "grid", string> = {
   sidebar: "sm:grid-cols-3 lg:grid-cols-1",
   grid: "sm:grid-cols-3 lg:grid-cols-3",
 };
+
+export type StateCardKind = "unclaimed" | "password" | "expired";
 
 const DEMO_SLUG = "K7M2X9A";
 
@@ -77,55 +90,72 @@ function MockButton({ children }: { children: ReactNode }) {
   );
 }
 
-export function StateCards({ layout = "sidebar" }: { layout?: "sidebar" | "grid" } = {}) {
+export function StateCards({
+  layout = "sidebar",
+  only,
+}: { layout?: "sidebar" | "grid"; only?: StateCardKind } = {}) {
   const expired = statusMeta("active", "2024-01-01T00:00:00.000Z");
+
+  const unclaimedCard = (
+    <StateCard key="unclaimed" routeLabel={`/u/${DEMO_SLUG}`}>
+      <div className="flex flex-col gap-1.5">
+        <p className="text-sm font-semibold text-foreground">This code isn&apos;t live right now.</p>
+        <p className="text-xs text-muted-foreground">
+          The person who printed it may have paused it, or it hasn&apos;t been claimed yet.
+        </p>
+      </div>
+      <MockButton>Create a code that never dies</MockButton>
+    </StateCard>
+  );
+
+  const passwordCard = (
+    <StateCard key="password" routeLabel={`/p/${DEMO_SLUG}`}>
+      <div className="flex flex-col gap-1.5">
+        <p className="text-sm font-semibold text-foreground">This code is password-protected.</p>
+        <p className="text-xs text-muted-foreground">Enter the password to continue.</p>
+      </div>
+      <div className="mt-1 flex items-center gap-2" aria-hidden>
+        <span className="flex h-8 flex-1 items-center rounded-md border border-input bg-background px-2.5 font-mono text-xs text-muted-foreground/60">
+          ••••••••
+        </span>
+        <span className="flex h-8 shrink-0 items-center rounded-md bg-primary px-3 text-[11px] font-medium text-primary-foreground">
+          Continue
+        </span>
+      </div>
+    </StateCard>
+  );
+
+  const expiredCard = (
+    <StateCard key="expired" routeLabel="dashboard · your codes">
+      <div className="flex items-center justify-between gap-3 rounded-lg border border-border/60 bg-background/60 px-3 py-2.5">
+        <div className="flex min-w-0 flex-col">
+          <span className="truncate text-sm font-medium text-foreground">Café Norte menu</span>
+          <span className="font-mono text-[11px] text-muted-foreground">/{DEMO_SLUG}</span>
+        </div>
+        <span
+          className={cn(
+            "inline-flex w-fit shrink-0 items-center rounded-full px-2 py-0.5 text-[11px] font-medium",
+            expired.className,
+          )}
+        >
+          {expired.label}
+        </span>
+      </div>
+      <p className="text-xs text-muted-foreground">
+        Still redirects safely, just never to the old destination.
+      </p>
+    </StateCard>
+  );
+
+  if (only === "unclaimed") return unclaimedCard;
+  if (only === "password") return passwordCard;
+  if (only === "expired") return expiredCard;
 
   return (
     <div className={cn("grid gap-4", LAYOUT_CLASS[layout])}>
-      <StateCard routeLabel={`/u/${DEMO_SLUG}`}>
-        <div className="flex flex-col gap-1.5">
-          <p className="text-sm font-semibold text-foreground">This code isn&apos;t live right now.</p>
-          <p className="text-xs text-muted-foreground">
-            The person who printed it may have paused it, or it hasn&apos;t been claimed yet.
-          </p>
-        </div>
-        <MockButton>Create a code that never dies</MockButton>
-      </StateCard>
-
-      <StateCard routeLabel={`/p/${DEMO_SLUG}`}>
-        <div className="flex flex-col gap-1.5">
-          <p className="text-sm font-semibold text-foreground">This code is password-protected.</p>
-          <p className="text-xs text-muted-foreground">Enter the password to continue.</p>
-        </div>
-        <div className="mt-1 flex items-center gap-2" aria-hidden>
-          <span className="flex h-8 flex-1 items-center rounded-md border border-input bg-background px-2.5 font-mono text-xs text-muted-foreground/60">
-            ••••••••
-          </span>
-          <span className="flex h-8 shrink-0 items-center rounded-md bg-primary px-3 text-[11px] font-medium text-primary-foreground">
-            Continue
-          </span>
-        </div>
-      </StateCard>
-
-      <StateCard routeLabel="dashboard · your codes">
-        <div className="flex items-center justify-between gap-3 rounded-lg border border-border/60 bg-background/60 px-3 py-2.5">
-          <div className="flex min-w-0 flex-col">
-            <span className="truncate text-sm font-medium text-foreground">Café Norte menu</span>
-            <span className="font-mono text-[11px] text-muted-foreground">/{DEMO_SLUG}</span>
-          </div>
-          <span
-            className={cn(
-              "inline-flex w-fit shrink-0 items-center rounded-full px-2 py-0.5 text-[11px] font-medium",
-              expired.className,
-            )}
-          >
-            {expired.label}
-          </span>
-        </div>
-        <p className="text-xs text-muted-foreground">
-          Still redirects safely, just never to the old destination.
-        </p>
-      </StateCard>
+      {unclaimedCard}
+      {passwordCard}
+      {expiredCard}
     </div>
   );
 }

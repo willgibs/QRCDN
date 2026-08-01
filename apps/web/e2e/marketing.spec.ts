@@ -29,6 +29,8 @@ const PUBLIC_PAGES = [
   "/developers",
   "/features/dynamic-codes",
   "/features/analytics",
+  "/features/brand-studio",
+  "/features/access-controls",
 ] as const;
 
 test.describe("marketing site", () => {
@@ -159,6 +161,9 @@ test.describe("marketing site", () => {
     // P9.5-T-F1: both new feature pages.
     expect(body).toContain("/features/dynamic-codes");
     expect(body).toContain("/features/analytics");
+    // P9.5-T-F2: the second pair.
+    expect(body).toContain("/features/brand-studio");
+    expect(body).toContain("/features/access-controls");
   });
 
   test("pricing page numbers are read from entitlements.ts, not retyped", async ({ page }) => {
@@ -589,20 +594,104 @@ test.describe("marketing site", () => {
     );
   });
 
-  test("landing doorways: dynamic-codes and analytics link out, brand-studio does not", async ({
+  // P9.5-T-F2: the second pair of feature pages (/features/brand-studio,
+  // /features/access-controls) and the now-fully-live landing doorways.
+
+  test("features/brand-studio: renders the hero h1 and one section body marker", async ({
     page,
   }) => {
+    await page.goto("/features/brand-studio");
+    await expect(
+      page.getByRole("heading", { level: 1, name: "Design the code itself." }),
+    ).toBeVisible();
+    // A section-body marker distinct from the hero: GuardrailsPlot (S3),
+    // the same reused component the landing's own guardrails section
+    // renders — proves the page composes it, not a copy.
+    await expect(
+      page.getByRole("img", {
+        name: "Threshold plot of the real decode campaign: passing and failing style combinations plotted by effective knockout ratio, against the warn and fail guardrail thresholds",
+      }),
+    ).toBeVisible();
+  });
+
+  test("features/brand-studio: honest plan table, truth-gate G1 copy, and FAQ render", async ({
+    page,
+  }) => {
+    await page.goto("/features/brand-studio");
+    await expect(page.getByRole("heading", { name: "What each plan holds." })).toBeVisible();
+    const table = page.getByRole("table");
+    await expect(table.getByText(String(PLAN_LIMITS.free.brandKits), { exact: true })).toBeVisible();
+    await expect(table.getByText(String(PLAN_LIMITS.free.dynamicCodes), { exact: true })).toBeVisible();
+    await expect(table.getByText(String(PLAN_LIMITS.pro.dynamicCodes), { exact: true })).toBeVisible();
+    // TRUTH-GATE G1 (warn-only, does not block export) — proven against
+    // studio-shell.tsx/controls-rail.tsx, see this page's own file header.
+    // Standing regression guard: the shipped copy must keep matching the
+    // variant the source actually proves.
+    await expect(page.getByText("warns before you export, while you decide")).toBeVisible();
+    await expect(page.getByText("Can a logo break my code?")).toBeVisible();
+  });
+
+  test("features/access-controls: renders the hero h1 and one section body marker", async ({
+    page,
+  }) => {
+    await page.goto("/features/access-controls");
+    await expect(
+      page.getByRole("heading", { level: 1, name: "Decide who gets through." }),
+    ).toBeVisible();
+    // Section-body marker: StateCards' password card (S1, `only="password"`).
+    await expect(page.getByText("This code is password-protected.")).toBeVisible();
+  });
+
+  test("features/access-controls: truth-gate mono lines, honest plan table, and FAQ render", async ({
+    page,
+  }) => {
+    await page.goto("/features/access-controls");
+    // TRUTH-GATE G2 (variant A: server-checked, destination absent from the
+    // gate's HTML) — proven against workers/redirect/src/responses.ts +
+    // app/p/[slug]/{page,actions}.ts, see this page's own file header.
+    await expect(
+      page.getByText("password checked server-side · destination never in the gate's HTML"),
+    ).toBeVisible();
+    // TRUTH-GATE G3 — the real vanity-slug charset/length rule, read from
+    // lib/slug.ts.
+    await expect(
+      page.getByText("4-30 chars · charset skips 0 O 1 I L U · reserved words blocked"),
+    ).toBeVisible();
+    await expect(page.getByRole("heading", { name: "What each plan holds." })).toBeVisible();
+    const table = page.getByRole("table");
+    await expect(table.getByText("Included", { exact: true }).first()).toBeVisible();
+    await expect(page.getByText("What if someone forgets the password?")).toBeVisible();
+    // TRUTH-GATE G4 — an expired code is revived by clearing/extending its
+    // expiry, read from lib/codes-core.ts + lib/validation.ts + lib/access.ts.
+    await expect(page.getByText("Can an expired code come back?")).toBeVisible();
+    await expect(
+      page.getByText("Clear or extend its expiry and the code picks up exactly where it left off"),
+    ).toBeVisible();
+  });
+
+  test("landing doorways: all four /features/* doorways are live", async ({ page }) => {
     await page.goto("/");
-    // Sections 04 and 06: the doorway flags flipped on this unit.
+    // Section 04 (dynamic codes) now carries two doorways side by side.
     await expect(
       page.locator("#dynamic-codes").getByRole("link", { name: "Explore dynamic codes" }),
     ).toHaveAttribute("href", "/features/dynamic-codes");
     await expect(
+      page.locator("#dynamic-codes").getByRole("link", { name: "Explore access controls" }),
+    ).toHaveAttribute("href", "/features/access-controls");
+    // Section 06 (analytics).
+    await expect(
       page.locator("#analytics").getByRole("link", { name: "Explore analytics" }),
     ).toHaveAttribute("href", "/features/analytics");
-    // Section 03 (brand system): /features/brand-studio doesn't exist yet,
-    // so its doorway flag stays off — the link must not render at all
-    // (real-hrefs-only rule; rendering it would 404).
-    await expect(page.getByRole("link", { name: "Explore the brand studio" })).toHaveCount(0);
+    // Sections 02 (studio/playground) and 03 (brand system) both link to
+    // the SAME /features/brand-studio page with identical link text
+    // (BRAND_STUDIO_DOORWAY_ENABLED flips true for both call sites this
+    // unit) — scoped per-section (#studio / #brand-system) since an
+    // unscoped locator would strict-mode-violate across both matches.
+    await expect(
+      page.locator("#studio").getByRole("link", { name: "Explore the brand studio" }),
+    ).toHaveAttribute("href", "/features/brand-studio");
+    await expect(
+      page.locator("#brand-system").getByRole("link", { name: "Explore the brand studio" }),
+    ).toHaveAttribute("href", "/features/brand-studio");
   });
 });

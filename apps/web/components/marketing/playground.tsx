@@ -42,6 +42,20 @@ import { cn } from "@/lib/utils";
  * string), and real SVG/PNG downloads (lib/export.ts). No account, no
  * server round-trip: everything here runs client-side against the same
  * `@qrcdn/qr-engine` the API and Studio use.
+ *
+ * `embedded` (P9.5-T-F2, additive — the landing's own `<Playground />` call
+ * omits it and keeps today's byte-identical behavior, own `<Section
+ * id="studio">` wrapper/heading/closing doorway included): unlike every
+ * other component this unit reuses (KitContactSheet, GuardrailsPlot,
+ * StateCards), Playground is the one that already bakes in its own full
+ * `Section`/`SectionHeading` — the T-F2 deck's "Playground island reused
+ * as-is" still needs `/features/brand-studio` to supply its OWN S2 head/
+ * lede ("Try it, no account.") rather than Playground's landing-specific
+ * one ("Try the studio right here."). `embedded=true` skips the outer
+ * `Section`/`SectionHeading` and the closing `LearnMoreLink` (a page
+ * cannot doorway-link to itself) but keeps every interactive control, the
+ * preset shelf, and the closing `MonoStrip` exactly as the landing renders
+ * them — same client component, same bundle, zero forked logic.
  */
 
 /**
@@ -242,7 +256,7 @@ function ContrastMeter({ worstContrast }: { worstContrast: number }) {
   );
 }
 
-export function Playground() {
+export function Playground({ embedded = false }: { embedded?: boolean } = {}) {
   const [payload, setPayload] = useState(PREVIEW_PAYLOAD_DEFAULT);
   const [dotStyle, setDotStyle] = useState<(typeof DOT_STYLES)[number]>(DEFAULT_STYLE.dots.style);
   const [eyeFrame, setEyeFrame] = useState<(typeof EYE_FRAMES)[number]>(DEFAULT_STYLE.eyes.frame);
@@ -371,16 +385,8 @@ export function Playground() {
   const payloadId = useId();
   const canExport = !renderError;
 
-  return (
-    <Section id="studio" variant="showcase" surface="floor" divider="none">
-      <SectionHeading
-        eyebrow="The studio"
-        index="02"
-        title="Try the studio right here."
-        lede="No account, no watermark: the real engine and the same scannability instrument the studio uses."
-        className="mb-10"
-      />
-
+  const body = (
+    <>
       <SectionBody className="mb-6 flex flex-wrap items-center gap-3">
         <span className="font-mono text-[11px] uppercase tracking-[0.2em] text-muted-foreground">
           Try a kit
@@ -571,10 +577,25 @@ export function Playground() {
 
       <SectionBody delay={0.15} className="mt-8 flex flex-col items-start gap-4">
         <MonoStrip>SVG + PNG export · instrument: live · engine: open source</MonoStrip>
-        {BRAND_STUDIO_DOORWAY_ENABLED && (
+        {!embedded && BRAND_STUDIO_DOORWAY_ENABLED && (
           <LearnMoreLink href="/features/brand-studio">Explore the brand studio</LearnMoreLink>
         )}
       </SectionBody>
+    </>
+  );
+
+  if (embedded) return body;
+
+  return (
+    <Section id="studio" variant="showcase" surface="floor" divider="none">
+      <SectionHeading
+        eyebrow="The studio"
+        index="02"
+        title="Try the studio right here."
+        lede="No account, no watermark: the real engine and the same scannability instrument the studio uses."
+        className="mb-10"
+      />
+      {body}
     </Section>
   );
 }

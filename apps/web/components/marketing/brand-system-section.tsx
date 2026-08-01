@@ -12,9 +12,18 @@ import { KitContactSheet } from "./kit-contact-sheet";
 // real-world print artifacts, saying "set once, appears everywhere"
 // instead of showing another editor. Mono strip cites D5 (style frozen per
 // code at mint) — see docs/DECISIONS.md.
+//
+// P9.5-T-F2: gained `id="brand-system"` — every other Section on the
+// landing that carries a doorway link already has one (#studio,
+// #dynamic-codes, #analytics, #api, #open-source); this was the one
+// omission, harmless while its own doorway stayed off but worth closing
+// now that BRAND_STUDIO_DOORWAY_ENABLED flips true here too (this is the
+// SECOND of its two call sites, alongside playground.tsx's #studio) —
+// gives e2e (and any future in-page link) a stable anchor to scope to,
+// same as every sibling section.
 export function BrandSystemSection() {
   return (
-    <Section variant="split" divider="none">
+    <Section id="brand-system" variant="split" divider="none">
       <SectionHeading
         eyebrow="Brand system"
         index="03"

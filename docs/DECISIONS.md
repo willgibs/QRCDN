@@ -21,6 +21,22 @@ worst-case staleness ≈ 60s ("live everywhere within ~1 minute" in UX copy).
 Scan redirects: **302 + no-store, never 301.** Paused/expired/password → 302 to
 `www.qrcdn.com/u/{slug}`. Redirects keep working even if Supabase is down/paused.
 
+*Amended at P9.5 (2026-08-01):* the "≈60s" worst-case staleness figure above is
+stale prose, not current behavior — never updated when the underlying mechanism
+changed at P5. Both places the Worker writes a KV record have called
+`KV.put(slug, record, { expirationTtl: 300 })` since the P5 retarget-staleness fix
+(`workers/redirect/src/index.ts`'s read-through backfill and
+`workers/redirect/src/kv-sync-endpoint.ts`'s write-through sync, both confirmed
+directly against source): a real bug found during P5 review, where a KV backfill
+entry written with no TTL at all could pin a stale destination forever if the
+app-side write-through sync ever failed. The fix capped every KV write at 300s
+(5 minutes) unconditionally, and every UX-facing claim since (`/features/dynamic-
+codes`' "≤ 5 min worst case", this same page's FAQ) has used the correct figure —
+this entry itself was simply never brought into line, unlike D8's own "Amended at
+P6" note for an analogous drift. Worst-case staleness is **300s, not 60s**; the
+`cacheTtl: 60` on the initial `KV.get` above is a separate, still-accurate Workers
+Runtime read-cache hint, not the write-side TTL this amendment corrects.
+
 ## D3 — Scan ingest: waitUntil fire-and-forget at v1
 
 `ctx.waitUntil()` POST to Supabase REST (secret key as Worker secret) with one retry.

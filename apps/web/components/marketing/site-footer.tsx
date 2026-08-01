@@ -8,19 +8,41 @@ import { ThemeToggle } from "@/components/marketing/theme-toggle";
 // in a whole marketing-section module for one string.
 const REPO_URL = "https://github.com/willgibs/QRCDN";
 
+/**
+ * Full resource map (P9.5-T-R deck). "License" and "Security" have no
+ * in-app page of their own — the honest, real link is the actual file in
+ * the public repo (LICENSE, SECURITY.md, both present at the repo root),
+ * not a fabricated internal route. Same "real hrefs only" rule SiteNav's
+ * own doc comment states, applied to files instead of pages.
+ */
 const COLUMNS = [
   {
     heading: "Product",
     links: [
+      { href: "/features/dynamic-codes", label: "Dynamic codes" },
+      { href: "/features/brand-studio", label: "Brand studio" },
+      { href: "/features/analytics", label: "Analytics" },
+      { href: "/features/access-controls", label: "Access controls" },
       { href: "/pricing", label: "Pricing" },
       { href: "/login", label: "Studio" },
     ],
   },
   {
-    heading: "Developers",
+    heading: "Resources",
     links: [
-      { href: "/developers", label: "API reference" },
+      { href: "/developers", label: "Docs" },
+      { href: "/help", label: "Help" },
+      { href: "/blog", label: "Blog" },
+      { href: "/changelog", label: "Changelog" },
+      { href: "https://status.qrcdn.com", label: "Status", external: true },
+    ],
+  },
+  {
+    heading: "Open source",
+    links: [
       { href: REPO_URL, label: "GitHub", external: true },
+      { href: `${REPO_URL}/blob/main/LICENSE`, label: "License", external: true },
+      { href: `${REPO_URL}/blob/main/SECURITY.md`, label: "Security", external: true },
     ],
   },
   {
@@ -28,35 +50,31 @@ const COLUMNS = [
     links: [
       { href: "/terms", label: "Terms" },
       { href: "/privacy", label: "Privacy" },
-      { href: "/changelog", label: "Changelog" },
-      { href: "https://status.qrcdn.com", label: "Status", external: true },
     ],
   },
 ] as const;
 
 /**
- * Marketing site footer (P9-U1) — product/developers/legal columns, mailto
- * contact, wordmark + tagline, the lowercase mono "your code never dies"
- * sign-off, and the theme toggle. Server component (no hooks of its own);
- * `ThemeToggle` is the one client island inside it.
+ * Marketing site footer (P9-U1; full resource map at P9.5-T-R) —
+ * product/resources/open-source/legal columns, mailto contact, wordmark +
+ * tagline, the lowercase mono "your code never dies" sign-off, and the
+ * theme toggle. Server component (no hooks of its own); `ThemeToggle` is
+ * the one client island inside it.
  *
- * Real hrefs only, matching SiteNav: /pricing, /terms, /privacy don't exist
- * until P9-U3/U4 but are linked anyway per the spec's route architecture
- * note — an `href="#"` placeholder would be a defect.
+ * Real hrefs only, matching SiteNav: every link here resolves to a real
+ * page or a real file in the public repo today — an `href="#"` placeholder
+ * would be a defect.
  *
- * P9.5-T6 additive links: Changelog + Status (external, status.qrcdn.com —
- * a separate Worker, see workers/status) beside Terms/Privacy in Legal
- * (no dedicated Resources column exists yet); GitHub (external) beside API
- * reference in Developers. `link.external` (a per-link flag, not a column-
- * level one — most links stay internal `next/link`s) renders a plain
- * `<a target="_blank" rel="noopener noreferrer">` instead, the same
- * distinction `LearnMoreLink`'s own `external` prop already draws.
+ * `link.external` (a per-link flag, not a column-level one — most links
+ * stay internal `next/link`s) renders a plain `<a target="_blank"
+ * rel="noopener noreferrer">` instead, the same distinction
+ * `LearnMoreLink`'s own `external` prop already draws.
  */
 export function SiteFooter() {
   return (
     <footer className="border-t border-border/60 bg-background">
       <div className="mx-auto max-w-6xl px-6 py-14">
-        <div className="grid grid-cols-2 gap-x-6 gap-y-10 sm:grid-cols-[1.4fr_repeat(3,1fr)]">
+        <div className="grid grid-cols-2 gap-x-6 gap-y-10 sm:grid-cols-[1.1fr_repeat(4,1fr)]">
           <div className="col-span-2 flex flex-col gap-3 sm:col-span-1">
             <Link
               href="/"

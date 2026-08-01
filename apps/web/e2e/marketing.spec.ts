@@ -1,6 +1,8 @@
 import { test, expect } from "./fixtures";
 import { PLAN_LIMITS, PRICING } from "../lib/entitlements";
 import { CHANGELOG_ENTRIES } from "../lib/changelog";
+import { BLOG_POSTS } from "../lib/blog";
+import { HELP_ARTICLES, HELP_CATEGORIES } from "../lib/help";
 
 // Relative imports only in e2e/ (no "@/" — see env.ts's header note).
 
@@ -33,6 +35,8 @@ const PUBLIC_PAGES = [
   "/features/brand-studio",
   "/features/access-controls",
   "/changelog",
+  "/blog",
+  "/help",
 ] as const;
 
 test.describe("marketing site", () => {
@@ -92,7 +96,16 @@ test.describe("marketing site", () => {
     // based, not role-based: a colgroup-scoped <th>'s ARIA role mapping
     // isn't consistent enough across engines to depend on, the same
     // reasoning comparison-section.tsx's own e2e coverage already applies
-    // to its column headers.
+    // to its column headers. Scoped to the comparison table specifically
+    // (P9.5-T-R rider): "Analytics" and "Access controls" are now ALSO
+    // SiteNav's Features-dropdown labels, present in the DOM (mirrored
+    // flat into the mobile disclosure, `inert` when closed but still a
+    // real DOM node — Playwright's locator resolution counts matches
+    // regardless of `display:none`/`inert`, which only govern the
+    // eventual visibility/focusability check on an already-unique
+    // locator, not strict-mode's match COUNT) — an unscoped page-wide
+    // getByText now strict-mode-violates on those two bands specifically.
+    const table = page.getByRole("table");
     for (const band of [
       "Codes & limits",
       "Design & export",
@@ -100,7 +113,7 @@ test.describe("marketing site", () => {
       "Access controls",
       "API & bulk",
     ]) {
-      await expect(page.getByText(band, { exact: true })).toBeVisible();
+      await expect(table.getByText(band, { exact: true })).toBeVisible();
     }
 
     // The deck-04 guarantee line, verbatim (dynamic-codes-section.tsx's own
@@ -166,6 +179,15 @@ test.describe("marketing site", () => {
     // P9.5-T-F2: the second pair.
     expect(body).toContain("/features/brand-studio");
     expect(body).toContain("/features/access-controls");
+    // P9.5-T-R: /blog + every real post, /help + every real article.
+    expect(body).toContain("/blog</loc>");
+    for (const post of BLOG_POSTS) {
+      expect(body).toContain(`/blog/${post.slug}`);
+    }
+    expect(body).toContain("/help</loc>");
+    for (const article of HELP_ARTICLES) {
+      expect(body).toContain(`/help/${article.slug}`);
+    }
   });
 
   test("pricing page numbers are read from entitlements.ts, not retyped", async ({ page }) => {
@@ -769,5 +791,244 @@ test.describe("marketing site", () => {
       "href",
       /^https:\/\/github\.com\/willgibs\/QRCDN$/,
     );
+  });
+
+  // P9.5-T-R: nav/footer evolution (Features dropdown, Docs rename, Blog
+  // link, the full footer resource map) and the new /blog + /help surfaces.
+
+  test("nav: Features dropdown opens with the 4 feature links, Docs/Pricing/Blog stay plain links", async ({
+    page,
+  }) => {
+    await page.goto("/");
+    const nav = page.getByRole("banner").getByRole("navigation", { name: "Primary" });
+    // "API" renamed to "Docs," same /developers destination.
+    await expect(nav.getByRole("link", { name: "Docs" })).toHaveAttribute("href", "/developers");
+    await expect(nav.getByRole("link", { name: "Pricing" })).toHaveAttribute("href", "/pricing");
+    await expect(nav.getByRole("link", { name: "Blog" })).toHaveAttribute("href", "/blog");
+
+    await nav.getByRole("button", { name: "Features" }).click();
+    const menu = page.getByRole("menu");
+    await expect(menu.getByRole("menuitem", { name: "Dynamic codes" })).toBeVisible();
+    await expect(menu.getByRole("menuitem", { name: "Brand studio" })).toBeVisible();
+    await expect(menu.getByRole("menuitem", { name: "Analytics" })).toBeVisible();
+    await expect(menu.getByRole("menuitem", { name: "Access controls" })).toBeVisible();
+    await expect(menu.getByRole("menuitem")).toHaveCount(4);
+
+    await menu.getByRole("menuitem", { name: "Access controls" }).click();
+    await expect(page).toHaveURL(/\/features\/access-controls$/);
+  });
+
+  test("nav mobile: the disclosure mirrors Features + Docs/Pricing/Blog flat, no submenu", async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto("/");
+    await page.getByRole("button", { name: "Open menu" }).click();
+    const disclosure = page.locator("#site-nav-disclosure");
+    // All 7 items are plain sibling links (never nested inside a
+    // role="menu") — that IS "flat": no Radix dropdown re-appears here.
+    await expect(disclosure.getByRole("menu")).toHaveCount(0);
+    const flatLinks = [
+      "Dynamic codes",
+      "Brand studio",
+      "Analytics",
+      "Access controls",
+      "Docs",
+      "Pricing",
+      "Blog",
+    ];
+    for (const label of flatLinks) {
+      await expect(disclosure.getByRole("link", { name: label })).toBeVisible();
+    }
+  });
+
+  test("footer: full resource map renders (Product/Resources/Open source/Legal)", async ({ page }) => {
+    await page.goto("/");
+    const footer = page.getByRole("contentinfo");
+
+    // Product: the 4 feature pages + Pricing + Studio. exact: true
+    // throughout — role-name matching is substring-based by default, and
+    // "Studio" alone would otherwise also match "Brand studio"'s link.
+    for (const [label, href] of [
+      ["Dynamic codes", "/features/dynamic-codes"],
+      ["Brand studio", "/features/brand-studio"],
+      ["Analytics", "/features/analytics"],
+      ["Access controls", "/features/access-controls"],
+      ["Pricing", "/pricing"],
+      ["Studio", "/login"],
+    ] as const) {
+      await expect(footer.getByRole("link", { name: label, exact: true })).toHaveAttribute("href", href);
+    }
+
+    // Resources: Docs, Help, Blog, Changelog, Status.
+    await expect(footer.getByRole("link", { name: "Docs", exact: true })).toHaveAttribute(
+      "href",
+      "/developers",
+    );
+    await expect(footer.getByRole("link", { name: "Help", exact: true })).toHaveAttribute("href", "/help");
+    await expect(footer.getByRole("link", { name: "Blog", exact: true })).toHaveAttribute("href", "/blog");
+
+    // Open source: GitHub, License, Security (real repo files, not
+    // in-app pages — regex literals for the "QRCDN" e2e-safety reason
+    // this file's own GitHub assertions already establish).
+    await expect(footer.getByRole("link", { name: "License", exact: true })).toHaveAttribute(
+      "href",
+      /^https:\/\/github\.com\/willgibs\/QRCDN\/blob\/main\/LICENSE$/,
+    );
+    await expect(footer.getByRole("link", { name: "Security", exact: true })).toHaveAttribute(
+      "href",
+      /^https:\/\/github\.com\/willgibs\/QRCDN\/blob\/main\/SECURITY\.md$/,
+    );
+
+    // Legal: unchanged.
+    await expect(footer.getByRole("link", { name: "Terms", exact: true })).toHaveAttribute(
+      "href",
+      "/terms",
+    );
+    await expect(footer.getByRole("link", { name: "Privacy", exact: true })).toHaveAttribute(
+      "href",
+      "/privacy",
+    );
+  });
+
+  test("blog index: renders every post from BLOG_POSTS with its real date, dek, and tags", async ({
+    page,
+  }) => {
+    await page.goto("/blog");
+    await expect(page.getByRole("heading", { level: 1, name: "How this actually works." })).toBeVisible();
+    for (const post of BLOG_POSTS) {
+      await expect(page.getByRole("link", { name: post.title })).toHaveAttribute(
+        "href",
+        `/blog/${post.slug}`,
+      );
+      // exact: true — the dek's own <p> has no other content, unlike its
+      // <li> ancestor (date + tags + title + dek combined), which would
+      // otherwise also satisfy a non-exact substring match.
+      await expect(page.getByText(post.dek, { exact: true })).toBeVisible();
+      for (const tag of post.tags) {
+        await expect(page.getByText(tag, { exact: true }).first()).toBeVisible();
+      }
+    }
+  });
+
+  test("blog post: renders byline, date, tags, and every [V] pull-quote verbatim", async ({ page }) => {
+    const post = BLOG_POSTS.find((p) => p.slug === "what-actually-scans")!;
+    await page.goto(`/blog/${post.slug}`);
+    await expect(page.getByRole("heading", { level: 1, name: post.title })).toBeVisible();
+    // `exact: true` throughout this test: Playwright's text engine matches
+    // every ANCESTOR whose subtree also contains the target string (e.g.
+    // the byline row's own wrapper div contains "Will Gibson · August 1,
+    // 2026" as one string, which trivially contains "Will Gibson" as a
+    // substring too) — exact match against a leaf whose own full text
+    // equals the target is what disambiguates a single element instead of
+    // strict-mode-violating across parent and child.
+    await expect(page.getByText("Will Gibson", { exact: true })).toBeVisible();
+    await expect(page.locator("time")).toHaveAttribute("datetime", post.date);
+    for (const tag of post.tags) {
+      await expect(page.getByText(tag, { exact: true })).toBeVisible();
+    }
+    // The deck's own [V] line, byte-verbatim, rendered as its own
+    // blockquote (whose full text equals the quote exactly, unlike its
+    // <article> ancestor).
+    await expect(
+      page.getByText(
+        "A QR code that scans on your monitor and dies on a menu is worse than an ugly one.",
+        { exact: true },
+      ),
+    ).toBeVisible();
+    await expect(page.getByRole("link", { name: "← Back to the blog" })).toHaveAttribute("href", "/blog");
+  });
+
+  test("blog: an unknown slug 404s", async ({ page }) => {
+    const response = await page.goto("/blog/not-a-real-post");
+    expect(response?.status()).toBe(404);
+  });
+
+  test("blog/rss.xml: a valid feed carrying every real post", async ({ request }) => {
+    const response = await request.get("/blog/rss.xml");
+    expect(response.ok()).toBe(true);
+    expect(response.headers()["content-type"]).toContain("xml");
+    const body = await response.text();
+    expect(body).toContain('<rss version="2.0">');
+    // Regex, not a string literal — same e2e-safety reason as the
+    // changelog feed's own title assertion.
+    expect(body).toMatch(/<title>QRCDN blog<\/title>/);
+    for (const post of BLOG_POSTS) {
+      expect(body).toContain(`/blog/${post.slug}`);
+      expect(body).toContain(post.title);
+    }
+  });
+
+  test("help index: every category renders with its real articles", async ({ page }) => {
+    await page.goto("/help");
+    await expect(page.getByRole("heading", { level: 1, name: "Quick answers, not a maze." })).toBeVisible();
+    for (const category of HELP_CATEGORIES) {
+      await expect(page.getByRole("heading", { name: category })).toBeVisible();
+    }
+    for (const article of HELP_ARTICLES) {
+      await expect(page.getByRole("link", { name: article.title })).toHaveAttribute(
+        "href",
+        `/help/${article.slug}`,
+      );
+    }
+  });
+
+  test("help article: renders numbered Do-it steps, a What-to-expect note, and cross-links", async ({
+    page,
+  }) => {
+    const article = HELP_ARTICLES.find((a) => a.slug === "create-a-dynamic-code")!;
+    await page.goto(`/help/${article.slug}`);
+    await expect(page.getByRole("heading", { level: 1, name: article.title })).toBeVisible();
+    await expect(page.getByText("Do it", { exact: true })).toBeVisible();
+    await expect(page.getByText("What to expect", { exact: true })).toBeVisible();
+    // Scoped to `ol > li` (not a bare getByText(step)): each step's text
+    // sits inside a <span> nested in a numbered <li>, and Playwright's text
+    // engine matches every ancestor whose subtree contains the string too,
+    // so an unscoped getByText(step) strict-mode-violates against both the
+    // <li> and its inner <span>. Indexed .nth() locators avoid that.
+    const steps = page.locator("ol > li");
+    await expect(steps).toHaveCount(article.doIt.length);
+    for (const [i, step] of article.doIt.entries()) {
+      await expect(steps.nth(i)).toContainText(step);
+    }
+    for (const link of article.crossLinks) {
+      await expect(page.getByRole("link", { name: link.label })).toHaveAttribute("href", link.href);
+    }
+    await expect(page.getByRole("link", { name: "← All help articles" })).toHaveAttribute("href", "/help");
+  });
+
+  test("help: the account-deletion article states the honest current path (hello@, not self-serve)", async ({
+    page,
+  }) => {
+    const article = HELP_ARTICLES.find((a) => a.slug === "delete-your-account-and-your-data")!;
+    await page.goto(`/help/${article.slug}`);
+    // Same ol>li scoping as the create-a-dynamic-code test above — this is
+    // the T-R deck's own truth-check target: the deletion path is a
+    // request to hello@, not a self-serve flow, verified against the real
+    // (app) routes (no /settings or /account page exists) before writing
+    // this article, so the rendered page must say so plainly, not imply a
+    // product button that doesn't exist.
+    // Regex literal, not a string literal, for "hello@qrcdn.com" — same
+    // e2e-safety reason as this file's other hello@/GitHub assertions
+    // (lib/e2e-safety.test.ts's static scan flags any bare email-shaped
+    // string literal that isn't an e2e.qrcdn.test fixture address; a
+    // regex is exempt by construction, since it's never a value sent
+    // anywhere, only a pattern matched against already-rendered content).
+    const steps = page.locator("ol > li");
+    await expect(steps.nth(0)).toContainText(/hello@qrcdn\.com/);
+    await expect(steps.nth(1)).toContainText("Self-serve deletion isn't in the product yet");
+    // Tag-scoped `p` locator + hasText: restricts candidates to actual <p>
+    // elements (the whatToExpect paragraph is the only one on this page
+    // with this substring), sidestepping the ancestor-also-matches
+    // behavior a bare getByText would hit here (a bare substring, not this
+    // <p>'s full exact text, so `exact: true` alone wouldn't disambiguate).
+    await expect(
+      page.locator("p", { hasText: "permanently removed at the database level" }),
+    ).toHaveCount(1);
+  });
+
+  test("help: an unknown slug 404s", async ({ page }) => {
+    const response = await page.goto("/help/not-a-real-article");
+    expect(response?.status()).toBe(404);
   });
 });

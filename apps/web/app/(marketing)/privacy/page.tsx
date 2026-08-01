@@ -158,8 +158,7 @@ export default function PrivacyPage() {
       <LegalSection id="your-rights" title="Your rights">
         <p>
           You can export what you&apos;ve made (your codes and styles are yours),
-          and you can delete your account at any time from within the product or
-          by{" "}
+          and you can delete your account at any time by{" "}
           <a href="mailto:hello@qrcdn.com" className="underline underline-offset-4">
             writing to us
           </a>

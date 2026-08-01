@@ -1,6 +1,6 @@
 # Status
 
-_Last updated: 2026-08-01 (P9.5-T6 landed: /changelog + RSS, status.qrcdn.com live on its own Worker, OSS pack — LICENSE/README/SECURITY/CONTRIBUTING — committed, repo-goes-private mentions aligned with the P9.5 open-source reversal). Update this file at every phase boundary or significant commit._
+_Last updated: 2026-08-01 (P9.5-T-R landed: /blog (4 posts) + /help (10 articles) + nav/footer evolution — typed-TSX posts, not MDX, after a real Turbopack build proved MDX compiles but the codebase's own conventions fit better; two real fact-check findings folded in: privacy.tsx's deletion copy corrected, help article 8 states plainly that downgrade has no live path yet). Update this file at every phase boundary or significant commit._
 
 ## Current phase
 
@@ -603,6 +603,148 @@ workers/redirect's existing config format; the CI badge added rather than
 found-and-kept; footer link placement (Legal column, not a new Resources
 column); the `global_fetch_strictly_public` fix, found live rather than
 anticipated.
+
+**P9.5-T-R (this commit): the blog, the help center, and the nav/footer
+evolution the whole marketing surface still lacked.** Spec: the T-R
+deck+editorial brief (scratchpad). Three deliverables, all live.
+
+- **MDX-vs-TSX, decided by actually trying it, not just reading docs.**
+  `@next/mdx` was installed, wired into `next.config.ts`, and a throwaway
+  `.mdx` page was built and compiled clean under Turbopack in a real
+  `pnpm build` — confirming the bundled Next 16 docs' one caveat
+  ("remark/rehype plugins without serializable options cannot yet be used
+  with Turbopack") is narrower than "MDX doesn't work here": the trivial,
+  plugin-free case genuinely builds. Reverted anyway (deps + config +
+  scratch files all removed, `pnpm install` back to the committed
+  lockfile, re-verified via `--frozen-lockfile`) because the real fit
+  problem is orthogonal to Turbopack: this repo has no
+  `@tailwindcss/typography` and no prior MDX element-style mapping, so raw
+  markdown output would render unstyled without hand-building a parallel
+  typography layer that duplicates what `Section`/`CodeBlock`/the type
+  scale already give typed TSX for free — and `--container-prose` (65ch)
+  was reserved back at P9.5-T1b explicitly as "the future blog unit['s]"
+  measure, a standing signal this codebase expected typed components here.
+  Shipped: `lib/blog.ts` (typed metadata, mirrors `lib/changelog.ts`'s own
+  split) + one TSX file per post under `components/marketing/blog/posts/`
+  + a slug->component registry, the sanctioned fallback the deck itself
+  pre-authorized.
+- **`/blog`** — 4 launch posts (`what-actually-scans`,
+  `redirects-that-outlive-us`, `counting-without-tracking`,
+  `why-open-source`), byline "Will Gibson," dated 2026-08-01 per the deck.
+  Every fact traces to primary source, verified against the actual file
+  before writing (not the docs' paraphrase of it): the 0.395/0.412
+  effective-knockout thresholds and the 160+-combo campaign narrative read
+  straight from `packages/qr-engine/src/guardrails.ts`'s own comments; the
+  302/no-store contract and the 300s KV ceiling from
+  `workers/redirect/src/{index,redirect-decision,responses,kv-sync-
+  endpoint}.ts` directly (D2's own amendment, not the pre-amendment
+  "~60s" prose); the hash formula, geo/device/referer columns, hourly
+  rollup, and live-today-tile split from `scan-hash.ts`/`ingest.ts`/
+  migration `20260723000007_scan_rollup.sql`/`lib/analytics.ts`; the
+  open-source facts from the real `LICENSE`/`README.md`/`CONTRIBUTING.md`
+  already in the repo. All three [V]-line sets ship byte-verbatim — proven
+  by a vitest suite (`lib/blog.test.ts`) that reads each post's compiled
+  TSX source directly off disk (this repo's vitest has no jsdom/RSC
+  renderer) and asserts word count (900-1400, all four land inside range:
+  1152/955/1049/930), zero em dash, zero internal phase code, and every
+  [V] string as an exact substring — not a one-time manual check, a
+  standing regression guard. RSS at `/blog/rss.xml` mirrors
+  `/changelog/rss.xml`'s own route handler almost exactly (`force-static`,
+  same RFC-822-noon-UTC convention).
+- **`/help`** — 10 articles across the deck's 5 categories (Getting
+  started/Codes/Access/Billing & plans/Account), typed data in
+  `lib/help.ts` (doIt steps + one whatToExpect note + cross-links),
+  150-350 words each (vitest-proven the same way, `lib/help.test.ts`).
+  Every step verified against the real UI/handlers before writing, not
+  assumed from marketing copy — two real findings changed what shipped:
+  (1) **the deck's "CSV shape" framing for bulk-create doesn't match the
+  real input**: `bulk-create-dialog.tsx`'s actual textarea parses plain
+  line-delimited text with an optional `Name | URL` pipe syntax, never
+  comma-separated values — the article documents that real format; the
+  genuinely-CSV artifact is the *results* export (`buildResultsCsv`),
+  which the article also documents, correctly, as the output, not the
+  input. (2) **article 10, the account-deletion truth-check the deck
+  explicitly demanded**: grepped for `deleteUser`/`/settings`/`/account`
+  across `apps/web` and found none reachable by a real signed-in user —
+  `auth.admin.deleteUser` exists only in e2e teardown scripts. Self-serve
+  deletion is not in the product today. The article says exactly that (a
+  request to hello@, handled by hand) rather than describing a button
+  that doesn't exist. Found in passing, fixed as directly motivated by
+  that same check: `app/(marketing)/privacy/page.tsx` claimed deletion
+  works "from within the product or by writing to us" — corrected to the
+  honest single path; the cascade-delete guarantee it goes on to state
+  (codes/kits/keys/scan history all cascade) was independently verified
+  against the real `on delete cascade` FK chain in
+  `supabase/migrations/20260721000001_initial_schema.sql` and left as is,
+  since it's true. **A third, softer finding** shaped article 8
+  ("What happens when I downgrade," the deck's own literal title): Stripe
+  billing has never shipped (P8's own finding, still true), so downgrading
+  cannot happen yet at all — `/pricing`'s own CTA already says "Paid
+  checkout opens at launch." The article leads with that honestly rather
+  than describing a self-serve flow, then states the real policy
+  commitment (D14, the terms) for when billing exists.
+- **Nav + footer evolution.** `SiteNav`: "Features" is now a dropdown
+  (vendored Radix `DropdownMenu`, same primitive `codes-list.tsx`'s row
+  actions menu already uses) over the 4 real feature pages; "API" renamed
+  to "Docs" (same `/developers` href); "Blog" added. Mobile disclosure
+  mirrors all 7 items flat, feature links first, a hairline, then
+  Docs/Pricing/Blog — no nested menu on top of an already-open sheet.
+  `SiteFooter` gained the deck's full resource map: Product (4 features +
+  Pricing + Studio), Resources (Docs/Help/Blog/Changelog/Status),
+  Open source (GitHub + the real `LICENSE`/`SECURITY.md` files in the
+  repo, not fabricated in-app pages), Legal (Terms/Privacy) — the mono
+  "your code never dies" sign-off row is untouched. **A real, found-live
+  bug, not just a test-authoring issue**: the mobile disclosure's links
+  stay mounted in the DOM even while closed (the existing grid-rows
+  collapse animation needs that), and without any hiding mechanism they
+  were both keyboard-tabbable while invisible (a real WAI-ARIA violation)
+  and silently duplicated page vocabulary sitewide — "Analytics" and
+  "Access controls" are now both nav labels and, e.g., `/pricing`'s
+  comparison-table column headers. Fixed with `inert={!open}` on the
+  disclosure wrapper (React 19 supports it as a plain DOM prop): correct
+  for real assistive tech and keyboard users (no accessibility-tree
+  presence, no focus, no pointer interaction while collapsed), though
+  empirically confirmed live that it does NOT prevent Playwright's plain
+  `getByText()` from still counting the (still-mounted, still-`display:
+  none`-via-`sm:hidden`) node — that locator, unlike `getByRole()`, isn't
+  accessibility-tree-based, so it counts DOM matches regardless of
+  `display`/`inert`. The one pre-existing test this broke
+  (`pricing page renders the banded matrix`) was fixed by scoping to the
+  comparison `table` specifically, the same disambiguation pattern this
+  file already used elsewhere for table headers — not a workaround, the
+  established convention applied to a newly-real collision.
+- **Sitemap + e2e.** `app/sitemap.ts` now derives its `/blog`/`/help`
+  entries from `BLOG_POSTS`/`HELP_ARTICLES` directly (never a hand-copied
+  URL list, so a future post/article can't silently miss the sitemap).
+  `apps/web/e2e/marketing.spec.ts` gained 13 new tests: the Features
+  dropdown opens with exactly 4 links and navigates correctly, the mobile
+  disclosure mirrors flat with no nested menu, the footer's full resource
+  map renders with every real href, the blog index/post/RSS/404 render
+  against `BLOG_POSTS` directly, the help index/article/404 render against
+  `HELP_ARTICLES` directly, and the deletion article's honest-path
+  language is asserted verbatim. `PUBLIC_PAGES` gained `/blog` and
+  `/help`; the sitemap test now checks every real post/article URL.
+
+Verified: `pnpm lint && pnpm typecheck && pnpm test` all green across
+every workspace package (779 vitest: 23 shared + 25 workers/status + 55
+qr-engine + 138 workers/redirect + 538 web, +49 web from
+`lib/blog.test.ts`/`lib/help.test.ts`), `pnpm build` keeps every existing
+route's render mode byte-identical to the T6 baseline and adds `/blog`
+(`○`), `/blog/[slug]` (`●`, 4 real paths), `/blog/rss.xml` (`○`), `/help`
+(`○`), `/help/[slug]` (`●`, 10 real paths). Full local e2e run
+(`pnpm test:e2e`, `next start`, real cloud Supabase fixture): **79/79
+green** (65 marketing + 14 money-path/auth-scanner-safety), including all
+13 new assertions above. Live production-build review (`next start`,
+throwaway port) in the browser pane at desktop and mobile, both the
+Features dropdown opening and the mobile disclosure's flat mirror,
+confirmed visually before the e2e proof.
+
+No deviations from the deck's substance. Judgment calls, all recorded
+above: typed-TSX over MDX (tried live, reasoned decision, not a docs-only
+call); bulk-create's real input format documented instead of the deck's
+"CSV" framing; the account-deletion and downgrade articles state current
+reality rather than the aspirational policy alone; `inert` added to fix a
+real, found-live accessibility gap the nav evolution introduced.
 
 ## Phase ledger
 

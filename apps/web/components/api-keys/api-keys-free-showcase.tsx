@@ -80,11 +80,18 @@ export async function ApiKeysFreeShowcase() {
           </ul>
         </div>
       </CardContent>
-      <CardFooter className="flex-col items-stretch gap-2">
-        <Button asChild className="w-full">
+      <CardFooter className="flex-col items-start gap-2">
+        {/* P9.5-T7 review round 1: `items-stretch` + `w-full` made this
+            span the full card width (~1340px at 1440) — a link to
+            /pricing reading like a form submit at that width, more
+            visual weight than any primary action elsewhere in the
+            product carries. Natural inline width instead, left-aligned
+            to match the rest of this card's content (title, curl block,
+            Pro-includes list are all left-aligned, not centered). */}
+        <Button asChild>
           <Link href="/pricing">See pricing</Link>
         </Button>
-        <p className="text-center text-xs text-muted-foreground">
+        <p className="text-xs text-muted-foreground">
           Paid checkout opens at launch. Start free today and everything carries over.
         </p>
       </CardFooter>

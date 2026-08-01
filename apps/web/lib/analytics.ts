@@ -119,6 +119,38 @@ export function toChartSeries(
   return series;
 }
 
+export interface PeakDay {
+  scans: number;
+  /** `null` when no day in `series` has any scans — see this function's
+   *  own doc comment for why that case can't just return `series[0]`. */
+  day: string | null;
+}
+
+/**
+ * The single highest-scan day in a `toChartSeries` result (P9.5-T7 review
+ * round 1 — extracted from two near-identical copies in
+ * `codes-overview-panel.tsx`/`code-analytics-panel.tsx` into one tested
+ * function after the same real bug was found in both: a plain
+ * `series.reduce((peak, point) => ..., series[0])` needs a seed, and
+ * `series[0]` is the only element guaranteed to exist — but when every
+ * point is 0 scans, nothing ever beats that seed, so the reduce silently
+ * "peaks" on the range's first day even though it had no scans at all.
+ * The caller then rendered that day's date as "Peak day," a fabricated
+ * fact presented as a measurement for any code/account with zero scans in
+ * range. This function returns `day: null` for that case instead of a
+ * date that means nothing; `scans` stays 0 either way, since "0 peak
+ * scans" is true and honest, unlike the date. Callers pass `day` straight
+ * into a stat tile's optional `caption` prop, which already renders
+ * nothing for a falsy value.
+ */
+export function peakDayFrom(series: ChartPoint[]): PeakDay {
+  const peak = series.reduce((peak, point) => (point.scans > peak.scans ? point : peak), series[0]);
+  if (!peak || peak.scans === 0) {
+    return { scans: 0, day: null };
+  }
+  return { scans: peak.scans, day: peak.day };
+}
+
 /**
  * Collapses N rows-per-day (one per code, from a code_id-less `scan_daily`
  * query — see app/(app)/codes/page.tsx, which queries the whole owner scope

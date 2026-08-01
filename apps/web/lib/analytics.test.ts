@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   maxRangeDaysFor,
+  peakDayFrom,
   rangeWindowUtc,
   resolveRangeDays,
   sumBuckets,
@@ -111,6 +112,39 @@ describe("toChartSeries", () => {
     const series = toChartSeries([], 7, now);
     expect(series).toHaveLength(7);
     expect(series.every((p) => p.scans === 0 && p.uniques === 0)).toBe(true);
+  });
+});
+
+describe("peakDayFrom", () => {
+  // P9.5-T7 review round 1 — the exact real bug: a zero-scan series must
+  // not produce a date claim. Regression guard for both
+  // codes-overview-panel.tsx and code-analytics-panel.tsx, which both
+  // render this function's `day` straight into a stat tile's `caption`.
+  it("returns day: null for an all-zero series, not the first day", () => {
+    const series = toChartSeries([], 7, new Date("2026-07-22T15:30:00Z"));
+    const peak = peakDayFrom(series);
+    expect(peak).toEqual({ scans: 0, day: null });
+  });
+
+  it("returns day: null for a genuinely empty series", () => {
+    expect(peakDayFrom([])).toEqual({ scans: 0, day: null });
+  });
+
+  it("returns the highest-scan day when at least one day has scans", () => {
+    const series = [
+      { day: "2026-07-20", scans: 2, uniques: 2 },
+      { day: "2026-07-21", scans: 9, uniques: 5 },
+      { day: "2026-07-22", scans: 4, uniques: 3 },
+    ];
+    expect(peakDayFrom(series)).toEqual({ scans: 9, day: "2026-07-21" });
+  });
+
+  it("breaks a tie by keeping the earlier day", () => {
+    const series = [
+      { day: "2026-07-20", scans: 5, uniques: 2 },
+      { day: "2026-07-21", scans: 5, uniques: 5 },
+    ];
+    expect(peakDayFrom(series)).toEqual({ scans: 5, day: "2026-07-20" });
   });
 });
 

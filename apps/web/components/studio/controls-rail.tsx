@@ -209,7 +209,15 @@ export function ControlsRail({
           <Eyebrow>Colors</Eyebrow>
           <div className="flex flex-col gap-2">
             <div className="flex items-center justify-between">
-              <Label>Ink</Label>
+              {/* P9.5-T7 review round 1: this labeled the fill-MODE toggle
+                  "Ink" — the same word the color field two lines below
+                  (line 233 in solid mode) also uses for the actual color,
+                  so the rail rendered "Ink" twice in a row (pre-existing,
+                  confirmed via `git show c664380` — predates this unit,
+                  fixed here anyway). "Fill" names what this control
+                  actually picks (solid vs. gradient); "Ink" stays reserved
+                  for the real color field(s) below. */}
+              <Label>Fill</Label>
               <ToggleGroup
                 type="single"
                 variant="outline"

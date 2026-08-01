@@ -13,7 +13,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { EASE_OUT } from "@/components/brand/magic";
 import { RangeSelector, rangeLabel } from "@/components/codes/range-selector";
 import { useMounted } from "@/hooks/use-mounted";
-import { maxRangeDaysFor, sumBuckets, toChartSeries, type RangeDays } from "@/lib/analytics";
+import { maxRangeDaysFor, peakDayFrom, sumBuckets, toChartSeries, type RangeDays } from "@/lib/analytics";
 import { PLAN_LIMITS, type Plan } from "@/lib/entitlements";
 
 type DailyRow = Pick<
@@ -235,7 +235,13 @@ export function CodeAnalyticsPanel({
   const maxDays = maxRangeDaysFor(plan);
   const series = toChartSeries(dailyRows, range);
   const rangeTotal = dailyRows.reduce((sum, row) => sum + row.scans, 0);
-  const peakDay = series.reduce((peak, point) => (point.scans > peak.scans ? point : peak), series[0]);
+  // peakDayFrom (lib/analytics.ts) — real found bug (P9.5-T7 review round
+  // 1, identical pattern fixed in codes-overview-panel.tsx too): a naive
+  // `series.reduce(..., series[0])` silently "peaks" on the range's first
+  // day when every day has 0 scans, so this tile used to render a
+  // fabricated date as "Peak day" for any code with no scans in range. See
+  // that function's own doc comment for the full reasoning.
+  const peakDay = peakDayFrom(series);
   const hasScans = rangeTotal > 0;
 
   const countries = dailyRows.map((row) => row.by_country);
@@ -304,7 +310,11 @@ export function CodeAnalyticsPanel({
           value={rangeTotal.toLocaleString()}
           caption={`last ${rangeLabel(range)}`}
         />
-        <StatTile label="Peak day" value={peakDay.scans.toLocaleString()} caption={peakDay.day} />
+        <StatTile
+          label="Peak day"
+          value={peakDay.scans.toLocaleString()}
+          caption={peakDay.day ?? undefined}
+        />
         <StatTile label="Today so far" value={scansToday.toLocaleString()} />
       </div>
 

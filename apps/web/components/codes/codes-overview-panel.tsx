@@ -12,6 +12,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { RangeSelector, rangeLabel } from "@/components/codes/range-selector";
 import {
   maxRangeDaysFor,
+  peakDayFrom,
   sumDailyAcrossCodes,
   toChartSeries,
   type RangeDays,
@@ -85,10 +86,13 @@ export function CodesOverviewPanel({
   const daily = sumDailyAcrossCodes(dailyRows);
   const series = toChartSeries(daily, range);
   const rangeTotal = daily.reduce((sum, row) => sum + row.scans, 0);
-  const peakDay = series.reduce(
-    (peak, point) => (point.scans > peak.scans ? point : peak),
-    series[0],
-  );
+  // peakDayFrom (lib/analytics.ts) — real found bug (P9.5-T7 review round
+  // 1, identical pattern fixed in code-analytics-panel.tsx too): a naive
+  // `series.reduce(..., series[0])` silently "peaks" on the range's first
+  // day when every day has 0 scans, so this tile used to render a
+  // fabricated date as "Peak day" for any account with no scans in range.
+  // See that function's own doc comment for the full reasoning.
+  const peakDay = peakDayFrom(series);
   const hasScans = rangeTotal > 0;
 
   return (
@@ -141,7 +145,11 @@ export function CodesOverviewPanel({
           value={rangeTotal.toLocaleString()}
           caption={`last ${rangeLabel(range)}`}
         />
-        <StatTile label="Peak day" value={peakDay.scans.toLocaleString()} caption={peakDay.day} />
+        <StatTile
+          label="Peak day"
+          value={peakDay.scans.toLocaleString()}
+          caption={peakDay.day ?? undefined}
+        />
       </div>
     </div>
   );

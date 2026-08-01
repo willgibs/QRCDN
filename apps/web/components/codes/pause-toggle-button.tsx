@@ -1,46 +1,73 @@
 "use client";
 
-import { useActionState } from "react";
+import { useState } from "react";
+import { Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { toggleCodePausedAction } from "@/app/(app)/codes/actions";
+import { setCodePaused } from "@/app/(app)/studio/code-actions";
 
 /**
- * `/codes` overview table row's Pause/Resume control (P9.5-T7). A small
- * client leaf mounted inside the server-rendered `CodesTable`
- * (components/codes/codes-table.tsx) — same "island inside an otherwise
- * server-rendered tree" shape `components/marketing/copy-button.tsx` already
- * establishes inside `CodeBlock`.
+ * `/codes` overview table row's Pause/Resume control (P9.5-T7, third
+ * mechanism this control shipped with — see this file's git history and
+ * `docs/STATUS.md`'s P9.5-T7 entry for the two that were tried and
+ * discarded first, both because they proved unreliable, not because of a
+ * style preference).
  *
- * `useActionState`, not a plain `<form action={fn.bind(...)}>`: both invoke
- * the bound `toggleCodePausedAction` correctly, but only `useActionState`
- * actually applies the fresh RSC payload the action's `refresh()` call
- * produces to this component's own DOM — see app/(app)/codes/actions.ts's
- * doc comment for the full two-part finding (a plain form never applied the
- * refresh at all; `useActionState` applied it once but not on a second
- * submission from the same mounted instance, fixed by the caller
- * (codes-table.tsx) mounting this component with `key={code.status}` so a
- * status change forces a real remount rather than reusing the instance).
- * Both parts confirmed live via the e2e suite, not assumed from docs. The
- * returned `state` (always `null`) is intentionally unused — this control
- * cares about triggering the mutation and the pending flag, not about
- * tracking any client-side state of its own; the row's real "state" is
- * always the fresh server data `refresh()` pulls back in, and the `key`
- * remount is what makes that reliably reach the DOM every time, not just
- * the first.
+ * Calls `setCodePaused` directly (`app/(app)/studio/code-actions.ts`) —
+ * the exact same action, same `getUser()` guard, same `STUDIO_MUTATE_LIMIT`
+ * gate, that the Studio rail's `CodesList` already calls this same way
+ * (`components/studio/codes-list.tsx`'s `handlePauseToggle`) and that
+ * money-path.spec.ts's "pauses the code"/"resumes the code" tests have
+ * exercised reliably since P5. No new server code, no wrapper: this is a
+ * plain imperative call from a client event handler, the same shape as
+ * every other row action in this codebase.
+ *
+ * On success (or failure — see below) this forces `window.location.reload()`
+ * rather than trying to get Next's client router to apply a fresh render in
+ * place. That's a deliberate downgrade from a smooth SPA-style update, made
+ * after two smoother mechanisms were tried and both failed empirically:
+ * neither a plain `<form action={...}>` (with `revalidatePath`, `refresh`,
+ * or `redirect` — tried all three) nor a `useActionState`-driven form
+ * reliably got the browser to show the change without a hard reload
+ * in between. Network-request evidence for the plain-form case: after
+ * clicking, exactly one POST (the form submission, carrying the
+ * `next-action` header) fires and no subsequent navigation-shaped request
+ * ever lands — only unrelated `next-router-prefetch` GETs for other links
+ * already on the page — so whatever payload the POST's response carried
+ * back was never applied to the DOM. A hard reload has no such ambiguity:
+ * it is a brand-new document load, unconditionally, with no dependency on
+ * any Next.js client-side caching or router-application step.
+ *
+ * `finally`, not `then`: reload happens whether the mutation succeeded or
+ * failed, same "let the real data speak" reasoning the earlier mechanisms
+ * already used — there is no dedicated error affordance on this row-level
+ * control (unlike the Studio rail's own richer UI), so a failed mutation
+ * just reloads to the unchanged (correct, honest) status instead of lying
+ * or hanging.
  */
 export function PauseToggleButton({ id, paused }: { id: string; paused: boolean }) {
-  const [, formAction, isPending] = useActionState(toggleCodePausedAction.bind(null, id, !paused), null);
+  const [busy, setBusy] = useState(false);
+
+  async function handleClick() {
+    if (busy) return;
+    setBusy(true);
+    try {
+      await setCodePaused(id, !paused);
+    } finally {
+      window.location.reload();
+    }
+  }
+
   return (
-    <form action={formAction}>
-      <Button
-        type="submit"
-        variant="ghost"
-        size="sm"
-        disabled={isPending}
-        className="h-auto p-0 text-sm font-normal text-muted-foreground hover:bg-transparent hover:text-foreground hover:underline"
-      >
-        {paused ? "Resume" : "Pause"}
-      </Button>
-    </form>
+    <Button
+      type="button"
+      variant="ghost"
+      size="sm"
+      disabled={busy}
+      onClick={handleClick}
+      className="h-auto gap-1 p-0 text-sm font-normal text-muted-foreground hover:bg-transparent hover:text-foreground hover:underline"
+    >
+      {busy && <Loader2 className="size-3 animate-spin" aria-hidden />}
+      {paused ? "Resume" : "Pause"}
+    </Button>
   );
 }

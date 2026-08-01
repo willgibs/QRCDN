@@ -1,6 +1,6 @@
 # Status
 
-_Last updated: 2026-08-01 (P9.5-T7 landed: four authenticated-app quick wins — /api-keys free-state showcase, /codes create button + per-row pause, studio rail regrouped into Design/Content & output clusters, zero-kit empty state — plus three riders: pricing label truth fix, P10 backlog note, and a 47-violation em-dash sweep with a standing regression test. Two spec claims found untrue and corrected rather than followed blindly: the em-dash rider's app/u/[slug] claim was already fixed at T3c, and the Proof section's "fixture user is free-tier" assumption was false, resolved by moving the free-plan e2e check to the deliberate last step of the money-path suite). Update this file at every phase boundary or significant commit._
+_Last updated: 2026-08-01 (P9.5-T7 landed across two commits: four authenticated-app quick wins — /api-keys free-state showcase, /codes create button + per-row pause, studio rail regrouped into Design/Content & output clusters, zero-kit empty state — plus three riders: pricing label truth fix, P10 backlog note, and a 47-violation em-dash sweep with a standing regression test. The first commit's E2E run failed on its own new pause-toggle test; root-caused by local reproduction (a plain form and then a useActionState-driven one both failed to reliably apply a Server Action's response to the DOM) and fixed forward, never reverted, to a plain imperative call + hard reload. Two spec claims also found untrue and corrected rather than followed blindly: the em-dash rider's app/u/[slug] claim was already fixed at T3c, and the Proof section's "fixture user is free-tier" assumption was false, resolved by moving the free-plan e2e check to the deliberate last step of the money-path suite). Update this file at every phase boundary or significant commit._
 
 ## Current phase
 
@@ -781,40 +781,54 @@ re-verifying rather than trusting the label — see "Spec corrections" below.
   linking honestly to `/studio` — the real create entry point; there is no
   separate create route to deep-link to; `CreateCodeControl`
   (`components/studio/create-code.tsx`) lives inside the Studio itself,
-  wired to the live payload/style being edited there. Per-row Pause/Resume:
-  a new `toggleCodePausedAction` (`app/(app)/codes/actions.ts`) wraps the
-  pre-existing `setCodePaused` (`app/(app)/studio/code-actions.ts:176`,
-  itself wrapping `setCodePausedCore` at `lib/codes-core.ts:615`) unchanged
-  — same `getUser()` re-verification (not `getClaims()`) the
-  "changes what a printed code does" family already uses for
-  retarget/pause, same `STUDIO_MUTATE_LIMIT` gate, no new guard logic
-  anywhere. `CodesTable` (`components/codes/codes-table.tsx`) stays a plain
-  server-rendered table with no `"use client"` of its own; the new control
-  is `PauseToggleButton` (`components/codes/pause-toggle-button.tsx`), a
-  small client leaf mounted per row — the same "island inside a
-  server-rendered tree" shape `copy-button.tsx` already establishes inside
-  `CodeBlock`. Row click-through: the table never had a row-wide anchor
-  (only the pre-existing inline "View analytics" text link), so there was
-  no actual nested-interactive-element hazard to design around, contrary to
-  what the spec's phrasing implied — the new button and the existing link
-  are plain siblings in the same cell.
-  **Two real, non-obvious Next 16 findings surfaced building this, both
-  confirmed live via the e2e suite, not assumed from docs (full detail in
-  `app/(app)/codes/actions.ts`'s own doc comment):** (1) a plain
-  `<form action={fn.bind(...)}>` with no `useActionState` invokes a Server
-  Action correctly (the mutation lands, `refresh()`/`revalidatePath()` both
-  run server-side) but the browser never applies the fresh RSC payload the
-  docs say the same response carries — the row stayed stuck on stale data
-  until an unrelated navigation. Fixing this needed `useActionState` in a
-  small client leaf, not a config change. (2) `useActionState` alone then
-  worked for exactly one submission per mounted instance: pausing a row
-  updated it live, but resuming the same row right after did not (the
-  mutation still landed, proven server-side both times) — fixed by mounting
-  `PauseToggleButton` with `key={code.status}` so a status change forces a
-  real remount instead of reusing the instance. Found only because the e2e
-  spec tests pause-then-resume back to back on the same row; a one-off
-  manual click-through checking "does pause work" would very plausibly have
-  shipped this half-working.
+  wired to the live payload/style being edited there. Row click-through:
+  the table never had a row-wide anchor (only the pre-existing inline "View
+  analytics" text link), so there was no actual nested-interactive-element
+  hazard to design around, contrary to what the spec's phrasing implied —
+  the new control and the existing link are plain siblings in the same
+  cell.
+  **Per-row Pause/Resume took three attempts to get reliable, and the
+  first commit shipped the second one under a claim of confidence its own
+  next CI run went on to contradict — recorded here in full rather than
+  cleaned up, since the mechanism findings are the actually useful part.**
+  All three call the same, unchanged `setCodePaused`
+  (`app/(app)/studio/code-actions.ts:176`, itself wrapping
+  `setCodePausedCore` at `lib/codes-core.ts:615`) — same `getUser()`
+  re-verification and `STUDIO_MUTATE_LIMIT` gate the "changes what a
+  printed code does" family already uses; no guard logic was ever the
+  issue. (1) A plain server-rendered `<form action={...}>` (no client
+  component) with `revalidatePath("/codes")`, `refresh()`, or
+  `redirect("/codes")` as the follow-up call, tried in that order: the
+  mutation always landed (confirmed server-side every time) but the
+  browser never showed it — direct network-request inspection during local
+  reproduction found exactly one POST per click (the form submission
+  itself) and no subsequent navigation-shaped request at all, meaning
+  whatever the response carried back was never applied to the DOM,
+  regardless of which of the three cache/navigation primitives triggered
+  it. (2) A `"use client"` leaf using `useActionState`
+  (`components/codes/pause-toggle-button.tsx`), reasoning that only that
+  hook actually applies a Server Action's fresh response to its own DOM:
+  this worked in every local run, repeatedly, including pause-then-resume
+  back to back — and then the commit built on it (see the phase ledger
+  entry below) failed CI's E2E run on the very next push, at two different
+  lines between the first attempt and its automatic retry (attempt 1 died
+  on the Resume assertion, the retry died on the Pause assertion instead —
+  a failure that moves between two different submissions across runs is a
+  race, not a fixed bug with one cause). Escalating the fix
+  (`key={code.status}` forcing a remount per status change) was tried
+  next and *also* reproduced the same failure locally, deterministically,
+  once actually re-tested rather than assumed fixed. (3) **Shipped:**
+  `PauseToggleButton` now calls `setCodePaused` directly (a plain
+  imperative client call — the exact shape `components/studio/
+  codes-list.tsx`'s own `handlePauseToggle` already uses, proven reliable
+  since P5) and forces `window.location.reload()` in a `finally`,
+  regardless of outcome. A hard reload has no dependency on Next's
+  client-side RSC-application step at all — it's a brand-new document load
+  — which is exactly the step both earlier mechanisms depended on and
+  neither could make reliable. Verified with three consecutive full local
+  e2e runs (81/81 each, no flakes) before pushing the fix; CI/E2E result
+  for this exact mechanism recorded in "Verified" below once known, not
+  asserted in advance.
 - **Studio rail grouping.** `components/studio/controls-rail.tsx`'s six
   existing sections (Payload, Codes, Colors, Shape, Logo, Export — 483
   lines pre-unit, confirmed) are now two labelled clusters: "Design"
@@ -886,25 +900,33 @@ re-verifying rather than trusting the label — see "Spec corrections" below.
   teardown deletes the fixture user regardless). The step's own comment
   states this invariant explicitly for whoever adds a test after it next.
 
-Verified: `pnpm lint && pnpm typecheck && pnpm test` green across every
-workspace package (782 vitest: 23 shared + 25 workers/status + 55
-qr-engine + 138 workers/redirect + 541 web, +2 from
-`lib/no-em-dash.test.ts`). `pnpm build` keeps every route's render mode
-unchanged — marketing stays `○` (Static), `/api-keys`/`/codes`/`/studio`
-stay `ƒ` (Dynamic). Full local e2e (`pnpm test:e2e`, `next start`, real
-production Supabase fixture): **81/81 green** (65 marketing + 16
-money-path/auth-scanner-safety, +2 over the T-R baseline: the `/codes`
-Create-button-and-pause-toggle test and the `/api-keys` free-showcase
-test), including both new assertions above.
+**First push (`067b3cf`): CI green, E2E red** — the one failure was this
+unit's own new pause-toggle test, mechanism (2) above. Root-caused by
+direct local reproduction (not theorized from the CI log alone) and fixed
+forward to mechanism (3) in a second commit, never reverted — the
+em-dash sweep, the `/api-keys` showcase, and the pricing truth fix in the
+first commit were all correct and untouched by the fix.
+
+Verified (second commit, the state this entry describes): `pnpm lint &&
+pnpm typecheck && pnpm test` green across every workspace package (781
+vitest: 23 shared + 25 workers/status + 55 qr-engine + 138 workers/redirect
++ 540 web). `pnpm build` keeps every route's render mode unchanged —
+marketing stays `○` (Static), `/api-keys`/`/codes`/`/studio` stay `ƒ`
+(Dynamic). Local e2e (`pnpm test:e2e`, `next start`, real production
+Supabase fixture) run **three consecutive times** after landing mechanism
+(3): **81/81 green every time**, no flakes, the pause-toggle test finishing
+in ~2.7s each run. CI/E2E confirmation for this exact commit's SHA is the
+subject of this unit's own report, not asserted here in advance.
 
 No deviations from the spec's four numbered items. Judgment calls, all
 recorded above: splitting the free `/api-keys` state into its own Server
-Component rather than the spec's first-choice slot pattern; the
-`useActionState` + status-keyed-remount architecture the pause control
-actually needed, one tier past what "a form-action server action" alone
-implied; Design-cluster-first ordering in the rail (preserves Export's
-bottom placement, not separately specified); the em-dash regression test's
-one explicit exemption (`lib/guardrails-excerpt.ts`).
+Component rather than the spec's first-choice slot pattern; three attempts
+at the pause mechanism before landing on a plain imperative call + hard
+reload, one tier past what "a form-action server action" alone implied,
+and past what "verified locally" alone turned out to guarantee;
+Design-cluster-first ordering in the rail (preserves Export's bottom
+placement, not separately specified); the em-dash regression test's one
+explicit exemption (`lib/guardrails-excerpt.ts`).
 
 ## Phase ledger
 

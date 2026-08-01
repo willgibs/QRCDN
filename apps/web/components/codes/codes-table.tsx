@@ -85,26 +85,20 @@ export function ProtectedTag() {
  * multi-column `Table` reads better than cards here.
  *
  * P9.5-T7: each row's Pause/Resume is `PauseToggleButton`
- * (components/codes/pause-toggle-button.tsx) — a small `"use client"` leaf
- * (`useActionState`-driven; see that file and app/(app)/codes/actions.ts's
- * own doc comments for why a plain server-rendered `<form action={...}>`
- * without it left the DOM stuck on stale data despite the mutation
- * succeeding, a real Next 16 finding). This table itself stays a Server
- * Component with no directive of its own — same "leaf goes client, table
- * doesn't" shape `code-analytics-panel.tsx`'s own use of `statusMeta` from
- * this file already established for the reverse direction. The button sits
- * in the same "Actions" cell as the existing "View analytics" link, as a
- * sibling element, never nested inside the `<Link>` — this table has no
- * row-wide anchor to nest inside of in the first place (only that one
+ * (components/codes/pause-toggle-button.tsx) — a small `"use client"` leaf,
+ * same "island inside a server-rendered tree" shape `copy-button.tsx`
+ * already establishes inside `CodeBlock`. This table itself stays a Server
+ * Component with no directive of its own. See that file's own doc comment
+ * for the two other mechanisms tried first (a plain form with
+ * revalidatePath/refresh/redirect, and a useActionState-driven form) and
+ * why both were abandoned — both looked correct and both failed to
+ * reliably get a change onto the screen without a hard reload in between,
+ * confirmed by direct network-request inspection, not assumed. The button
+ * sits in the same "Actions" cell as the existing "View analytics" link,
+ * as a sibling element, never nested inside the `<Link>` — this table has
+ * no row-wide anchor to nest inside of in the first place (only that one
  * inline text link), so there is no nested-interactive-element hazard to
  * design around here.
- *
- * `key={code.status}` on `PauseToggleButton` below (in addition to this
- * row's own `key={code.id}`) is load-bearing, not decoration: it forces a
- * full remount of that leaf whenever its status changes, which is what
- * makes its `useActionState` refresh apply on a SECOND submission (e.g.
- * resume right after pause on the same row) — see pause-toggle-button.tsx's
- * doc comment for the finding this fixes.
  */
 export function CodesTable({ codes }: { codes: DynamicCodeSummary[] }) {
   return (
@@ -138,7 +132,7 @@ export function CodesTable({ codes }: { codes: DynamicCodeSummary[] }) {
             </TableCell>
             <TableCell className="text-right">
               <div className="flex items-center justify-end gap-3">
-                <PauseToggleButton key={code.status} id={code.id} paused={code.status === "paused"} />
+                <PauseToggleButton id={code.id} paused={code.status === "paused"} />
                 <Link
                   href={`/codes/${code.slug}`}
                   className="text-sm text-primary underline-offset-4 hover:underline"

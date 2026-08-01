@@ -68,7 +68,7 @@ export default async function ConfirmSignInPage(props: PageProps<"/auth/confirm"
                     That link isn&apos;t valid.
                   </h1>
                   <p className="text-sm text-muted-foreground">
-                    It&apos;s missing something it needs — request a fresh one.
+                    It&apos;s missing something it needs. Request a fresh one.
                   </p>
                 </div>
                 <Button asChild className="w-full">

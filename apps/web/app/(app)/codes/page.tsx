@@ -7,6 +7,8 @@ import { rangeWindowUtc, resolveRangeDays } from "@/lib/analytics";
 import { CodesTable } from "@/components/codes/codes-table";
 import { CodesOverviewPanel } from "@/components/codes/codes-overview-panel";
 import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Plus } from "lucide-react";
 
 // D9: all (app) routes are force-dynamic so the getClaims() guard below runs
 // fresh on every request rather than riding a cached response.
@@ -106,6 +108,17 @@ export default async function CodesOverviewPage(props: PageProps<"/codes">) {
               Every dynamic code and its scan activity.
             </p>
           </div>
+          {/* P9.5-T7: the studio IS the create flow (components/studio/
+              create-code.tsx's CreateCodeControl lives inside it, wired to
+              the live payload/style being edited there) — there is no
+              separate create route to deep-link to, so "Create code" here
+              is an honest plain link to /studio, not a shortcut around it. */}
+          <Button asChild className="shrink-0 gap-1.5">
+            <Link href="/studio">
+              <Plus className="size-3.5" aria-hidden />
+              Create code
+            </Link>
+          </Button>
         </div>
       </header>
 
@@ -124,9 +137,9 @@ export default async function CodesOverviewPage(props: PageProps<"/codes">) {
 
         {codes.length === 0 ? (
           <p className="py-12 text-center text-sm text-muted-foreground">
-            No dynamic codes yet —{" "}
+            No dynamic codes yet.{" "}
             <Link href="/studio" className="text-primary underline-offset-4 hover:underline">
-              create one in the studio
+              Create one in the studio
             </Link>
             .
           </p>

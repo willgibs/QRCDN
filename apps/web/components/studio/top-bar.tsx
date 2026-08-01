@@ -18,6 +18,14 @@ import { KitBar } from "./kit-bar";
  * (still bundled client-side transitively via studio-shell.tsx, matching
  * the product-window.tsx precedent of leaf components staying
  * directive-free).
+ *
+ * P9.5-T7: a zero-kit empty state lives here, not duplicated elsewhere —
+ * `kits={[]}` is genuinely reachable (studio/page.tsx has no redirect guard
+ * beyond auth, so a brand-new account lands here with none) and KitBar
+ * already renders its own "New kit" button for that case (`kits.length > 0
+ * && activeKit` false branch) with no explanation of what a kit even is.
+ * This adds exactly one honest line pointing at that existing button
+ * rather than a second, competing create affordance.
  */
 export function TopBar({
   kits,
@@ -44,7 +52,7 @@ export function TopBar({
 }) {
   return (
     <div className="border-b border-border/60 bg-background">
-      <div className="mx-auto max-w-[1600px] px-4 py-3 lg:px-8">
+      <div className="mx-auto flex max-w-[1600px] flex-col gap-2 px-4 py-3 lg:px-8">
         <KitBar
           kits={kits}
           activeKitId={activeKitId}
@@ -57,6 +65,11 @@ export function TopBar({
           onDeleted={onDeleted}
           onDefaultChanged={onDefaultChanged}
         />
+        {kits.length === 0 && (
+          <p className="text-xs text-muted-foreground">
+            No brand kit yet. Create one to save your colors and shapes for reuse across codes.
+          </p>
+        )}
       </div>
     </div>
   );

@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { type Plan } from "@/lib/entitlements";
 import { ApiKeysPanel } from "@/components/api-keys/api-keys-panel";
+import { ApiKeysFreeShowcase } from "@/components/api-keys/api-keys-free-showcase";
 import type { ApiKeySummary } from "@/lib/api-keys";
 
 // D9: all (app) routes are force-dynamic so the getClaims() guard below runs
@@ -12,11 +13,17 @@ export const dynamic = "force-dynamic";
  * `/api-keys` — API key management (P7-U4). Same guard pattern as
  * codes/page.tsx, copied verbatim.
  *
- * The plan check below only decides which UI the client component renders
- * (header + Pro upsell vs. create + list) — it is NOT the enforcement
+ * The plan check below only decides which surface renders (the free-plan
+ * showcase vs. the create + list panel) — it is NOT the enforcement
  * boundary. `createApiKeyAction` (app/(app)/api-keys/actions.ts) re-checks
  * `profiles.plan` server-side before minting anything, exactly like every
  * other plan-gated action in the app (createBrandKit, createDynamicCode).
+ *
+ * P9.5-T7: the free-plan branch renders `ApiKeysFreeShowcase` directly
+ * rather than passing through `ApiKeysPanel` — see that component's own
+ * doc comment for why (it needs no props the panel's Pro-only state owns,
+ * and staying a Server Component keeps a free visit's client JS at zero
+ * for this content).
  */
 export default async function ApiKeysPage() {
   const supabase = await createClient();
@@ -77,7 +84,11 @@ export default async function ApiKeysPage() {
       </header>
 
       <main className="mx-auto max-w-[1600px] px-4 py-8 lg:px-8">
-        <ApiKeysPanel plan={plan} keys={keys} usageByKeyId={usageByKeyId} />
+        {plan === "pro" ? (
+          <ApiKeysPanel keys={keys} usageByKeyId={usageByKeyId} />
+        ) : (
+          <ApiKeysFreeShowcase />
+        )}
       </main>
     </div>
   );

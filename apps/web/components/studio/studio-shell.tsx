@@ -277,7 +277,7 @@ export function StudioShell({
       }));
       return null;
     } catch {
-      return "Could not read that file — try again.";
+      return "Could not read that file. Try again.";
     }
   }, []);
 

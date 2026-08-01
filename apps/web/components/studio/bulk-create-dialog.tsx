@@ -47,11 +47,11 @@ const BATCH_ERROR_MESSAGES: Record<string, string> = {
   batch_too_large: `Max ${BULK_MAX} per batch.`,
   code_limit: "That batch would put you over your plan's code limit.",
   bulk_not_available: "Bulk creation is a Pro feature.",
-  profile_not_found: "Couldn't find your account — try again.",
+  profile_not_found: "Couldn't find your account. Try again.",
   // P8-U4: createDynamicCodesBulk is now rate-limited (STUDIO_MUTATE_LIMIT).
-  rate_limited: "Too many changes just now — try again in a few minutes.",
+  rate_limited: "Too many changes just now. Try again in a few minutes.",
 };
-const GENERIC_BATCH_ERROR = "Couldn't create those codes — try again.";
+const GENERIC_BATCH_ERROR = "Couldn't create those codes. Try again.";
 
 // P8-U5: createDynamicCodesBulkCore's Safe Browsing screen
 // (lib/safe-browsing.ts) fails a flagged destination as ITS OWN item
@@ -256,7 +256,7 @@ export function BulkCreateDialog({
           <DialogTitle>Bulk create</DialogTitle>
           {!locked && !results && (
             <DialogDescription>
-              One destination per line — optionally <code className="font-mono">Name | https://url</code>.
+              One destination per line. Optionally <code className="font-mono">Name | https://url</code>.
             </DialogDescription>
           )}
         </DialogHeader>

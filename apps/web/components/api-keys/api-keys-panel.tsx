@@ -14,7 +14,6 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { PLAN_LIMITS, type Plan } from "@/lib/entitlements";
 import { cn } from "@/lib/utils";
 import { createApiKeyAction, revokeApiKeyAction } from "@/app/(app)/api-keys/actions";
 import type { ApiKeySummary } from "@/lib/api-keys";
@@ -55,33 +54,6 @@ function KeyStatusPill({ revoked }: { revoked: boolean }) {
     >
       {revoked ? "Revoked" : "Active"}
     </span>
-  );
-}
-
-/**
- * The Pro upsell state for free-plan callers (design-system.md "same visual
- * register as the analytics Pro-locks" — the subtle mono "Pro" tag +
- * quiet muted copy from range-selector.tsx's locked range options). No
- * create form, no list — a free-plan caller can never have minted a key
- * (the server-side plan re-check in createApiKeyAction guarantees that), so
- * there is nothing honest to list here yet.
- */
-function ProUpsell() {
-  const cap = PLAN_LIMITS.pro.apiMonthlyRequests;
-  return (
-    <Card>
-      <CardContent className="flex flex-col items-start gap-2 py-10">
-        <span className="rounded-full bg-muted px-1.5 py-px font-mono text-[9px] uppercase tracking-wide text-muted-foreground">
-          Pro
-        </span>
-        <p className="text-sm font-medium text-foreground">API access is a Pro feature.</p>
-        <p className="max-w-md text-sm text-muted-foreground">
-          Upgrade to Pro to mint API keys and call the QRCDN API directly
-          {cap !== null ? ` — ${cap.toLocaleString()} requests/month included.` : "."}
-        </p>
-        <DevDocsLink />
-      </CardContent>
-    </Card>
   );
 }
 
@@ -149,7 +121,7 @@ function RevealOnceCard({ revealed, onDismiss }: { revealed: RevealedKey; onDism
         </div>
         <div className="flex flex-wrap items-center justify-between gap-3">
           <p className="text-xs font-medium text-amber-700 dark:text-amber-400">
-            This is the only time you&rsquo;ll see this key — store it now.
+            This is the only time you&rsquo;ll see this key. Store it now.
           </p>
           <Button type="button" variant="ghost" size="sm" onClick={onDismiss}>
             Done
@@ -161,19 +133,23 @@ function RevealOnceCard({ revealed, onDismiss }: { revealed: RevealedKey; onDism
 }
 
 /**
- * `/api-keys`' client panel (P7-U4). Every prop is server-fetched in
- * app/(app)/api-keys/page.tsx and passed straight in — the only client-side
- * fetching this component does is the two server actions it calls on
- * create/revoke. `keys` is lifted into local state (mirrors kit-bar.tsx's
- * own pattern) so a create/revoke updates the list optimistically from the
- * action's own response instead of a full page refetch.
+ * `/api-keys`' client panel (P7-U4) — the Pro-plan create/manage surface
+ * only. Every prop is server-fetched in app/(app)/api-keys/page.tsx and
+ * passed straight in — the only client-side fetching this component does is
+ * the two server actions it calls on create/revoke. `keys` is lifted into
+ * local state (mirrors kit-bar.tsx's own pattern) so a create/revoke updates
+ * the list optimistically from the action's own response instead of a full
+ * page refetch.
+ *
+ * P9.5-T7: page.tsx now renders this component only when `plan === "pro"`
+ * (the free-plan branch renders `ApiKeysFreeShowcase` instead), so there is
+ * no `plan` prop here anymore — every caller of this component already
+ * knows the answer before reaching it.
  */
 export function ApiKeysPanel({
-  plan,
   keys: initialKeys,
   usageByKeyId,
 }: {
-  plan: Plan;
   keys: ApiKeySummary[];
   usageByKeyId: Record<string, number>;
 }) {
@@ -219,7 +195,7 @@ export function ApiKeysPanel({
         showError(
           result.error === "pro_required"
             ? "API keys are a Pro feature."
-            : "Couldn't create that key — try again.",
+            : "Couldn't create that key. Try again.",
         );
         return;
       }
@@ -237,7 +213,7 @@ export function ApiKeysPanel({
       setRevealed(result.data);
       setDraftName("");
     } catch {
-      showError("Couldn't create that key — try again.");
+      showError("Couldn't create that key. Try again.");
     } finally {
       setCreating(false);
     }
@@ -260,20 +236,16 @@ export function ApiKeysPanel({
     try {
       const result = await revokeApiKeyAction(id);
       if (!result.ok) {
-        showError("Couldn't revoke that key — try again.");
+        showError("Couldn't revoke that key. Try again.");
         return;
       }
       const revokedAt = new Date().toISOString();
       setKeys((prev) => prev.map((k) => (k.id === id ? { ...k, revoked_at: revokedAt } : k)));
     } catch {
-      showError("Couldn't revoke that key — try again.");
+      showError("Couldn't revoke that key. Try again.");
     } finally {
       setRevokeBusyId(null);
     }
-  }
-
-  if (plan !== "pro") {
-    return <ProUpsell />;
   }
 
   return (
@@ -318,7 +290,7 @@ export function ApiKeysPanel({
 
       {keys.length === 0 ? (
         <p className="text-sm text-muted-foreground">
-          No API keys yet — mint one above to start calling the API.
+          No API keys yet. Mint one above to start calling the API.
         </p>
       ) : (
         <Card>

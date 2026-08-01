@@ -117,7 +117,7 @@ export const PRICING_ROWS: PricingRow[] = [
   ),
   capabilityRow(
     "accessControls",
-    "Expiry, password & scheduling",
+    "Expiry & password",
     PLAN_LIMITS.free.accessControls,
     PLAN_LIMITS.pro.accessControls,
     "Not included",

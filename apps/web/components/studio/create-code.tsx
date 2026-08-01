@@ -21,10 +21,10 @@ import { createDynamicCode } from "@/app/(app)/studio/code-actions";
 import type { QrCode } from "@/lib/codes-core";
 
 const COPY_FLASH_TIMEOUT_MS = 1600;
-const CODE_LIMIT_MESSAGE = "Free includes 3 dynamic codes — Pro raises it to 250.";
-const GENERIC_ERROR_MESSAGE = "Couldn't create that code — try again.";
+const CODE_LIMIT_MESSAGE = "Free includes 3 dynamic codes. Pro raises it to 250.";
+const GENERIC_ERROR_MESSAGE = "Couldn't create that code. Try again.";
 // P8-U4: createDynamicCode is now rate-limited (STUDIO_MUTATE_LIMIT).
-const RATE_LIMITED_MESSAGE = "Too many changes just now — try again in a few minutes.";
+const RATE_LIMITED_MESSAGE = "Too many changes just now. Try again in a few minutes.";
 // P8-U5: createDynamicCode now screens the destination through Safe
 // Browsing (lib/safe-browsing.ts, via createDynamicCodeCore) — unconfigured
 // or a check failure never reaches this branch, only an affirmative match.
@@ -42,7 +42,7 @@ function createErrorMessage(error: CreateError): string {
 // Single-sourced against lib/slug.ts's SLUG_CHARSET (P7.5-U3) rather than a
 // hand-typed copy, so this helper text can never drift from the charset
 // validateVanitySlug actually enforces.
-const SLUG_HELPER_TEXT = `4–30 characters from ${SLUG_CHARSET} — no 0, 1, I, L, O, or U (they misprint)`;
+const SLUG_HELPER_TEXT = `4–30 characters from ${SLUG_CHARSET}: no 0, 1, I, L, O, or U (they misprint)`;
 
 type SlugError = "slug_taken" | "slug_reserved" | "invalid_slug";
 
@@ -225,7 +225,7 @@ export function CreateCodeControl({
         </div>
         <div className="flex items-center justify-between gap-2">
           <p className="text-xs text-muted-foreground">
-            Live — this is now the printed code on the artifact above.
+            Live: this is now the printed code on the artifact above.
           </p>
           <Button
             type="button"

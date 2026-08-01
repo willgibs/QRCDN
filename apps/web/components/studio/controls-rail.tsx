@@ -1,6 +1,6 @@
 "use client";
 
-import { useId, useState, type ChangeEvent } from "react";
+import { useId, useState, type ChangeEvent, type ReactNode } from "react";
 import { Loader2, Upload, X } from "lucide-react";
 import type { QrStyle } from "@qrcdn/shared";
 import { Button } from "@/components/ui/button";
@@ -38,6 +38,23 @@ const PAPER_PRESETS = ["#ffffff", "#f4f4f5", "#101013", "#18181b"] as const;
 const EXPORT_SIZES = [512, 1024, 2048, 4096] as const;
 const ECC_LEVELS = ["L", "M", "Q", "H"] as const;
 const FILL_MODES = ["solid", "gradient"] as const;
+
+/**
+ * Cluster-level heading (P9.5-T7) — one tier above each section's own
+ * `Eyebrow`, grouping the rail's existing sections into two labelled
+ * clusters without changing any control inside them. Deliberately a
+ * different register from `Eyebrow` (bolder, `text-foreground` instead of
+ * muted, no `ModuleMark` glyph) so the two heading tiers read as a real
+ * hierarchy rather than two same-weight labels stacked on top of each
+ * other.
+ */
+function ClusterHeading({ children }: { children: ReactNode }) {
+  return (
+    <h2 className="font-mono text-[13px] font-semibold uppercase tracking-[0.15em] text-foreground">
+      {children}
+    </h2>
+  );
+}
 
 export function ControlsRail({
   style,
@@ -161,7 +178,7 @@ export function ControlsRail({
     try {
       onExportSvg();
     } catch {
-      setExportError("Couldn't export — try again.");
+      setExportError("Couldn't export. Try again.");
     } finally {
       setExporting(null);
     }
@@ -174,310 +191,325 @@ export function ControlsRail({
     try {
       await onExportPng(Number(exportSize));
     } catch {
-      setExportError("Couldn't export — try again.");
+      setExportError("Couldn't export. Try again.");
     } finally {
       setExporting(null);
     }
   }
 
   return (
-    <div className={cn("flex flex-col gap-8", className)}>
-      <section className="flex flex-col gap-3">
-        <Eyebrow>Payload</Eyebrow>
-        <div className="flex flex-col gap-1.5">
-          <Label htmlFor={payloadId}>Destination</Label>
-          <Input
-            id={payloadId}
-            value={payload}
-            onChange={(e) => onPayloadChange(e.target.value)}
-            placeholder="https://example.com"
-            spellCheck={false}
-            className="font-mono text-xs"
+    <div className={cn("flex flex-col gap-10", className)}>
+      {/* "Design" cluster (P9.5-T7) — shape, eyes, ink, logo. Regrouping
+          only: every control below is byte-identical to its pre-T7 section,
+          just gathered under one cluster heading instead of standing alone. */}
+      <div className="flex flex-col gap-8">
+        <ClusterHeading>Design</ClusterHeading>
+
+        <section className="flex flex-col gap-4">
+          <Eyebrow>Colors</Eyebrow>
+          <div className="flex flex-col gap-2">
+            <div className="flex items-center justify-between">
+              <Label>Ink</Label>
+              <ToggleGroup
+                type="single"
+                variant="outline"
+                size="sm"
+                value={fillMode}
+                onValueChange={(v) => v && onFillTypeChange(v as "solid" | "gradient")}
+              >
+                {FILL_MODES.map((mode) => (
+                  <ToggleGroupItem
+                    key={mode}
+                    value={mode}
+                    aria-label={`${mode} ink`}
+                    className={cn(glowTileOn, "px-2.5 text-xs capitalize")}
+                  >
+                    {mode}
+                  </ToggleGroupItem>
+                ))}
+              </ToggleGroup>
+            </div>
+            {style.fill.type === "solid" ? (
+              <ColorField label="Ink" value={style.fill.color} onChange={onInkChange} presets={INK_PRESETS} />
+            ) : (
+              <div className="flex flex-col gap-3">
+                <ColorField
+                  label="Start"
+                  value={style.fill.stops[0]?.color ?? "#111111"}
+                  onChange={onGradientStartChange}
+                  presets={INK_PRESETS}
+                />
+                <ColorField
+                  label="End"
+                  value={style.fill.stops[style.fill.stops.length - 1]?.color ?? "#111111"}
+                  onChange={onGradientEndChange}
+                  presets={INK_PRESETS}
+                />
+                {style.fill.type === "linearGradient" && (
+                  <div className="flex flex-col gap-1.5">
+                    <div className="flex items-center justify-between">
+                      <Label htmlFor={gradientAngleId}>Angle</Label>
+                      <span className="font-mono text-xs tabular-nums text-muted-foreground">
+                        {Math.round(radiansToDegrees(style.fill.rotation))}°
+                      </span>
+                    </div>
+                    <Slider
+                      id={gradientAngleId}
+                      min={0}
+                      max={360}
+                      step={1}
+                      value={[Math.round(radiansToDegrees(style.fill.rotation))]}
+                      onValueChange={([v]) => v !== undefined && onGradientRotationChange(v)}
+                    />
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+          <ColorField
+            label="Paper"
+            value={style.background.color}
+            onChange={onPaperChange}
+            presets={PAPER_PRESETS}
+            trailing={
+              <TransparentPaperChip
+                active={style.background.transparent}
+                onClick={() => onPaperTransparentChange(!style.background.transparent)}
+              />
+            }
           />
-        </div>
-        <CreateCodeControl payload={payload} style={style} plan={plan} onCreated={onCodeCreated} />
-        <BulkCreateDialog
-          plan={plan}
-          style={style}
-          codeCount={codes.length}
-          onCodesRefreshed={onCodesRefreshed}
-        />
-      </section>
+        </section>
 
-      <section className="flex flex-col gap-3">
-        <Eyebrow>Codes</Eyebrow>
-        <CodesList
-          codes={codes}
-          plan={plan}
-          onCodeLoad={onCodeLoad}
-          onRetargeted={onCodeRetargeted}
-          onPauseToggled={onCodePauseToggled}
-          onAccessUpdated={onCodeAccessUpdated}
-        />
-      </section>
-
-      <section className="flex flex-col gap-4">
-        <Eyebrow>Colors</Eyebrow>
-        <div className="flex flex-col gap-2">
-          <div className="flex items-center justify-between">
-            <Label>Ink</Label>
+        <section className="flex flex-col gap-4">
+          <Eyebrow>Shape</Eyebrow>
+          <div className="flex flex-col gap-2">
+            <Label>Module</Label>
             <ToggleGroup
               type="single"
               variant="outline"
-              size="sm"
-              value={fillMode}
-              onValueChange={(v) => v && onFillTypeChange(v as "solid" | "gradient")}
+              value={style.dots.style}
+              onValueChange={(v) => v && onDotStyleChange(v as QrStyle["dots"]["style"])}
             >
-              {FILL_MODES.map((mode) => (
-                <ToggleGroupItem
-                  key={mode}
-                  value={mode}
-                  aria-label={`${mode} ink`}
-                  className={cn(glowTileOn, "px-2.5 text-xs capitalize")}
-                >
-                  {mode}
+              {DOT_STYLES.map((s) => (
+                <ToggleGroupItem key={s} value={s} aria-label={`${s} modules`} className={glowTileOn}>
+                  <DotSwatch style={s} />
                 </ToggleGroupItem>
               ))}
             </ToggleGroup>
           </div>
-          {style.fill.type === "solid" ? (
-            <ColorField label="Ink" value={style.fill.color} onChange={onInkChange} presets={INK_PRESETS} />
+          <div className="flex flex-col gap-2">
+            <Label>Eye</Label>
+            <ToggleGroup
+              type="single"
+              variant="outline"
+              value={style.eyes.frame}
+              onValueChange={(v) => v && onEyeFrameChange(v as QrStyle["eyes"]["frame"])}
+            >
+              {EYE_FRAMES.map((f) => (
+                <ToggleGroupItem key={f} value={f} aria-label={`${f} eyes`} className={glowTileOn}>
+                  <EyeSwatch frame={f} />
+                </ToggleGroupItem>
+              ))}
+            </ToggleGroup>
+          </div>
+          <div className="flex flex-col gap-2">
+            <Label>Eye color</Label>
+            <ColorChipRow
+              label="Eye"
+              value={style.eyes.color}
+              onChange={onEyeColorChange}
+              presets={INK_PRESETS}
+              leading={
+                <button
+                  type="button"
+                  aria-pressed={style.eyes.color === null}
+                  onClick={() => onEyeColorChange(null)}
+                  className={cn(
+                    "shrink-0 rounded-full border border-border/60 px-2.5 py-1 text-xs text-muted-foreground transition-colors duration-(--duration-fast) ease-(--motion-ease-out) hover:text-foreground",
+                    style.eyes.color === null &&
+                      "border-primary/50 bg-accent text-accent-foreground shadow-sm shadow-primary/10",
+                  )}
+                >
+                  Match ink
+                </button>
+              }
+            />
+          </div>
+        </section>
+
+        <section className="flex flex-col gap-3">
+          <Eyebrow>Logo</Eyebrow>
+          {style.logo ? (
+            <div className="flex items-center gap-3 rounded-xl border border-border px-3 py-2.5">
+              <span
+                aria-hidden
+                className="size-9 shrink-0 rounded-md border border-border/60 bg-background bg-contain bg-center bg-no-repeat p-1"
+                style={{ backgroundImage: `url(${style.logo.assetId})` }}
+              />
+              <div className="flex min-w-0 flex-1 flex-col gap-0.5">
+                <span className="truncate text-xs text-foreground">Logo attached</span>
+                <span className="text-xs text-muted-foreground">Knockout keeps it scannable</span>
+              </div>
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon-sm"
+                aria-label="Remove logo"
+                onClick={handleRemoveLogo}
+              >
+                <X className="size-3.5" />
+              </Button>
+            </div>
           ) : (
-            <div className="flex flex-col gap-3">
-              <ColorField
-                label="Start"
-                value={style.fill.stops[0]?.color ?? "#111111"}
-                onChange={onGradientStartChange}
-                presets={INK_PRESETS}
+            <label className="flex cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-border px-4 py-6 text-center text-xs text-muted-foreground transition-colors duration-(--duration-fast) ease-(--motion-ease-out) hover:border-primary/50 hover:text-foreground">
+              <Upload className="size-4" aria-hidden />
+              <span>Drop a PNG, JPEG, or WebP, or click to browse</span>
+              <input
+                type="file"
+                accept="image/png,image/jpeg,image/webp"
+                onChange={handleLogoInputChange}
+                className="sr-only"
+                aria-label="Upload logo"
               />
-              <ColorField
-                label="End"
-                value={style.fill.stops[style.fill.stops.length - 1]?.color ?? "#111111"}
-                onChange={onGradientEndChange}
-                presets={INK_PRESETS}
+            </label>
+          )}
+          {logoError && (
+            <p role="alert" className="text-xs text-destructive">
+              {logoError}
+            </p>
+          )}
+          {style.logo && (
+            <div className="flex flex-col gap-1.5">
+              <div className="flex items-center justify-between">
+                <Label htmlFor={logoSizeId}>Size</Label>
+                <span className="font-mono text-xs tabular-nums text-muted-foreground">
+                  {Math.round(style.logo.sizeRatio * 100)}%
+                </span>
+              </div>
+              <Slider
+                id={logoSizeId}
+                min={LOGO_SIZE_RATIO_MIN}
+                max={LOGO_SIZE_RATIO_MAX}
+                step={0.01}
+                value={[style.logo.sizeRatio]}
+                onValueChange={([v]) => v !== undefined && onLogoSizeChange(v)}
               />
-              {style.fill.type === "linearGradient" && (
-                <div className="flex flex-col gap-1.5">
-                  <div className="flex items-center justify-between">
-                    <Label htmlFor={gradientAngleId}>Angle</Label>
-                    <span className="font-mono text-xs tabular-nums text-muted-foreground">
-                      {Math.round(radiansToDegrees(style.fill.rotation))}°
-                    </span>
-                  </div>
-                  <Slider
-                    id={gradientAngleId}
-                    min={0}
-                    max={360}
-                    step={1}
-                    value={[Math.round(radiansToDegrees(style.fill.rotation))]}
-                    onValueChange={([v]) => v !== undefined && onGradientRotationChange(v)}
-                  />
-                </div>
-              )}
             </div>
           )}
-        </div>
-        <ColorField
-          label="Paper"
-          value={style.background.color}
-          onChange={onPaperChange}
-          presets={PAPER_PRESETS}
-          trailing={
-            <TransparentPaperChip
-              active={style.background.transparent}
-              onClick={() => onPaperTransparentChange(!style.background.transparent)}
-            />
-          }
-        />
-      </section>
+        </section>
+      </div>
 
-      <section className="flex flex-col gap-4">
-        <Eyebrow>Shape</Eyebrow>
-        <div className="flex flex-col gap-2">
-          <Label>Module</Label>
-          <ToggleGroup
-            type="single"
-            variant="outline"
-            value={style.dots.style}
-            onValueChange={(v) => v && onDotStyleChange(v as QrStyle["dots"]["style"])}
-          >
-            {DOT_STYLES.map((s) => (
-              <ToggleGroupItem key={s} value={s} aria-label={`${s} modules`} className={glowTileOn}>
-                <DotSwatch style={s} />
-              </ToggleGroupItem>
-            ))}
-          </ToggleGroup>
-        </div>
-        <div className="flex flex-col gap-2">
-          <Label>Eye</Label>
-          <ToggleGroup
-            type="single"
-            variant="outline"
-            value={style.eyes.frame}
-            onValueChange={(v) => v && onEyeFrameChange(v as QrStyle["eyes"]["frame"])}
-          >
-            {EYE_FRAMES.map((f) => (
-              <ToggleGroupItem key={f} value={f} aria-label={`${f} eyes`} className={glowTileOn}>
-                <EyeSwatch frame={f} />
-              </ToggleGroupItem>
-            ))}
-          </ToggleGroup>
-        </div>
-        <div className="flex flex-col gap-2">
-          <Label>Eye color</Label>
-          <ColorChipRow
-            label="Eye"
-            value={style.eyes.color}
-            onChange={onEyeColorChange}
-            presets={INK_PRESETS}
-            leading={
-              <button
-                type="button"
-                aria-pressed={style.eyes.color === null}
-                onClick={() => onEyeColorChange(null)}
-                className={cn(
-                  "shrink-0 rounded-full border border-border/60 px-2.5 py-1 text-xs text-muted-foreground transition-colors duration-(--duration-fast) ease-(--motion-ease-out) hover:text-foreground",
-                  style.eyes.color === null &&
-                    "border-primary/50 bg-accent text-accent-foreground shadow-sm shadow-primary/10",
-                )}
-              >
-                Match ink
-              </button>
-            }
+      {/* "Content & output" cluster (P9.5-T7) — destination, size/format,
+          export. Export stays the rail's last section (bottom placement
+          already satisfied pre-T7 — see this unit's report; not re-done
+          here, just preserved by keeping this cluster second). */}
+      <div className="flex flex-col gap-8 border-t border-border/60 pt-8">
+        <ClusterHeading>Content & output</ClusterHeading>
+
+        <section className="flex flex-col gap-3">
+          <Eyebrow>Payload</Eyebrow>
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor={payloadId}>Destination</Label>
+            <Input
+              id={payloadId}
+              value={payload}
+              onChange={(e) => onPayloadChange(e.target.value)}
+              placeholder="https://example.com"
+              spellCheck={false}
+              className="font-mono text-xs"
+            />
+          </div>
+          <CreateCodeControl payload={payload} style={style} plan={plan} onCreated={onCodeCreated} />
+          <BulkCreateDialog
+            plan={plan}
+            style={style}
+            codeCount={codes.length}
+            onCodesRefreshed={onCodesRefreshed}
           />
-        </div>
-      </section>
+        </section>
 
-      <section className="flex flex-col gap-3">
-        <Eyebrow>Logo</Eyebrow>
-        {style.logo ? (
-          <div className="flex items-center gap-3 rounded-xl border border-border px-3 py-2.5">
-            <span
-              aria-hidden
-              className="size-9 shrink-0 rounded-md border border-border/60 bg-background bg-contain bg-center bg-no-repeat p-1"
-              style={{ backgroundImage: `url(${style.logo.assetId})` }}
-            />
-            <div className="flex min-w-0 flex-1 flex-col gap-0.5">
-              <span className="truncate text-xs text-foreground">Logo attached</span>
-              <span className="text-xs text-muted-foreground">Knockout keeps it scannable</span>
-            </div>
+        <section className="flex flex-col gap-3">
+          <Eyebrow>Codes</Eyebrow>
+          <CodesList
+            codes={codes}
+            plan={plan}
+            onCodeLoad={onCodeLoad}
+            onRetargeted={onCodeRetargeted}
+            onPauseToggled={onCodePauseToggled}
+            onAccessUpdated={onCodeAccessUpdated}
+          />
+        </section>
+
+        <section className="flex flex-col gap-3 pb-2">
+          <Eyebrow>Export</Eyebrow>
+          <div className="flex flex-col gap-1.5">
+            <Label>Error correction</Label>
+            <ToggleGroup
+              type="single"
+              variant="outline"
+              value={style.ecc}
+              onValueChange={(v) => v && onEccChange(v as QrStyle["ecc"])}
+            >
+              {ECC_LEVELS.map((level) => (
+                <ToggleGroupItem
+                  key={level}
+                  value={level}
+                  aria-label={`Error correction ${level}`}
+                  className={cn(glowTileOn, "flex-1 font-mono text-xs")}
+                >
+                  {level}
+                </ToggleGroupItem>
+              ))}
+            </ToggleGroup>
+            <p className="text-xs text-muted-foreground">
+              Higher levels survive more print damage but pack modules denser.
+              {effectiveEcc !== style.ecc && ` Auto-raised to ${effectiveEcc}: a logo is set.`}
+            </p>
+          </div>
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor={sizeId}>Size</Label>
+            <Select value={exportSize} onValueChange={setExportSize}>
+              <SelectTrigger id={sizeId} className="w-full">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {EXPORT_SIZES.map((size) => (
+                  <SelectItem key={size} value={String(size)}>
+                    {size} × {size}px
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="flex gap-2">
             <Button
               type="button"
-              variant="ghost"
-              size="icon-sm"
-              aria-label="Remove logo"
-              onClick={handleRemoveLogo}
+              variant="outline"
+              className="flex-1"
+              disabled={exporting !== null}
+              onClick={handleExportSvgClick}
             >
-              <X className="size-3.5" />
+              {exporting === "svg" && <Loader2 className="size-3.5 animate-spin" aria-hidden />}
+              {exporting === "svg" ? "Exporting" : "Download SVG"}
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              className="flex-1"
+              disabled={exporting !== null}
+              onClick={handleExportPngClick}
+            >
+              {exporting === "png" && <Loader2 className="size-3.5 animate-spin" aria-hidden />}
+              {exporting === "png" ? "Rasterizing" : "Download PNG"}
             </Button>
           </div>
-        ) : (
-          <label className="flex cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-border px-4 py-6 text-center text-xs text-muted-foreground transition-colors duration-(--duration-fast) ease-(--motion-ease-out) hover:border-primary/50 hover:text-foreground">
-            <Upload className="size-4" aria-hidden />
-            <span>Drop a PNG, JPEG, or WebP — or click to browse</span>
-            <input
-              type="file"
-              accept="image/png,image/jpeg,image/webp"
-              onChange={handleLogoInputChange}
-              className="sr-only"
-              aria-label="Upload logo"
-            />
-          </label>
-        )}
-        {logoError && (
-          <p role="alert" className="text-xs text-destructive">
-            {logoError}
-          </p>
-        )}
-        {style.logo && (
-          <div className="flex flex-col gap-1.5">
-            <div className="flex items-center justify-between">
-              <Label htmlFor={logoSizeId}>Size</Label>
-              <span className="font-mono text-xs tabular-nums text-muted-foreground">
-                {Math.round(style.logo.sizeRatio * 100)}%
-              </span>
-            </div>
-            <Slider
-              id={logoSizeId}
-              min={LOGO_SIZE_RATIO_MIN}
-              max={LOGO_SIZE_RATIO_MAX}
-              step={0.01}
-              value={[style.logo.sizeRatio]}
-              onValueChange={([v]) => v !== undefined && onLogoSizeChange(v)}
-            />
-          </div>
-        )}
-      </section>
-
-      <section className="flex flex-col gap-3 pb-2">
-        <Eyebrow>Export</Eyebrow>
-        <div className="flex flex-col gap-1.5">
-          <Label>Error correction</Label>
-          <ToggleGroup
-            type="single"
-            variant="outline"
-            value={style.ecc}
-            onValueChange={(v) => v && onEccChange(v as QrStyle["ecc"])}
-          >
-            {ECC_LEVELS.map((level) => (
-              <ToggleGroupItem
-                key={level}
-                value={level}
-                aria-label={`Error correction ${level}`}
-                className={cn(glowTileOn, "flex-1 font-mono text-xs")}
-              >
-                {level}
-              </ToggleGroupItem>
-            ))}
-          </ToggleGroup>
-          <p className="text-xs text-muted-foreground">
-            Higher levels survive more print damage but pack modules denser.
-            {effectiveEcc !== style.ecc && ` Auto-raised to ${effectiveEcc} — a logo is set.`}
-          </p>
-        </div>
-        <div className="flex flex-col gap-1.5">
-          <Label htmlFor={sizeId}>Size</Label>
-          <Select value={exportSize} onValueChange={setExportSize}>
-            <SelectTrigger id={sizeId} className="w-full">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {EXPORT_SIZES.map((size) => (
-                <SelectItem key={size} value={String(size)}>
-                  {size} × {size}px
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-        <div className="flex gap-2">
-          <Button
-            type="button"
-            variant="outline"
-            className="flex-1"
-            disabled={exporting !== null}
-            onClick={handleExportSvgClick}
-          >
-            {exporting === "svg" && <Loader2 className="size-3.5 animate-spin" aria-hidden />}
-            {exporting === "svg" ? "Exporting" : "Download SVG"}
-          </Button>
-          <Button
-            type="button"
-            variant="outline"
-            className="flex-1"
-            disabled={exporting !== null}
-            onClick={handleExportPngClick}
-          >
-            {exporting === "png" && <Loader2 className="size-3.5 animate-spin" aria-hidden />}
-            {exporting === "png" ? "Rasterizing" : "Download PNG"}
-          </Button>
-        </div>
-        {exportError && (
-          <p role="alert" className="text-xs text-destructive">
-            {exportError}
-          </p>
-        )}
-      </section>
+          {exportError && (
+            <p role="alert" className="text-xs text-destructive">
+              {exportError}
+            </p>
+          )}
+        </section>
+      </div>
     </div>
   );
 }

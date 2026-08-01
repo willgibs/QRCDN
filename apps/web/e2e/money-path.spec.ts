@@ -5,6 +5,7 @@ import type { BrowserContext, Page, ServerActionFailure } from "./fixtures";
 import { mintSignInToken } from "./auth-token";
 import { E2E_BASE_URL } from "./env";
 import { manifestPath, type E2eFixtureManifest } from "./manifest";
+import { createAdminClient } from "../lib/supabase/admin";
 
 // Relative imports only in e2e/ (no "@/" — see env.ts's header note).
 
@@ -276,6 +277,23 @@ test.describe.serial("money path", () => {
     await expect(page.getByText(BULK_NAME_2, { exact: true })).toBeVisible();
   });
 
+  test("/codes shows the Create button, and the row pause toggle flips the status text and back", async () => {
+    // P9.5-T7. Header button: an honest plain link to /studio (the real
+    // create entry point — there is no separate create route).
+    await expect(page.getByRole("link", { name: "Create code" })).toHaveAttribute("href", "/studio");
+
+    // Scope to CODE_NAME's own row so this can't accidentally match one of
+    // the two bulk-created rows also on this page.
+    const row = page.getByRole("row").filter({ hasText: CODE_NAME });
+    await expect(row.getByText("Active", { exact: true })).toBeVisible();
+
+    await row.getByRole("button", { name: "Pause" }).click();
+    await expect(row.getByText("Paused", { exact: true })).toBeVisible();
+
+    await row.getByRole("button", { name: "Resume" }).click();
+    await expect(row.getByText("Active", { exact: true })).toBeVisible();
+  });
+
   test("/api-keys: mints a key and the reveal-once card shows a qrcdn_live_ key", async () => {
     await page.goto(`${E2E_BASE_URL}/api-keys`);
     await page.getByLabel("New API key name").fill(API_KEY_NAME);
@@ -302,5 +320,49 @@ test.describe.serial("money path", () => {
     // exactly the P7.5 class every other gate (tsc, next build, vitest, CI)
     // stayed green through.
     expect(actionFailures).toEqual([]);
+  });
+
+  // P9.5-T7. This suite's one fixture user is minted pro (global-setup.ts's
+  // setProfileToPro) — there is no separate free-tier fixture, so proving
+  // the /api-keys free-plan showcase renders means flipping THIS user's
+  // plan partway through the run.
+  //
+  // INVARIANT, load-bearing, read before moving this test: it flips
+  // `profiles.plan` pro -> free directly via the admin client and never
+  // flips it back. That is safe ONLY because of two properties of this
+  // suite, and breaks silently if either stops holding:
+  //   1. playwright.config.ts pins `workers: 1` + `fullyParallel: false` —
+  //      this is the ONLY session that will ever touch this fixture user
+  //      for the life of this run, so nothing else can observe or race the
+  //      mutation.
+  //   2. This is the LAST test in this file. Nothing below this line reads
+  //      or depends on `plan === "pro"`, and global-teardown.ts deletes
+  //      this fixture user outright once the run ends, so there is nothing
+  //      to restore for a future run either.
+  // If you're adding a test below this one: stop. Either your new test
+  // must not depend on plan === "pro", or this test needs to move below
+  // yours, or — if it genuinely must run mid-flow for some new reason — it
+  // needs a try/finally that restores plan: "pro" before anything else
+  // runs. An earlier draft of this test restored the plan inline with no
+  // guard; a failed assertion between the flip and the restore would have
+  // left the fixture on "free" for every Pro-dependent step still to come,
+  // turning one honest failure into a cascade of unrelated ones. Moving
+  // this step to last deletes that failure mode instead of guarding it.
+  test("/api-keys shows the free-tier showcase once the fixture flips to the free plan", async () => {
+    const admin = createAdminClient();
+    const { error } = await admin.from("profiles").update({ plan: "free" }).eq("id", manifest.userId);
+    if (error) {
+      throw new Error(`[e2e] failed to flip the fixture user to the free plan: ${error.message}`);
+    }
+
+    await page.goto(`${E2E_BASE_URL}/api-keys`);
+    await expect(page.getByRole("heading", { name: "API keys" })).toBeVisible();
+
+    // The curl sample (lib/api-reference.ts's create-code request, rendered
+    // through the shiki CodeBlock) and the honest CTA — no create-key form,
+    // since this account cannot mint one on the free plan.
+    await expect(page.getByText(/curl -X POST/)).toBeVisible();
+    await expect(page.getByRole("link", { name: "See pricing" })).toHaveAttribute("href", "/pricing");
+    await expect(page.getByLabel("New API key name")).toBeHidden();
   });
 });

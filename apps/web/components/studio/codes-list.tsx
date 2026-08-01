@@ -26,9 +26,9 @@ import { CodeAccessDialog } from "@/components/studio/code-access-dialog";
 
 const ROW_NOTICE_TIMEOUT_MS = 6000;
 
-const GENERIC_ROW_ERROR = "Couldn't complete that — try again.";
+const GENERIC_ROW_ERROR = "Couldn't complete that. Try again.";
 // P8-U4: retargetCode/setCodePaused are now rate-limited (STUDIO_MUTATE_LIMIT).
-const RATE_LIMITED_ROW_ERROR = "Too many changes just now — try again in a few minutes.";
+const RATE_LIMITED_ROW_ERROR = "Too many changes just now. Try again in a few minutes.";
 // P8-U5: retargetCode now screens the new destination through Safe Browsing
 // (lib/safe-browsing.ts, via retargetCodeCore) — this code can only ever
 // come from the retarget action, never from pause/resume, but living in the
@@ -173,7 +173,7 @@ export function CodesList({
     try {
       const result = await retargetCode(id, retargetDraft);
       if (!result.ok) {
-        showNotice(id, "error", rowErrorMessage(result.error, "Couldn't retarget that code — try again."));
+        showNotice(id, "error", rowErrorMessage(result.error, "Couldn't retarget that code. Try again."));
         return;
       }
       onRetargeted(id, result.data.destinationUrl);
@@ -182,7 +182,7 @@ export function CodesList({
       }
       cancelRetarget();
     } catch {
-      showNotice(id, "error", "Couldn't retarget that code — try again.");
+      showNotice(id, "error", "Couldn't retarget that code. Try again.");
     } finally {
       setBusyId(null);
     }
@@ -210,7 +210,7 @@ export function CodesList({
   }
 
   if (codes.length === 0) {
-    return <p className="text-xs text-muted-foreground">No dynamic codes yet — create one above.</p>;
+    return <p className="text-xs text-muted-foreground">No dynamic codes yet. Create one above.</p>;
   }
 
   return (

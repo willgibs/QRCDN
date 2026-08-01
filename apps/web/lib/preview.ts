@@ -46,7 +46,7 @@ export interface PreviewRenderResult {
 function friendlyRenderError(err: unknown): string {
   const message = err instanceof Error ? err.message : "";
   if (/too big/i.test(message)) {
-    return "This payload is too long to encode as a QR code — shorten it to see a live preview.";
+    return "This payload is too long to encode as a QR code. Shorten it to see a live preview.";
   }
   return "Couldn't generate a preview for this payload.";
 }

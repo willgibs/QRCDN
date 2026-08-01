@@ -241,7 +241,7 @@ export function KitBar({
         if (result.error === "kit_limit") {
           showLimitError();
         } else {
-          showActionError("Couldn't create that kit — try again.");
+          showActionError("Couldn't create that kit. Try again.");
         }
         return;
       }
@@ -251,7 +251,7 @@ export function KitBar({
       onCreated(result.data);
       cancelDraft();
     } catch {
-      showActionError("Couldn't create that kit — try again.");
+      showActionError("Couldn't create that kit. Try again.");
     } finally {
       setBusyId(null);
     }
@@ -264,13 +264,13 @@ export function KitBar({
     try {
       const result = await updateBrandKit(id, { name });
       if (!result.ok) {
-        showActionError("Couldn't rename that kit — try again.");
+        showActionError("Couldn't rename that kit. Try again.");
         return;
       }
       onSaved(result.data);
       cancelDraft();
     } catch {
-      showActionError("Couldn't rename that kit — try again.");
+      showActionError("Couldn't rename that kit. Try again.");
     } finally {
       setBusyId(null);
     }
@@ -285,13 +285,13 @@ export function KitBar({
       }
       const result = await updateBrandKit(id, { style: currentStyle });
       if (!result.ok) {
-        showActionError("Couldn't save that kit — try again.");
+        showActionError("Couldn't save that kit. Try again.");
         return;
       }
       onSaved(result.data);
       flashSaved(id);
     } catch {
-      showActionError("Couldn't save that kit — try again.");
+      showActionError("Couldn't save that kit. Try again.");
     } finally {
       setBusyId(null);
     }
@@ -310,10 +310,10 @@ export function KitBar({
       if (result.ok) {
         onDeleted(id);
       } else {
-        showActionError("Couldn't delete that kit — try again.");
+        showActionError("Couldn't delete that kit. Try again.");
       }
     } catch {
-      showActionError("Couldn't delete that kit — try again.");
+      showActionError("Couldn't delete that kit. Try again.");
     } finally {
       setBusyId(null);
     }
@@ -326,10 +326,10 @@ export function KitBar({
       if (result.ok) {
         onDefaultChanged(id);
       } else {
-        showActionError("Couldn't set that kit as default — try again.");
+        showActionError("Couldn't set that kit as default. Try again.");
       }
     } catch {
-      showActionError("Couldn't set that kit as default — try again.");
+      showActionError("Couldn't set that kit as default. Try again.");
     } finally {
       setBusyId(null);
     }
@@ -469,7 +469,7 @@ export function KitBar({
           role="alert"
           className="absolute top-full left-0 z-10 mt-2 w-56 rounded-lg border border-border/60 bg-popover px-3 py-2 text-xs text-muted-foreground shadow-md"
         >
-          Free includes 1 brand kit — Pro removes the wait.
+          Free includes 1 brand kit. Pro removes the wait.
         </div>
       )}
       {actionError && (

@@ -23,7 +23,7 @@ import { PLAN_LIMITS, type Plan } from "@/lib/entitlements";
 import { setCodeAccess } from "@/app/(app)/studio/code-actions";
 import type { DynamicCodeSummary } from "@/lib/codes-core";
 
-const GENERIC_ERROR = "Couldn't save that — try again.";
+const GENERIC_ERROR = "Couldn't save that. Try again.";
 
 // Map the server's error codes to copy the user can act on. Without this every
 // failure read "try again", which is actively misleading for a validation
@@ -35,9 +35,9 @@ const ERROR_COPY: Record<string, string> = {
   invalid_expiry: "That expiry date isn't valid.",
   invalid_password: "Passwords must be 4–128 characters.",
   plan_required: "Access controls are a Pro feature.",
-  not_found: "That code no longer exists — refresh and try again.",
+  not_found: "That code no longer exists. Refresh and try again.",
   // P8-U4: setCodeAccess is now rate-limited (STUDIO_MUTATE_LIMIT).
-  rate_limited: "Too many changes just now — try again in a few minutes.",
+  rate_limited: "Too many changes just now. Try again in a few minutes.",
 };
 
 function errorCopy(code: string): string {

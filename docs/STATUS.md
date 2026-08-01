@@ -1,6 +1,6 @@
 # Status
 
-_Last updated: 2026-08-01 (P9.5-T-R landed: /blog (4 posts) + /help (10 articles) + nav/footer evolution — typed-TSX posts, not MDX, after a real Turbopack build proved MDX compiles but the codebase's own conventions fit better; two real fact-check findings folded in: privacy.tsx's deletion copy corrected, help article 8 states plainly that downgrade has no live path yet). Update this file at every phase boundary or significant commit._
+_Last updated: 2026-08-01 (P9.5-T7 landed: four authenticated-app quick wins — /api-keys free-state showcase, /codes create button + per-row pause, studio rail regrouped into Design/Content & output clusters, zero-kit empty state — plus three riders: pricing label truth fix, P10 backlog note, and a 47-violation em-dash sweep with a standing regression test. Two spec claims found untrue and corrected rather than followed blindly: the em-dash rider's app/u/[slug] claim was already fixed at T3c, and the Proof section's "fixture user is free-tier" assumption was false, resolved by moving the free-plan e2e check to the deliberate last step of the money-path suite). Update this file at every phase boundary or significant commit._
 
 ## Current phase
 
@@ -746,6 +746,166 @@ call); bulk-create's real input format documented instead of the deck's
 reality rather than the aspirational policy alone; `inert` added to fix a
 real, found-live accessibility gap the nav evolution introduced.
 
+**P9.5-T7 (this commit): four product quick wins inside the authenticated
+app, plus three riders** — the deep studio/codes redesign stays deferred,
+as scoped. Spec: a CEO-authored build spec (scratchpad), Rev 2 with its
+VERIFIED claims independently checked against source before the unit
+started. Two of those claims turned out wrong anyway, both caught by
+re-verifying rather than trusting the label — see "Spec corrections" below.
+
+- **`/api-keys` free-state showcase.** The free-plan branch of `/api-keys`
+  used to be a single "upgrade to Pro" card with no real content. Now:
+  `components/api-keys/api-keys-free-showcase.tsx`, a new async Server
+  Component rendering the real `create-code` curl sample
+  (`lib/api-reference.ts`, through the shared shiki `CodeBlock`), one
+  sentence on what a key unlocks, a "What Pro includes" list generated from
+  `PLAN_LIMITS.pro` (imports only, never hand-typed), and an honest "See
+  pricing" CTA with the same "Paid checkout opens at launch" line
+  `pricing-teaser.tsx`/`pricing-plans.tsx`/`pricing-faq.tsx` already use
+  verbatim elsewhere — no fake upgrade button. **Approach, not the spec's
+  first-choice slot pattern:** the spec's primary suggestion was rendering
+  `CodeBlock` in `page.tsx` and passing it into `ApiKeysPanel` as a
+  children/prop slot, with "split into its own server component" offered as
+  the fallback if the panel's shape made the slot awkward. It did: the
+  panel's Pro-only hooks/state (create form, revoke, reveal-once card) have
+  no use for a free-state prop, so `app/(app)/api-keys/page.tsx` now
+  branches on `plan === "pro"` directly and renders either
+  `ApiKeysPanel` (Pro, untouched apart from dropping its now-always-true
+  `plan` prop and the `ProUpsell` branch it used to hide behind) or
+  `ApiKeysFreeShowcase` (free, zero client JS for that branch — a real
+  bundle-size win the slot approach wouldn't have given free-plan visitors,
+  since today's `ApiKeysPanel` mounts its full hook set regardless of which
+  branch it returns).
+- **`/codes` entry + pause.** Header gains a "Create code" button
+  (`app/(app)/codes/page.tsx`, the pre-existing empty right-hand flex slot)
+  linking honestly to `/studio` — the real create entry point; there is no
+  separate create route to deep-link to; `CreateCodeControl`
+  (`components/studio/create-code.tsx`) lives inside the Studio itself,
+  wired to the live payload/style being edited there. Per-row Pause/Resume:
+  a new `toggleCodePausedAction` (`app/(app)/codes/actions.ts`) wraps the
+  pre-existing `setCodePaused` (`app/(app)/studio/code-actions.ts:176`,
+  itself wrapping `setCodePausedCore` at `lib/codes-core.ts:615`) unchanged
+  — same `getUser()` re-verification (not `getClaims()`) the
+  "changes what a printed code does" family already uses for
+  retarget/pause, same `STUDIO_MUTATE_LIMIT` gate, no new guard logic
+  anywhere. `CodesTable` (`components/codes/codes-table.tsx`) stays a plain
+  server-rendered table with no `"use client"` of its own; the new control
+  is `PauseToggleButton` (`components/codes/pause-toggle-button.tsx`), a
+  small client leaf mounted per row — the same "island inside a
+  server-rendered tree" shape `copy-button.tsx` already establishes inside
+  `CodeBlock`. Row click-through: the table never had a row-wide anchor
+  (only the pre-existing inline "View analytics" text link), so there was
+  no actual nested-interactive-element hazard to design around, contrary to
+  what the spec's phrasing implied — the new button and the existing link
+  are plain siblings in the same cell.
+  **Two real, non-obvious Next 16 findings surfaced building this, both
+  confirmed live via the e2e suite, not assumed from docs (full detail in
+  `app/(app)/codes/actions.ts`'s own doc comment):** (1) a plain
+  `<form action={fn.bind(...)}>` with no `useActionState` invokes a Server
+  Action correctly (the mutation lands, `refresh()`/`revalidatePath()` both
+  run server-side) but the browser never applies the fresh RSC payload the
+  docs say the same response carries — the row stayed stuck on stale data
+  until an unrelated navigation. Fixing this needed `useActionState` in a
+  small client leaf, not a config change. (2) `useActionState` alone then
+  worked for exactly one submission per mounted instance: pausing a row
+  updated it live, but resuming the same row right after did not (the
+  mutation still landed, proven server-side both times) — fixed by mounting
+  `PauseToggleButton` with `key={code.status}` so a status change forces a
+  real remount instead of reusing the instance. Found only because the e2e
+  spec tests pause-then-resume back to back on the same row; a one-off
+  manual click-through checking "does pause work" would very plausibly have
+  shipped this half-working.
+- **Studio rail grouping.** `components/studio/controls-rail.tsx`'s six
+  existing sections (Payload, Codes, Colors, Shape, Logo, Export — 483
+  lines pre-unit, confirmed) are now two labelled clusters: "Design"
+  (Colors, Shape, Logo) and "Content & output" (Payload, Codes, Export),
+  via a new `ClusterHeading` label one tier above each section's own
+  `Eyebrow`. Controls themselves byte-identical, zero added/removed — pure
+  regrouping. Cluster order (Design first) keeps Export as the literal last
+  section on the page, preserving its existing bottom placement.
+  **Export emphasis/bottom placement: verified already satisfied, not
+  re-done** — it was already the rail's last section pre-unit; no second
+  emphasis treatment added. Zero-kit empty state: `components/studio/
+  top-bar.tsx` now shows one honest line ("No brand kit yet. Create one to
+  save your colors and shapes for reuse across codes.") beside the existing
+  `KitBar`, only when `kits.length === 0` — read `StudioShell`/`KitBar`
+  first per the spec's own instruction: `KitBar` already renders a "New
+  kit" button for the empty case, so this adds context for that existing
+  button rather than a second, competing create affordance.
+- **Riders.** (a) `lib/pricing.ts:120`'s matrix row label corrected
+  "Expiry, password & scheduling" → "Expiry & password" (no scheduling
+  feature exists — T-F2's own finding); the local label override in
+  `app/(marketing)/features/access-controls/page.tsx` (which carried a
+  documented DEVIATION note explaining why it existed) is retired —
+  verified live (production build, both `/pricing` and
+  `/features/access-controls`) that both pages render the identical
+  corrected words; the DEVIATION comment updated to record the history
+  rather than deleted outright. A new "## P10 backlog" section in this
+  file records the API-slug-case-sensitivity-vs-Worker finding from T5 as
+  a real tracked item (it was only ever documented in `lib/api-reference.ts`'s
+  own notes, never turned into a follow-up) — behavior unchanged, note
+  only. (b) Em-dash sweep: 47 real violations fixed across 15 files
+  (`app/auth/confirm/page.tsx`, `app/p/[slug]/unlock-form.tsx`,
+  `app/(app)/codes/page.tsx`, `components/api-keys/api-keys-panel.tsx`,
+  `components/codes/code-analytics-panel.tsx`, `components/studio/{bulk-
+  create-dialog,code-access-dialog,codes-list,controls-rail,create-code,
+  kit-bar,studio-shell}.tsx`, `lib/preview.ts`, `lib/pricing.ts`) — nearly
+  all the documented `"Couldn't <verb> — try again."` →
+  `"Couldn't <verb>. Try again."` shape, a few structural ones restructured
+  with a colon or period per the spec's own guidance. One found violation
+  deliberately left alone: `lib/guardrails-excerpt.ts`'s thrown
+  build-time-invariant Error message, judged not customer-facing (never
+  reachable by a real visitor — `next build` fails first if its anchor
+  markers ever break) and recorded as an explicit, reasoned exemption
+  rather than silently skipped. New standing regression guard:
+  `lib/no-em-dash.test.ts`, a source-sweep vitest spec (comment-stripped,
+  line-number-preserving) over `app/`/`components`/`lib` — its own header
+  comment states plainly what it covers (em-dash outside comments in those
+  three trees) and what it misses (not a real parser; a handful of named
+  edge cases; `e2e`/`scripts`/other packages/doc prose out of scope by
+  design), plus a canary test asserting the walker actually visits a
+  non-trivial file count so the main assertion can't silently pass by
+  finding nothing to check.
+- **Spec corrections, both caught by direct verification, not trusted from
+  the label:** (1) rider 4b's VERIFIED claim that `app/u/[slug]/page.tsx`
+  still shipped an em dash was false — that copy, and
+  `components/marketing/state-cards.tsx`'s own comment documenting it, were
+  already fixed at P9.5-T3c (`d1cee95`); both files were re-verified
+  against source and left untouched. (2) the Proof section's assumption
+  that the e2e fixture user is free-tier was also false —
+  `e2e/global-setup.ts` mints exactly one fixture user and calls
+  `setProfileToPro` unconditionally; there is no free-tier fixture. Fixed
+  by adding one more step to `money-path.spec.ts`'s existing serial
+  block: flip `profiles.plan` to `"free"` via the admin client, assert the
+  showcase, done — placed as the deliberate LAST test in the file (an
+  orchestrator-caught defect in an earlier draft restored the plan inline
+  with no guard, which would have cascaded one honest failure into several
+  Pro-dependent ones downstream; moving the step to last deletes that
+  failure mode instead of guarding it) so no restore is needed at all
+  (`playwright.config.ts` pins `workers: 1` + `fullyParallel: false`, and
+  teardown deletes the fixture user regardless). The step's own comment
+  states this invariant explicitly for whoever adds a test after it next.
+
+Verified: `pnpm lint && pnpm typecheck && pnpm test` green across every
+workspace package (782 vitest: 23 shared + 25 workers/status + 55
+qr-engine + 138 workers/redirect + 541 web, +2 from
+`lib/no-em-dash.test.ts`). `pnpm build` keeps every route's render mode
+unchanged — marketing stays `○` (Static), `/api-keys`/`/codes`/`/studio`
+stay `ƒ` (Dynamic). Full local e2e (`pnpm test:e2e`, `next start`, real
+production Supabase fixture): **81/81 green** (65 marketing + 16
+money-path/auth-scanner-safety, +2 over the T-R baseline: the `/codes`
+Create-button-and-pause-toggle test and the `/api-keys` free-showcase
+test), including both new assertions above.
+
+No deviations from the spec's four numbered items. Judgment calls, all
+recorded above: splitting the free `/api-keys` state into its own Server
+Component rather than the spec's first-choice slot pattern; the
+`useActionState` + status-keyed-remount architecture the pause control
+actually needed, one tier past what "a form-action server action" alone
+implied; Design-cluster-first ordering in the rail (preserves Export's
+bottom placement, not separately specified); the em-dash regression test's
+one explicit exemption (`lib/guardrails-excerpt.ts`).
+
 ## Phase ledger
 
 | Phase | Status | Ref |
@@ -764,6 +924,16 @@ real, found-live accessibility gap the nav evolution introduced.
 | P8.5 Stripe billing + entitlements | — deferred (board creating the account; verified zero coupling) | — |
 | P9 Marketing site (reference-site IA: big-idea landing + supporting pages) | ✅ shipped → board round 2 | `649f5ee`…U6 (this commit) |
 | P10 Launch hardening → **Checkpoint C** (pre-launch founder review) | — | — |
+
+## P10 backlog
+
+- **API slug lookups are case-sensitive while the redirect Worker matches
+  case-insensitively (D12).** Found at P9.5-T5 (`lib/api-reference.ts`'s
+  `slug` path-param notes document the current behavior honestly for API
+  callers) but never turned into a tracked follow-up until now. Align them
+  in a deliberate unit — this is a behavior decision (which side changes,
+  and what it does to already-integrated callers), not a one-line fix, so
+  it stays out of scope for P9.5-T7, which only adds this note.
 
 ## Open founder checkpoints
 

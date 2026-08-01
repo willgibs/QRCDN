@@ -171,7 +171,7 @@ function RecentActivity({ events, cityGeo }: { events: RecentEvent[]; cityGeo: b
   if (events.length === 0) {
     return (
       <p className="text-sm text-muted-foreground">
-        No scans yet — activity shows up here the moment someone scans this code.
+        No scans yet. Activity shows up here the moment someone scans this code.
       </p>
     );
   }

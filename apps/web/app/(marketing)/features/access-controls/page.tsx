@@ -45,21 +45,24 @@ import { PRICING_ROWS, type PricingRow } from "@/lib/pricing";
 // flag exists anywhere in the schema). Answer: yes, immediately, by design.
 // S2's lede and S6's third FAQ answer both reflect this.
 //
-// DEVIATION (flagged, not silent): the deck's S2 lede and hero lede both
-// use the phrase "schedule its start" / list "scheduling" as a shipped
-// control. No such feature exists — verified by grep across
+// DEVIATION (flagged at T-F2, resolved at T7): the deck's S2 lede and hero
+// lede both use the phrase "schedule its start" / list "scheduling" as a
+// shipped control. No such feature exists — verified by grep across
 // `supabase/migrations` (qr_codes has `expires_at` and `password_hash`
 // only, no `starts_at`/`scheduled_at` column), `code-access-dialog.tsx`
 // (exposes only "Expires" + "Password" inputs), and `lib/api-reference.ts`
 // (the public API's PATCH surface has no scheduling field either). Per the
 // task's own directive ("a claim you cannot prove does not ship"), both
 // ledes below drop the scheduling clause and describe only the real expiry
-// capability; `lib/pricing.ts`'s pre-existing "Expiry, password &
-// scheduling" row label carries the same imprecision but is a shared,
-// already-shipped `/pricing` surface out of this chunk's scope to edit —
-// S5's table below overrides that one row's LABEL text locally (its
-// free/pro VALUES are still read unchanged from `PRICING_ROWS`) rather
-// than perpetuating the claim on a new page.
+// capability. `lib/pricing.ts`'s row label carried the same imprecision
+// ("Expiry, password & scheduling") when this page first shipped, and
+// since that's a shared `/pricing` surface this chunk's own scope didn't
+// cover, S5's table below overrode that one row's LABEL text locally (its
+// free/pro VALUES were always read unchanged from `PRICING_ROWS`) rather
+// than perpetuate the claim on a new page. P9.5-T7 fixed the shared row at
+// its source instead (`lib/pricing.ts` now reads "Expiry & password"
+// directly) — the local override is gone; S5 reads `accessControlsRow.label`
+// the same way it already read every other row's label.
 //
 // Static route, no data fetching, no dynamic APIs — renders `○ (Static)`
 // in `next build` output. Zero client JS: StateCards has no "use client"
@@ -70,16 +73,16 @@ export const metadata: Metadata = {
     "Passwords, expiry, pause, and vanity slugs: the controls that sit on a QRCDN code's address, changeable any time without touching what's already printed.",
 };
 
-/** S5's honest plans-and-limits table. `vanitySlugs`/`bulk` read the exact
- *  `PRICING_ROWS` values /pricing itself renders. The `accessControls` row
- *  keeps its real free/pro VALUES from `PRICING_ROWS` but overrides the
- *  LABEL — see the file header's DEVIATION note for why ("scheduling" isn't
- *  a real, shipped capability). "Pause / resume" has no `PlanLimits` field
- *  behind it: `setCodePausedCore` (lib/codes-core.ts) has no plan gate at
- *  all, matching D14's "retargeting always allowed, never deactivated"
- *  framing, so it's a static Included/Included pair, the same "policy
- *  fact, not an entitlement number" precedent /features/dynamic-codes' own
- *  "Retargets" row set. */
+/** S5's honest plans-and-limits table — every row (including
+ *  `accessControls`) now reads its label straight from `PRICING_ROWS`, same
+ *  as its free/pro VALUES; P9.5-T7 fixed the shared "Expiry & password"
+ *  label at its source (`lib/pricing.ts`), retiring the local override this
+ *  comment used to document (see the file header's DEVIATION note for that
+ *  history). "Pause / resume" has no `PlanLimits` field behind it:
+ *  `setCodePausedCore` (lib/codes-core.ts) has no plan gate at all, matching
+ *  D14's "retargeting always allowed, never deactivated" framing, so it's a
+ *  static Included/Included pair, the same "policy fact, not an entitlement
+ *  number" precedent /features/dynamic-codes' own "Retargets" row set. */
 function pricingRow(key: PricingRow["key"]): PricingRow {
   const row = PRICING_ROWS.find((r) => r.key === key);
   if (!row) throw new Error(`pricing.ts: no PRICING_ROWS entry for "${key}"`);
@@ -91,7 +94,7 @@ const vanitySlugsRow = pricingRow("vanitySlugs");
 const bulkRow = pricingRow("bulk");
 
 const PLAN_ROWS: { label: string; free: string; pro: string }[] = [
-  { label: "Expiry & password", free: accessControlsRow.free, pro: accessControlsRow.pro },
+  { label: accessControlsRow.label, free: accessControlsRow.free, pro: accessControlsRow.pro },
   { label: vanitySlugsRow.label, free: vanitySlugsRow.free, pro: vanitySlugsRow.pro },
   { label: "Pause / resume", free: "Included", pro: "Included" },
   { label: bulkRow.label, free: bulkRow.free, pro: bulkRow.pro },

@@ -376,7 +376,7 @@ export function Playground() {
       <SectionHeading
         eyebrow="The studio"
         index="02"
-        title="Design it here. It's yours."
+        title="Try the studio right here."
         lede="No account, no watermark: the real engine and the same scannability instrument the studio uses."
         className="mb-10"
       />

@@ -55,7 +55,7 @@ export default async function UnclaimedSlugPage(props: PageProps<"/u/[slug]">) {
                 This code isn&apos;t live right now.
               </h1>
               <p className="text-sm text-muted-foreground">
-                The person who printed it may have paused it — or it hasn&apos;t
+                The person who printed it may have paused it, or it hasn&apos;t
                 been claimed yet.
               </p>
             </div>

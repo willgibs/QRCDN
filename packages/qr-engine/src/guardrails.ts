@@ -12,9 +12,14 @@ import type { EccLevel } from "./matrix";
  * v3 and v5 symbols): every failing config had effective linear ratio
  * ≥ ~0.418; every passing one ≤ ~0.407. The Q exemption boundary is tighter:
  * Q survives only up to ~0.32 effective (≈10% area including padding).
+ *
+ * WARN/ERROR exported (P9.5-T3c): the landing's guardrails threshold plot
+ * imports the real numbers instead of re-typing them, same reasoning as
+ * CONTRAST_ERROR_MIN/CONTRAST_WARN_MIN below. LOGO_RATIO_ECC_Q_OK stays
+ * unexported: nothing outside this module needs it.
  */
-const LOGO_EFFECTIVE_WARN = 0.395;
-const LOGO_EFFECTIVE_ERROR = 0.412;
+export const LOGO_EFFECTIVE_WARN = 0.395;
+export const LOGO_EFFECTIVE_ERROR = 0.412;
 const LOGO_RATIO_ECC_Q_OK = 0.316;
 
 /**

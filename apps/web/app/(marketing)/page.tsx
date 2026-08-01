@@ -4,8 +4,12 @@ import { HowItWorksSection } from "@/components/marketing/how-it-works-section";
 import { Playground } from "@/components/marketing/playground";
 import { BrandSystemSection } from "@/components/marketing/brand-system-section";
 import { DynamicCodesSection } from "@/components/marketing/dynamic-codes-section";
+import { GuardrailsSection } from "@/components/marketing/guardrails-section";
 import { AnalyticsSection } from "@/components/marketing/analytics-section";
 import { ApiSection } from "@/components/marketing/api-section";
+import { ComparisonSection } from "@/components/marketing/comparison-section";
+import { OpenSourceSection } from "@/components/marketing/open-source-section";
+import { ManifestoSection } from "@/components/marketing/manifesto-section";
 import { PricingTeaser } from "@/components/marketing/pricing-teaser";
 import { ClosingSection } from "@/components/marketing/closing-section";
 
@@ -34,15 +38,17 @@ export const metadata: Metadata = {
 // P9.5-T3a: every section below (including the two new ones,
 // HowItWorksSection/ClosingSection) is now built on the T1
 // Section/SectionHeading/SectionBody primitives, carrying the copy deck
-// v3 eyebrow ordinals the deck itself uses (01, 02, 03, 04, 06, 07, 11) —
-// 05 (guardrails) and 08-10 (comparison/open-source/manifesto) are new
-// sections that land at T3c, so the ordinal sequence intentionally skips
-// them for now rather than renumbering what already exists. Surface
-// alternation (tint -> floor -> default -> tint -> floor -> default ->
-// default -> default) follows the Section system's own rule: a divider
-// is only a hairline between two same-surface neighbors, "none" (implicit
-// via each section's own surface change, or explicit where the default
-// would otherwise draw a redundant seam) everywhere a surface changes.
+// v3 eyebrow ordinals the deck itself uses.
+//
+// P9.5-T3c: the ordinal sequence is now complete, 01-11 in order —
+// GuardrailsSection (05), ComparisonSection (08), OpenSourceSection (09),
+// and ManifestoSection (10) fill the gaps T3a/T3b intentionally left open.
+// Surface alternation: 01 tint, 02 floor, 03 default, 04 tint, 05 default
+// (the same neutral-pause role 03 already plays, between two colored
+// neighbors), 06 floor, 07 default, 08 tint, 09 floor, 10 tint (centered),
+// 11 default, closing default. Every section's own `divider` is set per
+// the Section system's rule: a hairline only between two same-surface
+// neighbors, "none" everywhere a surface change is already the seam.
 export default function HomePage() {
   return (
     <>
@@ -51,8 +57,12 @@ export default function HomePage() {
       <Playground />
       <BrandSystemSection />
       <DynamicCodesSection />
+      <GuardrailsSection />
       <AnalyticsSection />
       <ApiSection />
+      <ComparisonSection />
+      <OpenSourceSection />
+      <ManifestoSection />
       <PricingTeaser />
       <ClosingSection />
     </>

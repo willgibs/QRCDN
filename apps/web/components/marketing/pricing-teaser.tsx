@@ -14,6 +14,12 @@ import { LearnMoreLink } from "./learn-more-link";
 // below is read from lib/entitlements.ts / lib/pricing.ts; nothing here is a
 // retyped literal (CLAUDE.md hard rule). Annual framing is fixed (no
 // toggle) per the copy deck — "compact" means no interactive billing switch.
+// Heads v4 (P9.5-T3c): "Free forever means forever." -> "Free codes never
+// stop redirecting." divider="none" added this same unit — this section's
+// new predecessor (10 manifesto, surface="tint") is no longer the same
+// surface as this one (surface="default"), so the Section hairline-only-
+// between-same-surface neighbors rule now calls for no seam here (the
+// surface change itself is the separator).
 const FREE_FEATURES = [
   "Unlimited static codes",
   `${PLAN_LIMITS.free.dynamicCodes} dynamic codes, free forever`,
@@ -28,11 +34,11 @@ const PRO_FEATURES = [
 
 export function PricingTeaser() {
   return (
-    <Section>
+    <Section divider="none">
       <SectionHeading
         eyebrow="Pricing"
         index="11"
-        title="Free forever means forever."
+        title="Free codes never stop redirecting."
         lede={
           <>
             $0 gets {PLAN_LIMITS.free.dynamicCodes} dynamic codes that never stop redirecting. $

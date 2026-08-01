@@ -10,11 +10,12 @@ import { cn } from "@/lib/utils";
  * copy/structure, checked against the source before drawing anything here:
  *
  *  - `app/u/[slug]/page.tsx` — the unclaimed/paused/archived fallback a
- *    scanner actually lands on. That page's own subcopy has a pre-existing
+ *    scanner actually lands on. That page's own subcopy had a pre-existing
  *    em dash ("...paused it — or it hasn't been claimed yet."), a real bug
- *    on that route but out of this unit's scope (not a landing section) —
- *    flagged separately rather than silently perpetuated here, so this
- *    card's copy is punctuated with a comma instead.
+ *    on that route but out of this unit's (P9.5-T3b) scope (not a landing
+ *    section) — flagged rather than silently perpetuated here, so this
+ *    card's copy was punctuated with a comma instead. Fixed at its source
+ *    at P9.5-T3c (same comma restructure), so both now agree.
  *  - `app/p/[slug]/page.tsx` + `unlock-form.tsx` — the password gate.
  *  - `components/codes/codes-table.tsx`'s `statusMeta` — imported directly
  *    (not re-typed) for the "Expired" pill's exact label/classes, so this

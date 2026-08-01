@@ -21,7 +21,7 @@ export function DynamicCodesSection() {
       <SectionHeading
         eyebrow="Dynamic codes"
         index="04"
-        title="Print once. Point anywhere."
+        title="Change the destination after printing."
         lede="A QRCDN code is a permanent address. Retarget it in seconds and the printed code never changes. Pause it, protect it, expire it."
       />
 

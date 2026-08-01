@@ -18,7 +18,7 @@ export function BrandSystemSection() {
       <SectionHeading
         eyebrow="Brand system"
         index="03"
-        title="One kit. Every code on-brand."
+        title="Every code inherits your kit."
         lede="Ink, paper, shapes, logo: set once as a kit. Every code you mint inherits it, from menu tents to ticket stubs."
         className="mb-10"
       />

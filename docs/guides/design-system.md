@@ -346,6 +346,28 @@ visible tabs. Before screenshotting, neutralize frozen states via JS:
 Programmatic scrolling doesn't repaint in the hidden pane; use a tall viewport
 (`resize_window` to e.g. 1280×2900) to capture full pages instead.
 
+**Stronger fix when that still isn't enough (P9.5-T3c).** The inline-opacity
+reset above assumes `motion/react` has already written `style.opacity` to the
+DOM and just needs overwriting. On a page with several `whileInView` reveals,
+a `resize_window` call can make the browser re-run its (frozen-`rAF`, so
+stuck-at-partial-progress) entrance animation on elements the resize just
+brought into a new layout position — `document.getAnimations({subtree:
+true})` still reports dozens of running `Animation` objects after the inline-
+opacity trick, and `.finish()`-ing them empirically did not stick (they kept
+reappearing on the next read, apparently restarted by `motion/react`'s own
+reactive state rather than by the paused rAF loop). What actually holds still
+for a screenshot: inject a scoped `<style>` element with `!important`
+overrides (`* { transition: none !important; animation: none !important; }`
+plus `[style*="opacity"] { opacity: 1 !important; }`) — CSS `!important`
+author rules outrank a running Web Animation in the cascade, which a same-
+specificity inline-style rewrite from JS does not. Isolating one section at a
+time (hide every other `body > *`, `appendChild` the target `<section>` to
+`document.body`, resize the viewport to that section's own measured height)
+also keeps each screenshot at a legible, close-to-native scale instead of a
+heavily downscaled full-page capture, and sidesteps the scroll-doesn't-
+repaint issue entirely (the isolated section always starts at page-top, so
+no scroll is ever needed).
+
 **Verifying 3D transform direction (e.g. `rotateX`/`rotateY` sign) in this pane**
 (round 3, `TiltStage`): the frozen-rAF issue above means you can't just hover and
 screenshot to see which way a spring-driven tilt turns. Two techniques that work
@@ -548,6 +570,81 @@ more"). Patterns worth carrying forward, by section:
   `MonoStrip` below the section into a footer strip inside `DashboardWindow`'s
   own chrome (bookending the header bar) — numbers still read from
   `PLAN_LIMITS` only, just imported one file over.
+
+## Landing credibility sections (P9.5-T3c)
+
+T3a/T3b built every section that already existed in the pre-deck landing;
+this unit fills the four gaps the deck always had reserved for it (05
+guardrails, 08 comparison, 09 open source, 10 manifesto) and rebuilds 07
+API's body, completing the 01-11 ordinal sequence. Two reusable patterns
+worth carrying forward, plus the surface/divider bookkeeping this unit's
+insertions required:
+
+- **Authored data visuals plot the REAL axis, not a convenient one.**
+  Section 05's threshold plot (`guardrails-plot.tsx`) could have used the
+  `CONTRAST_ERROR_MIN`/`CONTRAST_WARN_MIN` pair already exported for the
+  playground's own contrast meter (P9.5-T3b) — same shape of constant, ready
+  to import. It doesn't, because qr-engine.md is explicit that contrast has
+  no decode-campaign data behind it (`scannabilityReport`'s contrast rule
+  "must stay analytic" — never validated by a round-trip). The actual
+  2026-07-21 adversarial campaign measured *effective knockout ratio*
+  (`LOGO_EFFECTIVE_WARN`/`LOGO_EFFECTIVE_ERROR`, additively exported this
+  unit for exactly this purpose), so that's the plotted axis — the honest
+  reading of "use the REAL campaign data," not the reading that happened to
+  require less new engine surface area. Where the guide's own data is
+  coarser than per-point (an aggregate pass-max/fail-min boundary, not 160+
+  itemized results), the plot says so in its own caption rather than
+  implying false precision, and the illustrative scatter (fixed, authored
+  values, never `Math.random()`) never places a point outside the real
+  documented bound.
+- **Server-rendered tab panes, visibility-only client island.** The API
+  console (`api-console.tsx` + `api-console-tabs.tsx`) is the pattern for
+  any future tabbed content that's expensive or server-only to produce
+  (shiki highlighting, a data fetch, MDX): render every pane's full JSX on
+  the server as normal, pass the finished `ReactNode`s into a small client
+  component as props/children, and let that component's only job be
+  flipping which pane carries the `hidden` attribute plus which tab carries
+  `aria-selected`. It never imports the expensive dependency itself, and
+  every pane's own nested client islands (here, each `CodeBlock`'s
+  `CopyButton`) hydrate once up front rather than on first reveal. Reuses
+  the existing `role="tablist"`/`"tab"` register `PricingPlans`'
+  `BillingToggle` already established (hand-rolled ARIA, not the vendored
+  `components/ui/tabs.tsx` — that component ships `"use client"`, which
+  would pull Radix's Tabs primitive into the bundle for something this
+  simple).
+- **Zero-client-JS sections skip vendored primitives that ship `"use
+  client"`.** Section 08's comparison table hand-rolls plain `<table>`
+  markup (mirroring `/developers`' pre-existing Errors table) rather than
+  importing `components/ui/table.tsx`, specifically because that vendored
+  component's file starts with `"use client"` — importing it from a server
+  component would create a client boundary for a table with zero
+  interactive behavior. Check a vendored primitive's own top line before
+  reaching for it inside a section whose spec says "zero client JS."
+  (`badge`/`card` are server-safe; `table`/`tabs`/`toggle-group`/etc. are
+  not — grep `components/ui/*.tsx` for `"use client"` rather than assuming.)
+- **Build-time source excerpts, not hand-copied ones.** Section 09's visual
+  is `packages/qr-engine/src/guardrails.ts`'s real threshold-constants block,
+  read off disk at render time (`lib/guardrails-excerpt.ts`, `node:fs` +
+  `import.meta.url`-relative path resolution — robust to whichever command
+  actually invokes `next build`) and sliced by content anchor rather than a
+  line-number range, so an unrelated edit elsewhere in the source file can
+  never silently shift what the excerpt shows. Safe for a fully static route
+  (`/` has no dynamic APIs, so this only runs once at `next build` time, same
+  timing as `lib/highlight.ts`'s shiki calls) — never a per-request read.
+- **Surface/divider bookkeeping when inserting sections into an existing
+  alternation.** 05 sits `surface="default"` between 04 (tint) and 06
+  (floor) — the same neutral-pause role 03 already plays between 02 and 04,
+  reused rather than invented. 10's "centered band" look is
+  `variant="centered"` (the only variant value `globals.css`'s
+  `[data-variant="centered"]` rule actually centers) with `surface="tint"` +
+  explicit `divider="none"` layered on top, not `variant="band"` (whose only
+  special-cased behavior in `section.tsx` is forcing `divider="none"` — it
+  doesn't center anything). Inserting sections mid-sequence can flip a
+  downstream section's correct divider: `PricingTeaser` (11) used to sit
+  directly after API (07, `surface="default"`, same surface, hairline
+  correct) and now sits after Manifesto (10, `surface="tint"`, different
+  surface) — its own `divider` needed an explicit `"none"` this unit added,
+  a real edit, not just new sections landing.
 
 ## The quality floor (founder-set, checkpoint A close)
 

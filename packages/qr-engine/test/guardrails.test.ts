@@ -3,8 +3,11 @@ import { parseQrStyle } from "@qrcdn/shared";
 import {
   CONTRAST_ERROR_MIN,
   CONTRAST_WARN_MIN,
+  LOGO_EFFECTIVE_ERROR,
+  LOGO_EFFECTIVE_WARN,
   contrastRatio,
   effectiveEcc,
+  effectiveLogoRatio,
   scannabilityReport,
 } from "../src";
 
@@ -131,6 +134,39 @@ describe("scannabilityReport", () => {
       }),
     );
     expect(report.issues).toHaveLength(0);
+  });
+
+  // P9.5-T3c: LOGO_EFFECTIVE_WARN/LOGO_EFFECTIVE_ERROR are exported
+  // specifically so the landing's guardrails threshold plot can import the
+  // real campaign thresholds instead of re-typing them. This test locks the
+  // values AND proves scannabilityReport's own issue codes flip in the
+  // expected order as effectiveLogoRatio crosses them (all three styles
+  // floor to the same v5 symbol — modulesForVersion(5) = 37 — isolating the
+  // WARN/ERROR crossing from a version-floor change), so the exported
+  // constants can never silently drift out of sync with the analytic logic
+  // that actually uses them.
+  it("exports the real logo-effective-ratio thresholds, and issues flip in order", () => {
+    expect(LOGO_EFFECTIVE_WARN).toBe(0.395);
+    expect(LOGO_EFFECTIVE_ERROR).toBe(0.412);
+
+    const clean = { assetId: "x", sizeRatio: 0.33, padding: 1, knockout: true, shape: "auto" as const };
+    const warn = { assetId: "x", sizeRatio: 0.35, padding: 1, knockout: true, shape: "auto" as const };
+    const error = { assetId: "x", sizeRatio: 0.36, padding: 1, knockout: true, shape: "auto" as const };
+
+    expect(effectiveLogoRatio(clean)).toBeLessThan(LOGO_EFFECTIVE_WARN);
+    expect(effectiveLogoRatio(warn)).toBeGreaterThanOrEqual(LOGO_EFFECTIVE_WARN);
+    expect(effectiveLogoRatio(warn)).toBeLessThan(LOGO_EFFECTIVE_ERROR);
+    expect(effectiveLogoRatio(error)).toBeGreaterThanOrEqual(LOGO_EFFECTIVE_ERROR);
+
+    const cleanReport = scannabilityReport(parseQrStyle({ v: 1, logo: clean }));
+    expect(cleanReport.issues).toHaveLength(0);
+
+    const warnReport = scannabilityReport(parseQrStyle({ v: 1, logo: warn }));
+    expect(warnReport.issues.map((i) => i.code)).toContain("logo-over-recommended");
+    expect(warnReport.issues.some((i) => i.code === "logo-unscannable")).toBe(false);
+
+    const errorReport = scannabilityReport(parseQrStyle({ v: 1, logo: error }));
+    expect(errorReport.issues.map((i) => i.code)).toContain("logo-unscannable");
   });
 
   it("warns on inverted codes", () => {

@@ -17,6 +17,8 @@ export {
   relativeLuminance,
   CONTRAST_ERROR_MIN,
   CONTRAST_WARN_MIN,
+  LOGO_EFFECTIVE_WARN,
+  LOGO_EFFECTIVE_ERROR,
 } from "./guardrails";
 export type {
   ScannabilityReport,

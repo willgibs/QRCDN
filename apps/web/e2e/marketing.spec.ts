@@ -92,11 +92,12 @@ test.describe("marketing site", () => {
     // RetargetTheatre (section 04) also renders a role="status" region (its
     // destination readout), so an unscoped role query would match more than
     // one element and trip Playwright's strict mode. Heading text is the
-    // P9.5-T3a copy deck v3 head ("Design it here. It's yours." — was
-    // "Design one right now." pre-T3a).
+    // Copy deck v3 head, heads-v4 amendment (P9.5-T3c): "Try the studio
+    // right here." — was "Design it here. It's yours." (T3a), before that
+    // "Design one right now." (pre-T3a).
     const playgroundSection = page
       .locator("section")
-      .filter({ has: page.getByRole("heading", { name: "Design it here. It's yours." }) });
+      .filter({ has: page.getByRole("heading", { name: "Try the studio right here." }) });
     await expect(playgroundSection.getByRole("status")).toContainText(/scannable/i);
   });
 
@@ -104,7 +105,7 @@ test.describe("marketing site", () => {
     await page.goto("/");
     const playgroundSection = page
       .locator("section")
-      .filter({ has: page.getByRole("heading", { name: "Design it here. It's yours." }) });
+      .filter({ has: page.getByRole("heading", { name: "Try the studio right here." }) });
 
     // All 3 named presets render (text-based, not role-based — avoids
     // coupling the test to Radix ToggleGroup's exact internal role choice).
@@ -163,6 +164,117 @@ test.describe("marketing site", () => {
       section.getByText(
         `${PLAN_LIMITS.free.analyticsRetentionDays}-day history free · ${PLAN_LIMITS.pro.analyticsRetentionDays}-day + city-level on Pro`,
       ),
+    ).toBeVisible();
+  });
+
+  // P9.5-T3c: the four sections that complete the 01-11 ordinal sequence.
+
+  test("guardrails: the threshold plot renders with two threshold lines", async ({ page }) => {
+    await page.goto("/");
+    const section = page
+      .locator("section")
+      .filter({ has: page.getByRole("heading", { name: "We measured what actually scans." }) });
+
+    const plot = section.locator("svg");
+    await expect(plot).toHaveCount(1);
+    // The two dashed warn/fail threshold lines are the only <line> elements
+    // carrying a stroke-dasharray (axis baseline + tick marks are solid).
+    await expect(plot.locator("line[stroke-dasharray]")).toHaveCount(2);
+    await expect(section.getByText("pass", { exact: true })).toBeVisible();
+    await expect(section.getByText("fail", { exact: true })).toBeVisible();
+    await expect(
+      section.getByText(
+        "160+ style combinations · 2 adversarial decode campaigns · warn 0.395 · fail 0.412",
+      ),
+    ).toBeVisible();
+  });
+
+  test("API console: clicking a tab switches the visible pane", async ({ page }) => {
+    await page.goto("/");
+    const section = page.locator("#api");
+
+    // Create is the default pane (POST /codes).
+    await expect(section.getByRole("tabpanel", { name: "Create" })).toBeVisible();
+    await expect(section.getByRole("tabpanel", { name: "Create" })).toContainText("POST");
+
+    await section.getByRole("tab", { name: "Retarget" }).click();
+    const retargetPanel = section.getByRole("tabpanel", { name: "Retarget" });
+    await expect(retargetPanel).toBeVisible();
+    // Regex, not a string literal — lib/e2e-safety.test.ts's static scan
+    // flags any hardcoded uppercase run inside e2e/'s SLUG_CHARSET as a
+    // potential real-slug literal; "PATCH" is an HTTP method, not a slug,
+    // but a regex literal is exempt by construction (never a value sent
+    // anywhere) rather than needing an allowlist entry for a false positive.
+    await expect(retargetPanel).toContainText(/PATCH/);
+    await expect(section.getByRole("tab", { name: "Retarget" })).toHaveAttribute("aria-selected", "true");
+    await expect(section.getByRole("tab", { name: "Create" })).toHaveAttribute("aria-selected", "false");
+  });
+
+  test("comparison: renders 4 columns and the load-bearing footnote", async ({ page }) => {
+    await page.goto("/");
+    const section = page
+      .locator("section")
+      .filter({ has: page.getByRole("heading", { name: "Not another QR generator." }) });
+
+    const table = section.locator("table");
+    // 4 real columns + 1 blank corner cell above the row labels.
+    await expect(table.locator("thead th")).toHaveCount(5);
+    for (const column of [
+      "Free QR generators",
+      "Link-shortener add-ons",
+      "Enterprise QR platforms",
+    ]) {
+      await expect(table.getByText(column, { exact: true })).toBeVisible();
+    }
+    // "QRCDN" as a regex, not a string literal — lib/e2e-safety.test.ts's
+    // static scan flags any hardcoded uppercase run inside e2e/'s
+    // SLUG_CHARSET as a potential real-slug literal; the product name isn't
+    // a slug, but a regex literal is exempt by construction rather than
+    // needing an allowlist entry for a false positive (same reasoning as
+    // the /PATCH/ regex above).
+    await expect(table.getByText(/^QRCDN$/)).toBeVisible();
+    // Footnote is never omitted — deck copy verbatim.
+    await expect(
+      section.getByText("Category patterns, not claims about any specific vendor."),
+    ).toBeVisible();
+  });
+
+  test("open-source: #open-source anchor exists and the pillar strip chip points to it", async ({ page }) => {
+    await page.goto("/");
+    await expect(page.locator("#open-source")).toBeVisible();
+    await expect(
+      page.locator("#open-source").getByRole("heading", { name: "Read the source." }),
+    ).toBeVisible();
+
+    const strip = page.locator('nav[aria-label="Jump to a section"]');
+    await expect(strip.getByRole("link", { name: "open source" })).toHaveAttribute(
+      "href",
+      "#open-source",
+    );
+  });
+
+  test("manifesto: three commitments present", async ({ page }) => {
+    await page.goto("/");
+    const section = page
+      .locator("section")
+      .filter({ has: page.getByRole("heading", { name: "Your code never dies." }) });
+
+    await expect(section.getByText("Free codes are never deactivated.")).toBeVisible();
+    await expect(section.getByText("A downgrade makes codes read-only, never dead.")).toBeVisible();
+    await expect(
+      section.getByText("Redirects run at the edge, independent of our app and database."),
+    ).toBeVisible();
+  });
+
+  test("heads v4: the four amended section heads are live", async ({ page }) => {
+    await page.goto("/");
+    await expect(page.getByRole("heading", { name: "Try the studio right here." })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Every code inherits your kit." })).toBeVisible();
+    await expect(
+      page.getByRole("heading", { name: "Change the destination after printing." }),
+    ).toBeVisible();
+    await expect(
+      page.getByRole("heading", { name: "Free codes never stop redirecting." }),
     ).toBeVisible();
   });
 

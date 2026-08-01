@@ -3,10 +3,10 @@ const PILLARS = [
   { label: "dynamic codes", href: "#dynamic-codes" },
   { label: "analytics", href: "#analytics" },
   { label: "api", href: "#api" },
-  // "open source" points at the repo directly until the #open-source
-  // section lands at T3c — switch the href then (copy deck v3's HERO
-  // block calls this out explicitly).
-  { label: "open source", href: "https://github.com/willgibs/QRCDN" },
+  // P9.5-T3c: switched from the external repo URL to the in-page
+  // #open-source section (section 09, "Built in the open") now that it
+  // exists — copy deck v3's HERO block called this switch out explicitly.
+  { label: "open source", href: "#open-source" },
 ] as const;
 
 /**

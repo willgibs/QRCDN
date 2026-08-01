@@ -22,27 +22,27 @@ import { cn } from "@/lib/utils";
 const FAQ_ITEMS = [
   {
     q: "What happens to my codes if I downgrade or stop paying?",
-    a: "They keep redirecting — forever. Codes beyond the free limit become read-only: you can't edit them, but every printed code keeps working, pointed wherever you last aimed it. We cap features, never your codes.",
+    a: "They keep redirecting, forever. Codes beyond the free limit become read-only: you can't edit them, but every printed code keeps working, pointed wherever you last aimed it. We cap features, never your codes.",
   },
   {
     q: "Can I change where a code points after it's printed?",
-    a: "That's the whole point. Retargeting is live everywhere within about a minute, usually instantly — the printed code never changes, only its destination.",
+    a: "That's the whole point. Retargeting is live everywhere within about a minute, usually instantly: the printed code never changes, only its destination.",
   },
   {
     q: "What's the difference between static and dynamic codes?",
-    a: "A static code encodes your URL directly — free, unlimited, ours to render and yours to keep, but fixed once printed. A dynamic code points at a short QRCDN URL, which makes it retargetable, pausable, and measurable.",
+    a: "A static code encodes your URL directly: free, unlimited, ours to render and yours to keep, but fixed once printed. A dynamic code points at a short QRCDN URL, which makes it retargetable, pausable, and measurable.",
   },
   {
     q: "Do redirects break if QRCDN has an outage?",
-    a: "The redirect layer is engineered to run independently of our application and database — if everything else is down, scans still resolve. Your code is the last thing standing.",
+    a: "The redirect layer is engineered to run independently of our application and database: if everything else is down, scans still resolve. Your code is the last thing standing.",
   },
   {
     q: "When can I buy Pro?",
-    a: "Paid checkout opens at launch. Until then, start free — your account, codes, and styles carry over unchanged the day billing opens.",
+    a: "Paid checkout opens at launch. Until then, start free: your account, codes, and styles carry over unchanged the day billing opens.",
   },
   {
     q: "Is there a discount for annual billing?",
-    a: `Yes — $${ANNUAL_USD}/year, billed once. That's equivalent to $${ANNUAL_MONTHLY_EQUIV_USD}/mo, ${ANNUAL_SAVINGS_PCT}% less than paying monthly.`,
+    a: `Yes: $${ANNUAL_USD}/year, billed once. That's equivalent to $${ANNUAL_MONTHLY_EQUIV_USD}/mo, ${ANNUAL_SAVINGS_PCT}% less than paying monthly.`,
   },
 ] as const;
 

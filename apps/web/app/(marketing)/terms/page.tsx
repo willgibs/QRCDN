@@ -45,7 +45,7 @@ export default function TermsPage() {
     <LegalShell eyebrow="Legal" title="Terms of Service" lastUpdated="July 30, 2026">
       <LegalSection id="the-short-version" title="The short version" lede>
         <p>
-          You make QR codes; they&apos;re yours. Printed codes keep working — we cap
+          You make QR codes; they&apos;re yours. Printed codes keep working: we cap
           features, never your codes. Don&apos;t point codes at anything malicious;
           that&apos;s the one thing that gets a code stopped.
         </p>
@@ -65,7 +65,7 @@ export default function TermsPage() {
 
       <LegalSection id="your-account" title="Your account">
         <p>
-          Keep your sign-in email accurate — it&apos;s how we reach you. You&apos;re
+          Keep your sign-in email accurate; it&apos;s how we reach you. You&apos;re
           responsible for what happens under your account and for every destination
           your codes point to. One person (or one team acting as one) per account.
         </p>
@@ -88,7 +88,7 @@ export default function TermsPage() {
             <strong className="font-semibold text-foreground">
               Downgrading never breaks a printed code.
             </strong>{" "}
-            If you leave Pro, codes beyond the free limit become read-only — you
+            If you leave Pro, codes beyond the free limit become read-only: you
             can&apos;t edit them, but they keep redirecting to wherever they last
             pointed. We never delete them and never stop serving them.
           </li>
@@ -112,9 +112,9 @@ export default function TermsPage() {
         <p>
           Don&apos;t point a QRCDN code at malware, phishing, deceptive or
           impersonating pages, or anything illegal to distribute. We screen
-          destination changes against industry threat lists and may pause a code —
-          meaning scanners see a neutral &quot;code unavailable&quot; page instead of the
-          destination — when a destination endangers the people scanning it. This is
+          destination changes against industry threat lists and may pause a code
+          (meaning scanners see a neutral &quot;code unavailable&quot; page instead of the
+          destination) when a destination endangers the people scanning it. This is
           the only circumstance in which we stop a redirect, and if it happens we
           notify the account email. Don&apos;t abuse the API beyond your plan&apos;s limits
           or attempt to disrupt the service.
@@ -138,8 +138,8 @@ export default function TermsPage() {
           something went wrong with a charge,{" "}
           <a href="mailto:hello@qrcdn.com" className="underline underline-offset-4">
             write to us
-          </a>{" "}
-          — we&apos;re reasonable.
+          </a>
+          . We&apos;re reasonable.
           {/* COUNSEL: refund policy formalization. */}
         </p>
       </LegalSection>
@@ -147,7 +147,7 @@ export default function TermsPage() {
       <LegalSection id="your-content" title="Your content">
         <p>
           Logos, styles, and destinations you upload or configure remain yours. You
-          give us the license needed to render, store, and serve them — that&apos;s
+          give us the license needed to render, store, and serve them: that&apos;s
           all we do with them.
         </p>
       </LegalSection>
@@ -155,7 +155,7 @@ export default function TermsPage() {
       <LegalSection id="honesty-about-availability" title="Honesty about availability">
         <p>
           Scan redirects are engineered to keep working even when our application or
-          database is down — the redirect layer is independent and designed to fail
+          database is down: the redirect layer is independent and designed to fail
           toward serving your code. We target high availability but don&apos;t yet
           offer a contractual SLA. The service is provided &quot;as is&quot;; to the extent
           the law allows, our total liability is capped at what you&apos;ve paid us in

@@ -405,7 +405,7 @@ async function main() {
     "QRCDN — one code, every destination. A styled QR code beside the QRCDN wordmark on a dark canvas.";
 
   const pricingOgPng = rasterize(buildPricingOgSvg(pricingQr), 1200);
-  const pricingOgAlt = `QRCDN pricing — $${PRICING.monthlyUsd}/mo or $${PRICING.annualUsd}/yr. A styled QR code beside the QRCDN wordmark on a dark canvas.`;
+  const pricingOgAlt = `QRCDN pricing: $${PRICING.monthlyUsd}/mo or $${PRICING.annualUsd}/yr. A styled QR code beside the QRCDN wordmark on a dark canvas.`;
 
   // Legal OG (U4) reuses `qr` — the homepage's already-verified OG_PAYLOAD
   // render — rather than issuing a third verifyQrDecodesTo() call: it is
@@ -416,9 +416,9 @@ async function main() {
   // per route since it describes the PAGE, not the shared pixels.
   const legalOgPng = rasterize(buildLegalOgSvg(qr), 1200);
   const legalOgAltTerms =
-    "QRCDN Terms of Service — the fine print, in plain language. A styled QR code beside the QRCDN wordmark on a dark canvas.";
+    "QRCDN Terms of Service: the fine print, in plain language. A styled QR code beside the QRCDN wordmark on a dark canvas.";
   const legalOgAltPrivacy =
-    "QRCDN Privacy Policy — the fine print, in plain language. A styled QR code beside the QRCDN wordmark on a dark canvas.";
+    "QRCDN Privacy Policy: the fine print, in plain language. A styled QR code beside the QRCDN wordmark on a dark canvas.";
 
   const appleIconPath = join(WEB_ROOT, "app/apple-icon.png");
   const marketingDir = join(WEB_ROOT, "app/(marketing)");

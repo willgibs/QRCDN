@@ -16,10 +16,15 @@ export const metadata: Metadata = {
 // Next auto-injects a noindex response on 404s, so no `robots` override
 // belongs in the metadata above — adding one would be redundant at best.
 //
-// Design register matches app/u/[slug]/page.tsx (the "floor register"):
-// HeroBackdrop atmosphere, glass gradient-border card, a mono receipt line,
-// a single CTA home. No data fetching, no dynamic APIs — this renders
-// statically.
+// P9.5-T4 realignment: display-scale "404" glyph (the h1 — text-display,
+// the same poster scale /pricing's own h1 now uses) + one line of copy +
+// two links (home, support). Zero client JS of its own: SiteNav/SiteFooter
+// are pre-existing sitewide chrome (already client islands on every
+// marketing page), not something this unit adds; Button/Link/the mailto
+// anchor below are all plain server-rendered markup, no new interactivity.
+// Design register otherwise matches app/u/[slug]/page.tsx (the "floor
+// register"): HeroBackdrop atmosphere, glass gradient-border card, a mono
+// sign-off. No data fetching, no dynamic APIs — this renders statically.
 
 export default function NotFound() {
   return (
@@ -32,22 +37,21 @@ export default function NotFound() {
         <div className="relative flex w-full max-w-sm flex-col items-center">
           <div className="w-full rounded-3xl bg-gradient-to-b from-primary/40 via-border/70 to-border/30 p-px shadow-2xl shadow-primary/15">
             <div className="rounded-[calc(1.5rem-1px)] bg-card/90 p-8 text-center backdrop-blur-xl sm:p-9">
-              <div className="mb-6 flex flex-col gap-1.5">
-                <h1 className="font-display text-xl font-semibold tracking-tight text-foreground">
-                  This page doesn&apos;t exist.
-                </h1>
-                <p className="text-sm text-muted-foreground">
-                  The link may be broken, or the page has moved.
-                </p>
-              </div>
-
-              <p className="mb-6 font-mono text-[11px] text-muted-foreground/70">
-                404 — not found
+              <h1 className="font-display text-display font-bold tracking-tight text-foreground">
+                404
+              </h1>
+              <p className="mt-4 text-sm text-muted-foreground">
+                This page doesn&apos;t exist, or the link is broken.
               </p>
 
-              <Button asChild className="w-full">
-                <Link href="/">Back to QRCDN</Link>
-              </Button>
+              <div className="mt-8 flex flex-col gap-2 sm:flex-row">
+                <Button asChild className="flex-1">
+                  <Link href="/">Back home</Link>
+                </Button>
+                <Button asChild variant="outline" className="flex-1">
+                  <a href="mailto:hello@qrcdn.com">Contact support</a>
+                </Button>
+              </div>
             </div>
           </div>
 

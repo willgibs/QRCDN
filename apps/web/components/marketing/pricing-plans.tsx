@@ -43,15 +43,15 @@ function rowValue(key: PricingRow["key"], plan: "free" | "pro"): string {
 
 const FREE_FEATURES = [
   "Unlimited static codes, full studio access",
-  `${PLAN_LIMITS.free.dynamicCodes} dynamic codes — free forever, always redirecting`,
+  `${PLAN_LIMITS.free.dynamicCodes} dynamic codes: free forever, always redirecting`,
   `${PLAN_LIMITS.free.brandKits} brand kit · ${PLAN_LIMITS.free.analyticsRetentionDays}-day analytics`,
   "Unlimited scans, retargeting always allowed",
 ];
 
 const PRO_FEATURES = [
   `${PLAN_LIMITS.pro.dynamicCodes} dynamic codes, unlimited brand kits`,
-  `Full analytics — ${PLAN_LIMITS.pro.analyticsRetentionDays}-day history, city-level geo`,
-  `API access — ${rowValue("apiMonthlyRequests", "pro")} · bulk generation`,
+  `Full analytics: ${PLAN_LIMITS.pro.analyticsRetentionDays}-day history, city-level geo`,
+  `API access: ${rowValue("apiMonthlyRequests", "pro")} · bulk generation`,
   "Expiry, passwords & vanity short links",
 ];
 
@@ -172,7 +172,7 @@ export function PricingPlans() {
                   </p>
                   {billing === "annual" && (
                     <p className="mt-1 font-mono text-xs text-muted-foreground">
-                      billed annually — ${ANNUAL_USD}/yr
+                      billed annually: ${ANNUAL_USD}/yr
                     </p>
                   )}
                 </motion.div>
@@ -190,7 +190,7 @@ export function PricingPlans() {
                 <Link href="/login">Start free</Link>
               </Button>
               <p className="text-center text-xs text-muted-foreground">
-                Paid checkout opens at launch — start free today and everything carries over.
+                Paid checkout opens at launch. Start free today and everything carries over.
               </p>
             </CardFooter>
           </Card>

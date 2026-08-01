@@ -5,6 +5,7 @@ import {
   ANNUAL_SAVINGS_PCT,
   ANNUAL_USD,
   MONTHLY_USD,
+  PRICING_MATRIX_BANDS,
   PRICING_ROWS,
   type PricingRow,
 } from "./pricing";
@@ -80,6 +81,25 @@ describe("PRICING_ROWS derivation — capability rows", () => {
     const freeText = PLAN_LIMITS.free.bulk ? "Included" : "Not included";
     expect(r.pro).toBe(proText);
     expect(r.free).toBe(freeText);
+  });
+});
+
+// /pricing v2's banded matrix (P9.5-T4) — proves the grouping never drops
+// or duplicates a row, the same "compare against the live import, not a
+// hardcoded count" discipline as the coverage assertion above.
+describe("PRICING_MATRIX_BANDS coverage", () => {
+  it("places every PRICING_ROWS row in exactly one band", () => {
+    const bandedKeys = PRICING_MATRIX_BANDS.flatMap((band) => band.rows.map((r) => r.key)).sort();
+    const allKeys = PRICING_ROWS.map((r) => r.key).sort();
+    expect(bandedKeys).toEqual(allKeys);
+    expect(new Set(bandedKeys).size).toBe(bandedKeys.length); // no duplicates
+  });
+
+  it("has 5 named bands and none are empty", () => {
+    expect(PRICING_MATRIX_BANDS).toHaveLength(5);
+    for (const band of PRICING_MATRIX_BANDS) {
+      expect(band.rows.length).toBeGreaterThan(0);
+    }
   });
 });
 

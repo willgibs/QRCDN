@@ -140,3 +140,30 @@ export const PRICING_ROWS: PricingRow[] = [
     "Included",
   ),
 ];
+
+// Banded grouping for /pricing v2's feature matrix (P9.5-T4) — a pure
+// presentation grouping over PRICING_ROWS above, not new data: every row is
+// placed in exactly one band, none dropped, none invented
+// (pricing.test.ts's coverage assertion proves both directions). Band
+// membership follows the product's own conceptual grouping rather than an
+// arbitrary split: vanitySlugs sits with accessControls (both per-code
+// protective/access features — PricingPlans' own PRO_FEATURES bullet
+// already bundles "Expiry, passwords & vanity short links" as one idea),
+// not with apiMonthlyRequests/bulk (the literal "API & bulk" band).
+export interface PricingMatrixBand {
+  name: string;
+  rows: PricingRow[];
+}
+
+const MATRIX_BAND_KEYS: readonly { name: string; keys: readonly (keyof PlanLimits)[] }[] = [
+  { name: "Codes & limits", keys: ["dynamicCodes"] },
+  { name: "Design & export", keys: ["brandKits"] },
+  { name: "Analytics", keys: ["analyticsRetentionDays", "cityGeo"] },
+  { name: "Access controls", keys: ["accessControls", "vanitySlugs"] },
+  { name: "API & bulk", keys: ["apiMonthlyRequests", "bulk"] },
+];
+
+export const PRICING_MATRIX_BANDS: PricingMatrixBand[] = MATRIX_BAND_KEYS.map(({ name, keys }) => ({
+  name,
+  rows: PRICING_ROWS.filter((r) => keys.includes(r.key)),
+}));

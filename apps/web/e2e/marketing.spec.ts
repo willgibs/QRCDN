@@ -48,8 +48,70 @@ test.describe("marketing site", () => {
     expect(response?.status()).toBe(404);
     // Distinctive copy from app/not-found.tsx — not Next's generic default
     // 404 ("This page could not be found."), which route-group chrome
-    // (SiteNav/SiteFooter) doesn't even wrap.
-    await expect(page.getByRole("heading", { name: "This page doesn't exist." })).toBeVisible();
+    // (SiteNav/SiteFooter) doesn't even wrap. P9.5-T4: the h1 is now the
+    // display-scale "404" glyph itself, with the explanatory sentence as a
+    // separate line below it and two real links (home, support).
+    await expect(page.getByRole("heading", { name: "404" })).toBeVisible();
+    await expect(
+      page.getByText("This page doesn't exist, or the link is broken."),
+    ).toBeVisible();
+    await expect(page.getByRole("link", { name: "Back home" })).toHaveAttribute("href", "/");
+    // Regex, not a string literal — lib/e2e-safety.test.ts's static scan
+    // flags any email-shaped string literal under e2e/ that isn't an
+    // e2e.qrcdn.test fixture address (this repo's e2e suite runs against
+    // real cloud Supabase, so that guard is intentionally strict). This is
+    // a real support address baked into the product's own served markup,
+    // not a test-fixture address, so it's asserted via a regex literal —
+    // exempt by construction, per the scanner's own documented carve-out
+    // (same "PATCH"/"QRCDN" precedent already used elsewhere in this file).
+    await expect(page.getByRole("link", { name: "Contact support" })).toHaveAttribute(
+      "href",
+      /^mailto:hello@qrcdn\.com$/,
+    );
+  });
+
+  // P9.5-T4: /pricing v2's banded matrix + guarantee band, and /login's lg+
+  // value panel.
+
+  test("pricing page renders the banded matrix and the guarantee strip", async ({ page }) => {
+    await page.goto("/pricing");
+
+    // Every band header from PRICING_MATRIX_BANDS (lib/pricing.ts) — text-
+    // based, not role-based: a colgroup-scoped <th>'s ARIA role mapping
+    // isn't consistent enough across engines to depend on, the same
+    // reasoning comparison-section.tsx's own e2e coverage already applies
+    // to its column headers.
+    for (const band of [
+      "Codes & limits",
+      "Design & export",
+      "Analytics",
+      "Access controls",
+      "API & bulk",
+    ]) {
+      await expect(page.getByText(band, { exact: true })).toBeVisible();
+    }
+
+    // The deck-04 guarantee line, verbatim (dynamic-codes-section.tsx's own
+    // sentence, reused here per the T4 spec's "band Section" guarantee strip).
+    await expect(
+      page.getByText(
+        "free codes are never deactivated, and a downgrade never breaks a printed code.",
+      ),
+    ).toBeVisible();
+  });
+
+  test("login: value panel shows at desktop viewport, hidden at mobile", async ({ page }) => {
+    await page.goto("/login");
+    // Default project viewport (Desktop Chrome, 1280x720) is well above the
+    // lg breakpoint the panel gates on.
+    await expect(page.getByText("Free codes never stop redirecting.")).toBeVisible();
+    await expect(page.getByText("No card, no trial clock.")).toBeVisible();
+    await expect(page.getByText("MIT open source.")).toBeVisible();
+
+    await page.setViewportSize({ width: 390, height: 844 });
+    await expect(page.getByText("Free codes never stop redirecting.")).toBeHidden();
+    // The single-column auth card is unaffected at the mobile viewport.
+    await expect(page.getByRole("heading", { name: "Sign in or sign up" })).toBeVisible();
   });
 
   test("/robots.txt allows crawling and points at the sitemap", async ({ request }) => {

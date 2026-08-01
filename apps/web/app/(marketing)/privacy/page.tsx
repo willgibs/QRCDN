@@ -44,7 +44,7 @@ export default function PrivacyPage() {
       <LegalCallout id="the-short-version" title="The short version">
         <p>
           We designed QRCDN to know as little as possible. Scan analytics never
-          store a raw IP address — we keep a one-way hash made with a salt that
+          store a raw IP address: we keep a one-way hash made with a salt that
           changes every day, so scans can&apos;t be traced to a person or even
           correlated across days. We can&apos;t sell what we don&apos;t have.
         </p>
@@ -72,7 +72,7 @@ export default function PrivacyPage() {
             </strong>
             , to sign you in (magic link) and send you service email. If you sign
             in with Google, we receive your name and email from your Google
-            profile — nothing else.
+            profile. Nothing else.
           </li>
           <li>
             <strong className="font-semibold text-foreground">
@@ -97,7 +97,7 @@ export default function PrivacyPage() {
         <ul className="list-disc space-y-3 pl-5">
           <li>The code that was scanned, and when.</li>
           <li>
-            Coarse location — country, region, and city — derived at the network
+            Coarse location (country, region, and city) derived at the network
             edge. Never GPS, never precise.
           </li>
           <li>
@@ -112,7 +112,7 @@ export default function PrivacyPage() {
               Your raw IP address is never written to our database.
             </strong>{" "}
             The rotating salt means the same phone scanning on Tuesday and
-            Wednesday produces two unrelated hashes — we can count unique
+            Wednesday produces two unrelated hashes: we can count unique
             visitors within a day, and nothing more.
           </li>
         </ul>
@@ -120,8 +120,8 @@ export default function PrivacyPage() {
           Raw scan events are kept for {PLAN_LIMITS.free.analyticsRetentionDays}{" "}
           days (codes owned by free accounts) or{" "}
           {PLAN_LIMITS.pro.analyticsRetentionDays}{" "}
-          days (Pro), then deleted on a daily schedule. Aggregate daily counts —
-          how many scans a code got, by country, by device type — persist so the
+          days (Pro), then deleted on a daily schedule. Aggregate daily counts
+          (how many scans a code got, by country, by device type) persist so the
           code&apos;s owner keeps their totals.
         </p>
         <p>Scanning a code sets no cookie and requires no account.</p>
@@ -130,7 +130,7 @@ export default function PrivacyPage() {
       <LegalSection id="cookies" title="Cookies">
         <p>
           Signing in sets authentication cookies (via Supabase, our auth
-          provider) — that&apos;s what keeps you logged in. There are no
+          provider). That&apos;s what keeps you logged in. There are no
           advertising or cross-site tracking cookies anywhere on this site. Our
           visitor analytics (Vercel Web Analytics) is cookieless and identifies
           visits with a hash that resets daily.
@@ -148,7 +148,7 @@ export default function PrivacyPage() {
           <strong className="font-semibold text-foreground">Cloudflare</strong>{" "}
           (network, scan redirects),{" "}
           <strong className="font-semibold text-foreground">Resend</strong>{" "}
-          (transactional email), and — once billing opens —{" "}
+          (transactional email), and, once billing opens,{" "}
           <strong className="font-semibold text-foreground">Stripe</strong>{" "}
           (payments). Application data is stored in the United States
           (us-east-1). Backups are encrypted.
@@ -162,8 +162,8 @@ export default function PrivacyPage() {
           by{" "}
           <a href="mailto:hello@qrcdn.com" className="underline underline-offset-4">
             writing to us
-          </a>{" "}
-          — deletion is immediate and cascades: your codes, kits, keys, and their
+          </a>
+          . Deletion is immediate and cascades: your codes, kits, keys, and their
           scan history are permanently removed.
           {/* COUNSEL: GDPR/CCPA rights enumeration and lawful-basis mapping before launch; current text is accurate but not jurisdiction-complete. */}
         </p>
@@ -187,8 +187,8 @@ export default function PrivacyPage() {
         <p>
           <a href="mailto:hello@qrcdn.com" className="underline underline-offset-4">
             hello@qrcdn.com
-          </a>{" "}
-          — a person reads it.
+          </a>
+          : a person reads it.
           {/* COUNSEL: entity name + registered address once formed; international transfer mechanism language for EU visitors. */}
         </p>
       </LegalSection>

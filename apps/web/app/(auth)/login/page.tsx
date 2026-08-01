@@ -1,8 +1,10 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
+import { Check } from "lucide-react";
 import { HeroBackdrop } from "@/components/brand/backdrop";
 import { ModuleMark, Reveal } from "@/components/brand/magic";
 import { LoginForm } from "@/components/auth/login-form";
+import { QrTile } from "@/components/marketing/qr-tile";
 import { createClient } from "@/lib/supabase/server";
 
 export const metadata: Metadata = {
@@ -17,9 +19,18 @@ export const metadata: Metadata = {
 // `link_invalid`; `/auth/callback` sends `oauth_failed` (CEO-final copy).
 const AUTH_ERROR_COPY: Record<string, string> = {
   link_invalid:
-    "That link didn't work — it may have expired or already been used. Enter your email for a fresh one.",
+    "That link didn't work: it may have expired or already been used. Enter your email for a fresh one.",
   oauth_failed: "Google sign-in didn't go through. Try again, or continue with email below.",
 };
+
+// P9.5-T4: the value panel's three plain checks, right column at lg+ only.
+// Static content, zero client JS — plain data, not exported (this page's
+// only consumer).
+const VALUE_CHECKS = [
+  "Free codes never stop redirecting.",
+  "No card, no trial clock.",
+  "MIT open source.",
+] as const;
 
 function authErrorMessage(value: string | string[] | undefined): string | undefined {
   return typeof value === "string" ? AUTH_ERROR_COPY[value] : undefined;
@@ -41,7 +52,7 @@ export default async function LoginPage(props: PageProps<"/login">) {
   const initialError = authErrorMessage(params.auth_error);
 
   return (
-    <div className="relative flex min-h-dvh flex-col items-center justify-center overflow-hidden bg-background px-6 py-16">
+    <div className="relative flex min-h-dvh flex-col items-center justify-center overflow-hidden bg-background px-6 py-16 lg:flex-row lg:justify-center lg:gap-16">
       <HeroBackdrop />
 
       <div className="relative flex w-full max-w-sm flex-col items-center">
@@ -58,7 +69,7 @@ export default async function LoginPage(props: PageProps<"/login">) {
                   Sign in or sign up
                 </h1>
                 <p className="text-sm text-muted-foreground">
-                  One step, either way — we&apos;ll set up your account if you&apos;re new.
+                  One step, either way: we&apos;ll set up your account if you&apos;re new.
                 </p>
               </div>
               <LoginForm initialError={initialError} />
@@ -69,6 +80,26 @@ export default async function LoginPage(props: PageProps<"/login">) {
         <p className="mt-8 font-mono text-xs text-muted-foreground">
           your code never dies
         </p>
+      </div>
+
+      {/* Value panel, lg+ only — below lg this contributes zero box
+          (display:none), so the column above renders exactly today's
+          single-column experience unchanged at every smaller breakpoint.
+          Auth card logic/markup above is otherwise byte-identical to
+          before this unit. */}
+      <div className="relative hidden w-full max-w-sm flex-col gap-8 lg:flex">
+        <QrTile className="w-28" />
+
+        <ul className="flex flex-col gap-3">
+          {VALUE_CHECKS.map((check) => (
+            <li key={check} className="flex items-start gap-2.5 text-sm text-foreground">
+              <Check className="mt-0.5 size-4 shrink-0 text-primary" aria-hidden />
+              {check}
+            </li>
+          ))}
+        </ul>
+
+        <p className="font-mono text-xs text-muted-foreground">your code never dies</p>
       </div>
     </div>
   );

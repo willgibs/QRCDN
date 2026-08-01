@@ -175,7 +175,11 @@ test.describe("marketing site", () => {
       .locator("section")
       .filter({ has: page.getByRole("heading", { name: "We measured what actually scans." }) });
 
-    const plot = section.locator("svg");
+    // Scoped to its own accessible name, not just "svg" — the section also
+    // carries two decorative ModuleMark svgs (the Eyebrow glyph and the
+    // MonoStrip icon below), so an unscoped `section.locator("svg")` over-
+    // matches at 3 elements instead of the one real plot.
+    const plot = section.getByRole("img", { name: /Threshold plot of the real decode campaign/ });
     await expect(plot).toHaveCount(1);
     // The two dashed warn/fail threshold lines are the only <line> elements
     // carrying a stroke-dasharray (axis baseline + tick marks are solid).

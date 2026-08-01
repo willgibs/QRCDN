@@ -18,6 +18,18 @@ import { cn } from "@/lib/utils";
  * regardless of shape (✓/✕/~/prose), and only the QRCDN column carries the
  * primary tint — the "QRCDN wins every row" claim is the whole point of
  * this table, so accent belongs to the column, not scattered per-glyph.
+ *
+ * Review round 1: two table variants, not one reordered via CSS. A native
+ * `<table>`'s columns don't participate in flex/grid `order` (that layout
+ * mode doesn't apply to table-cell boxes), so "QRCDN first on mobile, last
+ * on desktop" needs the DOM itself to differ — `ComparisonTable` takes a
+ * `columnOrder` and both call sites pull from the same ROWS/COLUMNS data,
+ * so there's no risk of the two variants' CONTENT drifting apart, only
+ * their column arrangement. `md:hidden` / `hidden md:block` picks exactly
+ * one at a time (verified: only the visible one is in the accessibility
+ * tree, since `display:none` elements are always excluded from it — a
+ * `table:visible` Playwright locator is what the e2e suite uses to target
+ * "whichever one is actually showing" without needing extra markup).
  */
 
 type Tone = "neutral" | "qrcdn";
@@ -33,6 +45,15 @@ interface ComparisonRow {
 }
 
 const COLUMNS = ["Free QR generators", "Link-shortener add-ons", "Enterprise QR platforms", "QRCDN"] as const;
+const QRCDN_INDEX = COLUMNS.length - 1;
+
+// Desktop keeps the deck's own column order (QRCDN last, the "and here's
+// us" beat). Mobile leads with QRCDN — review round 1: the elevated column
+// is the whole point of the table, and it must be visible without
+// scrolling on a narrow viewport; the three archetype columns still follow
+// it, in their original relative order, in the scrollable region.
+const DESKTOP_COLUMN_ORDER = [0, 1, 2, 3] as const;
+const MOBILE_COLUMN_ORDER = [3, 0, 1, 2] as const;
 
 const ROWS: ComparisonRow[] = [
   {
@@ -84,13 +105,14 @@ const ROWS: ComparisonRow[] = [
 
 function Cell({
   cell,
-  tone,
+  colIndex,
   lastRow,
 }: {
   cell: ComparisonCell;
-  tone: Tone;
+  colIndex: number;
   lastRow: boolean;
 }) {
+  const tone: Tone = colIndex === QRCDN_INDEX ? "qrcdn" : "neutral";
   return (
     <td
       className={cn(
@@ -116,6 +138,60 @@ function Cell({
   );
 }
 
+function ComparisonTable({ columnOrder }: { columnOrder: readonly number[] }) {
+  return (
+    <table className="w-full min-w-[640px] border-collapse text-left">
+      <thead>
+        <tr>
+          <th
+            scope="col"
+            className="px-4 py-3 text-xs font-medium uppercase tracking-wide text-muted-foreground"
+          >
+            &nbsp;
+          </th>
+          {columnOrder.map((colIndex) => {
+            const isQrcdn = colIndex === QRCDN_INDEX;
+            return (
+              <th
+                key={COLUMNS[colIndex]}
+                scope="col"
+                className={cn(
+                  "px-4 py-3 text-sm font-semibold",
+                  isQrcdn
+                    ? "rounded-t-xl bg-primary/[0.04] text-primary ring-1 ring-inset ring-primary/15 dark:bg-primary/[0.07]"
+                    : "text-foreground",
+                )}
+              >
+                {COLUMNS[colIndex]}
+              </th>
+            );
+          })}
+        </tr>
+      </thead>
+      <tbody>
+        {ROWS.map((row, rowIndex) => (
+          <tr key={row.label}>
+            <th
+              scope="row"
+              className="border-t border-border/60 px-4 py-3 text-left align-top text-sm font-medium text-foreground"
+            >
+              {row.label}
+            </th>
+            {columnOrder.map((colIndex) => (
+              <Cell
+                key={`${row.label}-${COLUMNS[colIndex]}`}
+                cell={row.cells[colIndex]}
+                colIndex={colIndex}
+                lastRow={rowIndex === ROWS.length - 1}
+              />
+            ))}
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  );
+}
+
 export function ComparisonSection() {
   return (
     <Section variant="stack" surface="tint" divider="none">
@@ -128,53 +204,28 @@ export function ComparisonSection() {
       />
 
       <SectionBody>
-        <div className="overflow-x-auto rounded-2xl border border-border/60">
-          <table className="w-full min-w-[640px] border-collapse text-left">
-            <thead>
-              <tr>
-                <th scope="col" className="px-4 py-3 text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                  &nbsp;
-                </th>
-                {COLUMNS.map((col, i) => {
-                  const isQrcdn = i === COLUMNS.length - 1;
-                  return (
-                    <th
-                      key={col}
-                      scope="col"
-                      className={cn(
-                        "px-4 py-3 text-sm font-semibold",
-                        isQrcdn
-                          ? "rounded-t-xl bg-primary/[0.04] text-primary ring-1 ring-inset ring-primary/15 dark:bg-primary/[0.07]"
-                          : "text-foreground",
-                      )}
-                    >
-                      {col}
-                    </th>
-                  );
-                })}
-              </tr>
-            </thead>
-            <tbody>
-              {ROWS.map((row, rowIndex) => (
-                <tr key={row.label}>
-                  <th
-                    scope="row"
-                    className="border-t border-border/60 px-4 py-3 text-left align-top text-sm font-medium text-foreground"
-                  >
-                    {row.label}
-                  </th>
-                  {row.cells.map((cell, i) => (
-                    <Cell
-                      key={`${row.label}-${COLUMNS[i]}`}
-                      cell={cell}
-                      tone={i === row.cells.length - 1 ? "qrcdn" : "neutral"}
-                      lastRow={rowIndex === ROWS.length - 1}
-                    />
-                  ))}
-                </tr>
-              ))}
-            </tbody>
-          </table>
+        {/* Mobile (<md): QRCDN first, so the elevated column reads without
+            scrolling; the three archetype columns follow in the scrollable
+            region. A static gradient hints there's more to scroll — no
+            scroll-position tracking (this section stays zero client JS), so
+            it's a permanent hint rather than one that fades once you're at
+            the end; "subtle" by design, not a claim of exact scroll state. */}
+        <div className="relative md:hidden">
+          <div className="overflow-x-auto rounded-2xl border border-border/60">
+            <ComparisonTable columnOrder={MOBILE_COLUMN_ORDER} />
+          </div>
+          <div
+            aria-hidden
+            className="pointer-events-none absolute inset-y-0 right-0 w-10 rounded-r-2xl bg-gradient-to-l from-surface-tint to-transparent"
+          />
+        </div>
+
+        {/* Desktop (md+): the deck's own column order, QRCDN last. Kept
+            scrollable too (defensive — a narrow desktop window shouldn't
+            force the page itself to scroll sideways), just without the
+            mobile-only fade hint. */}
+        <div className="hidden overflow-x-auto rounded-2xl border border-border/60 md:block">
+          <ComparisonTable columnOrder={DESKTOP_COLUMN_ORDER} />
         </div>
 
         <p className="mt-4 text-xs text-muted-foreground">

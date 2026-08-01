@@ -645,6 +645,26 @@ insertions required:
   correct) and now sits after Manifesto (10, `surface="tint"`, different
   surface) — its own `divider` needed an explicit `"none"` this unit added,
   a real edit, not just new sections landing.
+- **Reordering a `<table>`'s columns per breakpoint needs two DOM variants,
+  not one reordered via CSS.** Review round 1 on section 08: the elevated
+  QRCDN column has to be visible without scrolling on a narrow viewport
+  (leading the column order there), but keeps the deck's own QRCDN-last
+  order on desktop. Flex/grid's `order` property doesn't apply to
+  table-cell layout, so `comparison-section.tsx`'s `ComparisonTable` takes
+  a `columnOrder` array and renders twice (`md:hidden` / `hidden md:block`)
+  off the same `ROWS`/`COLUMNS` data — content can't drift between the two,
+  only arrangement can. `display:none` elements are excluded from the
+  accessibility tree, so a `table:visible` Playwright locator (not a plain
+  `table`) is what lets one test file's assertions target "whichever
+  variant the current viewport is actually showing" without extra markup.
+  A static (JS-free) `bg-gradient-to-l from-surface-tint to-transparent`
+  edge overlay, positioned in a `relative` sibling wrapper OUTSIDE the
+  `overflow-x-auto` element (not inside it — an absolutely-positioned
+  child of a scrolling container scrolls away with the content, since only
+  `position: sticky`/`fixed` stay pinned to the viewport, not plain
+  `absolute`), hints at the mobile table's horizontal scroll without any
+  scroll-position tracking, honoring the section's zero-client-JS
+  requirement.
 
 ## The quality floor (founder-set, checkpoint A close)
 

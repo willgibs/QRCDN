@@ -184,8 +184,21 @@ test.describe("marketing site", () => {
     // The two dashed warn/fail threshold lines are the only <line> elements
     // carrying a stroke-dasharray (axis baseline + tick marks are solid).
     await expect(plot.locator("line[stroke-dasharray]")).toHaveCount(2);
-    await expect(section.getByText("pass", { exact: true })).toBeVisible();
-    await expect(section.getByText("fail", { exact: true })).toBeVisible();
+
+    // The pass/fail dot-legend sits in the figure's first <div> (a sibling
+    // BEFORE the plot-frame div that wraps the svg), so scoping there keeps
+    // this off the svg's own "fail" threshold-line label entirely — an
+    // unscoped `section.getByText("fail", { exact: true })` strict-mode-
+    // violates at 2 elements (the legend's "fail" span AND the svg's <text>
+    // label both have "fail" as their exact trimmed content). "pass" has no
+    // svg-internal counterpart (only "warn"/"fail" label the threshold
+    // lines), so it happened to resolve to 1 match either way — scoped here
+    // too anyway, for the same reason and so the two assertions read as a
+    // matched pair rather than one accidentally-safe and one not.
+    const legend = section.locator("figure > div").first();
+    await expect(legend.getByText("pass", { exact: true })).toBeVisible();
+    await expect(legend.getByText("fail", { exact: true })).toBeVisible();
+
     await expect(
       section.getByText(
         "160+ style combinations · 2 adversarial decode campaigns · warn 0.395 · fail 0.412",
@@ -220,7 +233,12 @@ test.describe("marketing site", () => {
       .locator("section")
       .filter({ has: page.getByRole("heading", { name: "Not another QR generator." }) });
 
-    const table = section.locator("table");
+    // Review round 1 split the table into two DOM variants (mobile QRCDN-
+    // first, desktop QRCDN-last), toggled via md:hidden / hidden md:block —
+    // `:visible` picks whichever one the current viewport is actually
+    // showing (desktop, at this suite's default viewport) rather than
+    // matching both and strict-mode-violating.
+    const table = section.locator("table:visible");
     // 4 real columns + 1 blank corner cell above the row labels.
     await expect(table.locator("thead th")).toHaveCount(5);
     for (const column of [
@@ -241,6 +259,23 @@ test.describe("marketing site", () => {
     await expect(
       section.getByText("Category patterns, not claims about any specific vendor."),
     ).toBeVisible();
+  });
+
+  test("comparison: the elevated column leads the mobile order", async ({ page }) => {
+    // Review round 1: the elevated column has to be visible without
+    // scrolling on a narrow viewport, so mobile reorders it first (desktop
+    // keeps the deck's own QRCDN-last order — covered by the test above).
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto("/");
+    const section = page
+      .locator("section")
+      .filter({ has: page.getByRole("heading", { name: "Not another QR generator." }) });
+
+    const table = section.locator("table:visible");
+    // Header index 0 is the blank corner cell above the row labels; index 1
+    // is the first real data column — "QRCDN" regex for the same
+    // e2e-safety reason as the desktop test above.
+    await expect(table.locator("thead th").nth(1)).toHaveText(/^QRCDN$/);
   });
 
   test("open-source: #open-source anchor exists and the pillar strip chip points to it", async ({ page }) => {

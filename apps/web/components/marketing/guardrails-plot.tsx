@@ -177,8 +177,8 @@ export function GuardrailsPlot() {
 
       <figcaption className="flex flex-col gap-2">
         <p className="text-sm text-muted-foreground">
-          Actual campaign data. The gap between every pass and every fail is where the
-          thresholds live.
+          Real campaigns, real thresholds. The gap between every pass and every fail is where
+          they live.
         </p>
         <p className="text-xs text-muted-foreground/70">
           qr-engine.md records the aggregate pass/fail boundary from the 160+-combination

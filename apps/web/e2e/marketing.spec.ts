@@ -141,8 +141,11 @@ test.describe("marketing site", () => {
       await expect(section.getByText(`302 · no-store · ${destination}`)).toBeVisible();
     }
 
-    // The retired hero tagline's new home.
-    await expect(section.getByText("the printed code never changes")).toBeVisible();
+    // The retired hero tagline's new home. Exact match: the section's own
+    // lede ("...and the printed code never changes. Pause it...") contains
+    // this exact phrase as a substring, which a non-exact getByText also
+    // matches — a real strict-mode violation caught by CI, not a feature bug.
+    await expect(section.getByText("the printed code never changes", { exact: true })).toBeVisible();
 
     // Truthful state-cards: /u fallback, /p gate, dashboard "Expired" pill.
     await expect(section.getByText(/^\/u\//)).toBeVisible();

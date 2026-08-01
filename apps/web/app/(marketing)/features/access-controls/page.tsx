@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { Eyebrow } from "@/components/brand/magic";
 import { Section, SectionHeading, SectionBody } from "@/components/marketing/section";
 import { MonoStrip } from "@/components/marketing/mono-strip";
 import { LearnMoreLink } from "@/components/marketing/learn-more-link";
@@ -174,9 +175,12 @@ export default function AccessControlsFeaturePage() {
         </SectionBody>
       </Section>
 
-      {/* S4 — Pause it. Band/tint, deck-04 guarantee mono, verbatim. */}
+      {/* S4 — Pause it. Band/tint, deck-04 guarantee mono, verbatim. Same
+          Eyebrow+h2 shape /features/dynamic-codes' own guarantee band
+          uses, for one consistent "band" register across the site. */}
       <Section variant="band" surface="tint">
         <SectionBody className="flex flex-col items-center gap-6 text-center">
+          <Eyebrow>Guarantee</Eyebrow>
           <h2 className="max-w-2xl text-h3 font-display font-semibold text-foreground">Pause it.</h2>
           <p className="max-w-2xl text-base text-muted-foreground">
             Pause parks every scanner on a neutral page until you resume. It is a switch, not a

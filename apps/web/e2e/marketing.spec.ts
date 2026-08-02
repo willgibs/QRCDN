@@ -1,3 +1,5 @@
+import { readFileSync, readdirSync, statSync } from "node:fs";
+import { join, relative } from "node:path";
 import { test, expect } from "./fixtures";
 import { PLAN_LIMITS, PRICING } from "../lib/entitlements";
 import { CHANGELOG_ENTRIES } from "../lib/changelog";
@@ -38,6 +40,31 @@ const PUBLIC_PAGES = [
   "/blog",
   "/help",
 ] as const;
+
+/**
+ * Recursively collects every file under `dir` (P9.5-T8, "no shiki client
+ * chunk" test below). Same shape as `lib/no-em-dash.test.ts`'s
+ * `collectSourceFiles` — a plain recursive walk, no assumption that
+ * `.next/static/chunks` stays a flat directory forever (it is today, but a
+ * future Next version or route shape could nest it).
+ */
+function collectFiles(dir: string, out: string[] = []): string[] {
+  let entries: string[];
+  try {
+    entries = readdirSync(dir);
+  } catch {
+    return out;
+  }
+  for (const entry of entries) {
+    const full = join(dir, entry);
+    if (statSync(full).isDirectory()) {
+      collectFiles(full, out);
+    } else {
+      out.push(full);
+    }
+  }
+  return out;
+}
 
 test.describe("marketing site", () => {
   for (const path of PUBLIC_PAGES) {
@@ -1030,5 +1057,82 @@ test.describe("marketing site", () => {
   test("help: an unknown slug 404s", async ({ page }) => {
     const response = await page.goto("/help/not-a-real-article");
     expect(response?.status()).toBe(404);
+  });
+
+  // P9.5-T8 item 1 — the phase's one real remaining proof gap (the ascent
+  // spec's own scope-reality check: grepping every e2e spec for
+  // shiki/highlight returned nothing before this unit). lib/highlight.ts's
+  // whole claim is server-side syntax highlighting with zero client shiki
+  // chunks (`import "server-only"` as its first line, verified by hand at
+  // T1b/T3c/T5 via a post-build grep each time — see docs/STATUS.md). Two
+  // tests close the gap: the markup actually reaching the browser in the
+  // server response, and shiki itself never reaching a client bundle.
+
+  test("developers: shiki-highlighted markup is present in the raw served HTML", async ({
+    request,
+  }) => {
+    // request.get(), not page.goto(): the actual bytes the server sent,
+    // not a post-hydration DOM a client script could in theory have
+    // rewritten — same technique as the hero/pricing h1 opacity tests
+    // above. /developers is the CodeBlock-heaviest static page (Quickstart
+    // + the full endpoint reference), so a regression anywhere in the
+    // highlighting pipeline shows up here.
+    //
+    // The asserted shape is the REAL emitted one, read off lib/code-theme.ts
+    // (the shiki theme) and confirmed against lib/highlight.test.ts's own
+    // snapshot and the actual prerendered .next/server/app/developers.html
+    // — not a guessed class name: shiki wraps output in
+    // `<pre class="shiki qrcdn-code" ...>` and colors every token with an
+    // inline `style="color:var(--code-KIND)"` span. A plain, unhighlighted
+    // `<pre><code>{code}</code></pre>` (what CodeBlock would emit if
+    // `highlight()` stopped highlighting and just returned escaped text)
+    // satisfies neither assertion below — proven directly, not assumed:
+    // this test was run against a temporarily stubbed lib/highlight.ts
+    // that returned exactly that plain shape, failed on both assertions,
+    // then the stub was reverted and this test re-confirmed green. See
+    // this unit's report for the captured failure output.
+    const response = await request.get("/developers");
+    expect(response.status()).toBe(200);
+    const html = await response.text();
+
+    expect(html).toContain('class="shiki qrcdn-code"');
+    // At least one real per-token color span, not just the frame class
+    // above — the frame class alone would still be true of an empty or
+    // unhighlighted-but-relabeled block, so this is the actual proof that
+    // individual tokens were colored.
+    expect(html).toMatch(/<span style="color:var\(--code-[a-z-]+\)">/);
+  });
+
+  test("no shiki client chunk ships to the browser (server-only highlighting)", async () => {
+    // Companion to the test above, and the design guide's "zero client
+    // chunks" claim for shiki made into a standing check instead of a
+    // manual per-unit grep. `.next/static/chunks/**` is what the browser
+    // actually downloads; `.next/server/**` is server-only render output
+    // and legitimately DOES contain "shiki" (the prerendered HTML itself,
+    // including the very markup the test above asserts on) — this check
+    // is scoped to the client directory specifically, never the server one.
+    //
+    // Filesystem read, not a page fetch: safe because `next build` always
+    // runs as its own CI step immediately before `next start`/this suite
+    // in the same job (.github/workflows/e2e.yml: `pnpm --filter web
+    // build` then `pnpm --filter web test:e2e`), and playwright.config.ts's
+    // own `webServer` comment already documents that this suite never
+    // builds the app itself — only starts an already-built one. So
+    // `.next/static/chunks` is guaranteed to exist and reflect the exact
+    // build this suite is testing.
+    const chunksDir = join(__dirname, "..", ".next", "static", "chunks");
+    const files = collectFiles(chunksDir);
+    // Canary: if this ever reports a handful of files or fewer, something
+    // is wrong with the path/build (wrong directory, a build that didn't
+    // actually run) and the assertion below would pass by finding nothing
+    // to check rather than because the codebase is clean — the same
+    // "don't ship a silently-vacuous check" discipline
+    // lib/no-em-dash.test.ts's own canary test already established.
+    expect(files.length).toBeGreaterThan(10);
+
+    const offenders = files
+      .filter((file) => readFileSync(file, "utf8").includes("shiki"))
+      .map((file) => relative(chunksDir, file));
+    expect(offenders, `shiki leaked into client chunk(s): ${offenders.join(", ")}`).toEqual([]);
   });
 });

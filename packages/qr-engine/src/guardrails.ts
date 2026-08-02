@@ -6,7 +6,7 @@ import type { EccLevel } from "./matrix";
 // studio (live score), in the API (validation), and in CI (decode tests).
 
 /**
- * Empirical decode limits for the *effective* knockout ratio — logo sizeRatio
+ * Empirical decode limits for the *effective* knockout ratio: logo sizeRatio
  * plus padding dilution at the symbol version the renderer will actually use.
  * Measured by the adversarial zxing round-trip campaigns (2026-07-21, ECC H,
  * v3 and v5 symbols): every failing config had effective linear ratio
@@ -24,8 +24,8 @@ const LOGO_RATIO_ECC_Q_OK = 0.316;
 
 /**
  * Contrast-ratio guardrails (WCAG-style, sRGB relative luminance below).
- * Exported (P9.5-T3b) so a live UI instrument — the landing playground's
- * scannability meter — can plot the real warn/fail thresholds instead of
+ * Exported (P9.5-T3b) so a live UI instrument (the landing playground's
+ * scannability meter) can plot the real warn/fail thresholds instead of
  * re-typing them; `scannabilityReport` below is still the only place that
  * *evaluates* against them. Must stay analytic, never loosened by decode
  * round-trip results (see docs/guides/qr-engine.md's "Why decode

@@ -680,6 +680,169 @@ insertions required:
   scroll-position tracking, honoring the section's zero-client-JS
   requirement.
 
+## Feature-page composition (P9.5-T-F)
+
+The four `/features/*` pages (`dynamic-codes`, `analytics`, `brand-studio`,
+`access-controls`, shipped as two reviewed chunks) established the standing rule for
+any future page in this family: **a feature page COMPOSES the landing's already-proven
+section components with additive props — it never forks a copy of one, and it never
+invents a new visual system for content the landing already knows how to render.**
+Concretely, every reused body component in this family gained props with
+byte-identical DEFAULTS to their existing landing behavior, so the landing call sites
+needed zero changes: `StateCards` gained `layout?: "sidebar" | "grid"` (default
+`"sidebar"`, unchanged) and `only?: "unclaimed" | "password" | "expired"` (default
+`undefined`, unchanged — every existing call still renders all three cards) so a
+feature page can show one card bare or the full grid in a wider column;
+`ClosingSection` gained `title`/`lede` props (defaults identical to the landing's own
+closing copy) so a feature page's CTA can restate its own claim instead of the
+generic one; `Playground` gained `embedded?: boolean` (default `false`) specifically
+because it's the one reused component that bakes in its own `Section`/`SectionHeading`
+and closing doorway — `embedded=true` skips that outer shell so the feature page can
+supply its own head without a doorway link back to the page it's already on.
+`KitContactSheet` and `GuardrailsPlot` needed no new props at all — reused as-is.
+
+Two components are net-new and shared across every page in the family, deliberately
+NOT the landing's own more specific machinery: `feature-hero.tsx`'s `FeatureHero`
+(centered/air `Section`-built page-title block — not `Hero`, whose `hero-enter` CSS
+keyframes and `ScanNetwork`/`OrbitStage`/`AccentText`/`PillarStrip` machinery are tied
+to one specific top-of-funnel headline) and `faq-list.tsx`'s `FaqList` (a static,
+always-open `<dl>` — not `PricingFaq`'s `"use client"` accordion, since these pages'
+own non-negotiable is zero *new* client JS; the only client island any feature page
+uses is `RetargetTheatre`, already shipped and already bundled for the landing).
+
+**Doorways are per-page flags, not one shared boolean** (`lib/marketing-flags.ts`):
+`DYNAMIC_CODES_DOORWAY_ENABLED`, `ANALYTICS_DOORWAY_ENABLED`,
+`BRAND_STUDIO_DOORWAY_ENABLED`, `ACCESS_CONTROLS_DOORWAY_ENABLED`, one per
+`/features/*` route, each flipped `true` only once its destination page is real —
+forced by the chunking itself (chunk 1 shipped two of four pages; a single flag would
+either 404 the other two or hide the two that had already shipped). Every doorway
+link is a real, already-live href by the time it renders — `SiteNav`/`SiteFooter`'s
+"real hrefs only" rule (no `href="#"`, no link to a page that doesn't exist yet)
+applies here too.
+
+**Honest limits tables read from `PRICING_ROWS` where a field exists, and are a
+single static pair where it deliberately doesn't** — e.g. static-code count and
+export formats (D14: unconditionally unlimited on every plan, no `PlanLimits` field
+to read), or pause/resume (`setCodePausedCore` carries no plan gate at all). Verified
+against the real core function or schema before writing the static pair, never
+assumed.
+
+**Truth-gate discipline**: where a page needed to state exactly how the product
+behaves at a boundary (does the studio block an unscannable export? where does a
+password get checked? what are the real vanity-slug rules? does an expired code come
+back to life?), each such claim was proven against the actual source before shipping
+— `studio-shell.tsx`/`controls-rail.tsx` (warn-only export, never blocking),
+`workers/redirect/src/responses.ts`/`app/p/[slug]/page.tsx` (password checked
+server-side, destination never in the gate's own HTML), `lib/slug.ts` (the real 30-
+symbol charset and reserved-word rules), `lib/codes-core.ts`/`lib/access.ts` (expiry
+revival is immediate, by design, no separate "died once" flag exists). A future
+feature page making a similar boundary claim should verify it the same way — against
+the function or route that actually implements it — rather than paraphrasing the
+marketing deck.
+
+## Blog & help prose system (P9.5-T-R)
+
+Both `/blog` and `/help` follow `lib/changelog.ts`'s established split: one typed
+data file (`lib/blog.ts`, `lib/help.ts`) that the index page, the detail page, the
+RSS feed (blog only), and a vitest content-guard all read from identically — never a
+second hand-copied list. `lib/blog.test.ts`/`lib/help.test.ts` read each post/article
+directly (word-count bounds, zero em dash, zero internal phase code, and for blog,
+every `[V]` pull-quote as an exact substring) as a standing regression guard, the
+same "prove it, don't hand-maintain it" posture `lib/pricing.test.ts` and
+`lib/changelog.test.ts` already established.
+
+- **Measure.** Both use `max-w-prose` (`--container-prose`, 65ch) — the container
+  token reserved at P9.5-T1b explicitly as "the future blog unit's measure." Neither
+  page uses `SectionHeading`/`Reveal`: a long-form page a visitor reads top to bottom
+  has no scroll-triggered sequence to gate behind an `IntersectionObserver`, the same
+  reasoning `legal-shell.tsx` already established for `/terms`/`/privacy` — `Section`
+  itself is reused only for its outer frame (fluid gutter/section padding,
+  `divider="none"`), never for its heading machinery. A plain `<h1>` at `text-h1`
+  carries the page title directly.
+- **Byline treatment.** `components/marketing/blog/post-shell.tsx`'s `BlogPostShell`
+  renders one mono row (`byline · formatted date`, a `·` separator, `<time
+  dateTime>`) between the dek and the article body — the same register
+  `blog-index`/help's category labels use elsewhere, kept to one line rather than a
+  fuller author-card treatment (board decision: "QRCDN is the entity," company-
+  forward voice, byline is attribution not a profile).
+- **Category index.** `/help`'s index (`app/(marketing)/help/page.tsx`) groups
+  `HELP_ARTICLES` by `HELP_CATEGORIES` via `lib/help.ts`'s `helpArticlesByCategory()`
+  — a category heading (`text-eyebrow`, mono) per group, articles listed under it as
+  title + one-line summary. No search (`/help`'s own doc comment: 10 short articles
+  under 5 categories is browsable without one) — don't add one reflexively if the
+  article count grows modestly; reconsider only if it grows enough that browsing
+  genuinely stops working.
+- **The `CodeBlock`-in-post pattern.** A blog post that needs a real sample (post 1's
+  effective-knockout constants, post 2's redirect contract) imports the same
+  `components/marketing/code-block.tsx` `CodeBlock` every other surface uses
+  (`/developers`, the landing's API console) — a post is just another consumer of the
+  one shared, server-only shiki pipeline, not a special case. `post-shell.tsx`'s own
+  exports (`P`, `H2`, `Pull`) are the ONLY post-body primitives: a `Pull` blockquote
+  for a standalone verbatim line (left accent rule, larger type — a `blockquote`
+  because these are quotable standalone sentences, not emphasized words), `H2` sized
+  to `text-h3` rather than `text-h2` (the fluid `text-h2` ceiling reads oversized
+  next to body copy inside a 65ch column). A post that needs something these three
+  don't cover should extend `post-shell.tsx`, not invent a one-off element inline in
+  the post file itself.
+- **One file per post/article, looked up by slug.** Blog posts are TSX components
+  under `components/marketing/blog/posts/`, resolved through
+  `post-registry.tsx`'s slug→component map (see "MDX vs. TSX" below for why); help
+  articles are plain data (`doIt` steps + one `whatToExpect` paragraph) since they
+  never need embedded samples or pull-quotes. Both use the same
+  `generateStaticParams` + `dynamicParams = false` pattern (every real slug is a
+  static param; everything else 404s before the page component runs).
+
+**MDX vs. TSX, decided empirically, not from the bundled docs alone.** `@next/mdx`
+was installed, wired into `next.config.ts`, and a throwaway `.mdx` page was built and
+compiled clean under Turbopack in a real `pnpm build` — proving the bundled Next 16
+docs' caveat ("remark/rehype plugins without serializable options cannot yet be used
+with Turbopack") is narrower than "MDX doesn't work here." Reverted anyway: this repo
+has no `@tailwindcss/typography` and no prior MDX element-style mapping, so raw
+markdown output would render fully unstyled without a new `mdx-components.tsx` layer
+duplicating what `Section`/`CodeBlock`/the type scale already give typed TSX for
+free. If a future unit reconsiders MDX (e.g. for a much higher post volume where
+hand-authoring a TSX file per post stops scaling), that styling-layer gap — not
+Turbopack support — is the real blocker to solve first.
+
+## App shell additions (P9.5-T7)
+
+Two small, real patterns from the product quick-wins unit, worth recording so a
+future unit doesn't re-derive or accidentally diverge from them.
+
+- **Studio rail cluster headings.** `components/studio/controls-rail.tsx`'s six
+  existing sections (Payload, Codes, Colors, Shape, Logo, Export) are grouped under
+  two labelled clusters, "Design" (Colors, Shape, Logo) and "Content & output"
+  (Payload, Codes, Export), via a `ClusterHeading` one tier above each section's own
+  `Eyebrow` — bolder, `text-foreground` instead of muted, no `ModuleMark` glyph, so
+  the two heading tiers read as a real hierarchy rather than two same-weight labels
+  stacked on each other. Purely a grouping label: no control moved, no control
+  changed. Cluster order (Design first) is what keeps Export as the rail's last
+  section, matching its pre-existing bottom placement — that placement was already
+  correct before this unit and didn't need a second "emphasis" treatment on top of
+  it.
+- **`/codes`' header action slot.** The page header (`app/(app)/codes/page.tsx`) has
+  carried a `flex items-center justify-between` wrapper since before this unit, with
+  the right-hand side empty; T7 filled it with a "Create code" button. This is
+  **not** a sitewide `(app)` header convention — `/api-keys`' header, touched in the
+  same commit, is a plain stacked block with no such slot — so don't assume every
+  authenticated-app page header reserves one; check the specific page. The button
+  itself links to `/studio`, not a dedicated create route: `CreateCodeControl`
+  (`components/studio/create-code.tsx`) lives inside the Studio, wired to the live
+  payload/style being edited there, and there is no other create entry point to
+  deep-link to — the honest destination is the real one, not a shortcut that implies
+  a separate flow exists.
+
+**`status.qrcdn.com` deliberately does not share this design system.**
+`workers/status` (P9.5-T6) is its own Cloudflare Worker, its own `wrangler.jsonc`,
+and renders one self-contained HTML page from `render.ts` with literal color values
+hand-copied from `globals.css`'s dark-mode block — no import from `apps/web`, by
+design: it exists specifically as an independent failure domain from both the app
+(Vercel) and the redirect Worker, so a build-time coupling to `apps/web`'s tokens
+would undermine the one property that makes it worth having. If its dark palette
+ever drifts from `globals.css`, that's a manual re-sync (there's no build-time check
+for it, the same honest limitation `lib/brand-qr.ts`'s `brandQrBackdrop` map already
+documents for its own by-hand sync with `--qr-bg`), not a bug in either file.
+
 ## The quality floor (founder-set, checkpoint A close)
 
 The v4.2 hero (scan-network artwork + atmosphere + framed product windows + token-clean

@@ -21,7 +21,13 @@ import { createDynamicCode } from "@/app/(app)/studio/code-actions";
 import type { QrCode } from "@/lib/codes-core";
 
 const COPY_FLASH_TIMEOUT_MS = 1600;
-const CODE_LIMIT_MESSAGE = "Free includes 3 dynamic codes. Pro raises it to 250.";
+// P9.5-T8 item 5 (honest-content mechanical pass): was a hand-typed
+// "3"/"250" literal duplicating PLAN_LIMITS, which this file already
+// imports and uses correctly two lines below (line 114) — the hard rule
+// (CLAUDE.md: "Entitlement limits live in apps/web/lib/entitlements.ts
+// only") just wasn't applied to this one string. PLAN_LIMITS is a plain
+// synchronous import, safe to interpolate at module scope.
+const CODE_LIMIT_MESSAGE = `Free includes ${PLAN_LIMITS.free.dynamicCodes} dynamic codes. Pro raises it to ${PLAN_LIMITS.pro.dynamicCodes}.`;
 const GENERIC_ERROR_MESSAGE = "Couldn't create that code. Try again.";
 // P8-U4: createDynamicCode is now rate-limited (STUDIO_MUTATE_LIMIT).
 const RATE_LIMITED_MESSAGE = "Too many changes just now. Try again in a few minutes.";

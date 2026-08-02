@@ -17,6 +17,7 @@ import { createClient } from "@/lib/supabase/client";
 import { inkHexFromStyle } from "@/lib/qr-style-derive";
 import { stylesEqual } from "@/lib/style-compare";
 import { cn } from "@/lib/utils";
+import { PLAN_LIMITS } from "@/lib/entitlements";
 import {
   createBrandKit,
   deleteBrandKit,
@@ -469,7 +470,11 @@ export function KitBar({
           role="alert"
           className="absolute top-full left-0 z-10 mt-2 w-56 rounded-lg border border-border/60 bg-popover px-3 py-2 text-xs text-muted-foreground shadow-md"
         >
-          Free includes 1 brand kit. Pro removes the wait.
+          {/* P9.5-T8 item 5: was a hardcoded "1" duplicating
+              PLAN_LIMITS.free.brandKits (CLAUDE.md's entitlements-live-in-
+              one-place hard rule) — this file didn't import entitlements.ts
+              at all before this fix. */}
+          Free includes {PLAN_LIMITS.free.brandKits} brand kit. Pro removes the wait.
         </div>
       )}
       {actionError && (

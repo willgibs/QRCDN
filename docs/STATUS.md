@@ -1,6 +1,6 @@
 # Status
 
-_Last updated: 2026-08-01 (P9.5-T7 landed across two commits: four authenticated-app quick wins — /api-keys free-state showcase, /codes create button + per-row pause, studio rail regrouped into Design/Content & output clusters, zero-kit empty state — plus three riders: pricing label truth fix, P10 backlog note, and a 47-violation em-dash sweep with a standing regression test. The first commit's E2E run failed on its own new pause-toggle test; root-caused by local reproduction (a plain form and then a useActionState-driven one both failed to reliably apply a Server Action's response to the DOM) and fixed forward, never reverted, to a plain imperative call + hard reload. Two spec claims also found untrue and corrected rather than followed blindly: the em-dash rider's app/u/[slug] claim was already fixed at T3c, and the Proof section's "fixture user is free-tier" assumption was false, resolved by moving the free-plan e2e check to the deliberate last step of the money-path suite). Update this file at every phase boundary or significant commit._
+_Last updated: 2026-08-01 (P9.5-T8 closed the phase — proof, docs, and close. The one real proof gap: two new e2e tests prove shiki's server-highlighted markup actually reaches the browser response (raw `request.get()`, real emitted shape, no client chunk), the markup assertion proven meaningful by a temporary stub-and-restore cycle that watched it fail cleanly before restoring. `docs/guides/p9.5-ascent.md` reconciled unit-by-unit against the real git history as the phase's record rather than its forward-looking plan; `docs/guides/design-system.md` gained three sections (feature-page composition, the blog/help prose system, T7's app-shell additions) plus a note on why status.qrcdn.com deliberately doesn't share the design system. A same-day rider from the founder's own full production sweep: three em dashes rendering on the live landing page, sourced from packages/qr-engine's own doc comments via the build-time guardrails excerpt — fixed at the engine source (the excerpt must stay verbatim) plus a hardened assertion closing that specific class of gap. The honest-content pass found and fixed two small hardcoded-entitlement literals in the studio (both now read PLAN_LIMITS). The /codes pause control's fourth mechanism, `router.refresh()`, was tried once, timeboxed, and worked on the first attempt — three consecutive clean e2e runs — replacing the hard reload. This entry also amends the P9.5-T7 entry above with a third commit, `e695670` (a founder review round), that had never been folded in. **P9.5 — The Ascent — CLOSED.** Update this file at every phase boundary or significant commit._
 
 ## Current phase
 
@@ -928,6 +928,208 @@ Design-cluster-first ordering in the rail (preserves Export's bottom
 placement, not separately specified); the em-dash regression test's one
 explicit exemption (`lib/guardrails-excerpt.ts`).
 
+**Dated amendment (2026-08-01, found by P9.5-T8's own record-truing pass —
+not previously logged here):** a third T7 commit landed the same day as
+the two above and was never folded into this entry until now. `e695670`
+("review round 1") is the founder's live production review of the
+authenticated surfaces (both themes, 1440 + 390), finding three real
+defects, none a redesign. **HIGH** — "Peak day" fabricated a date for a
+zero-scan range: a naive `series.reduce((peak, point) => ..., series[0])`
+needs a seed, and when every point is 0 scans nothing ever beats it, so a
+brand-new account's stat tile read "Peak day / 0 / 2026-07-02" for a range
+with no scans at all — the exact class of accidentally-dishonest output
+this whole phase exists to sweep out, independently present in both
+`codes-overview-panel.tsx` and `code-analytics-panel.tsx`. Fixed with one
+tested `peakDayFrom` function (`lib/analytics.ts`), returning `day: null`
+when nothing real happened rather than assuming `series[0]` is always a
+real peak; `lib/analytics.test.ts` covers the zero-scan, real-peak, and
+tie-break cases directly. **MEDIUM** — the studio rail read "Ink" twice in
+a row under Colors (the Solid/Gradient fill-mode toggle and, two lines
+below, the actual color field); predates T7 (confirmed via `git show
+c664380`), carried through the regroup, fixed anyway — the toggle is now
+labeled "Fill." **LOW** — `/api-keys`' "See pricing" button spanned the
+full card width (~1340px at 1440) via `items-stretch`/`w-full`, reading as
+a form submit rather than a plain link; now natural inline width,
+left-aligned with the rest of the card's content. All three verified live
+in the browser pane against a throwaway admin-created account, in addition
+to the full local suite.
+
+**P9.5 CLOSED (2026-08-01) — The Ascent, phase close (P9.5-T8).** Spec:
+`docs/guides/p9.5-ascent.md`, now reconciled unit-by-unit against the real
+git history rather than left as the forward-looking plan it started as —
+read it for the full per-unit plan-vs-shipped record; this entry is the
+phase-level summary plus T8's own concrete work.
+
+**Delivered end to end:** T0's two real auth bugs (the magic-link
+template's `{{ .ConfirmationURL }}`/`token_hash` mismatch and the
+scanner-token-consumption bug) plus D16; T1's system layer (tokens,
+`Section` primitive, shiki, Recharts removed from the landing, hero LCP
+fixed, ScanNetwork legible at md/lg); T2's board artifact gate (orbit over
+dial, copy deck v3 including the no-em-dash rule); three board-reviewed
+landing chunks (T3a hero v4, T3b product-story bodies + board round 5,
+T3c credibility sections completing the 01-11 ordinal sequence); T4's
+supporting surfaces (pricing v2, legal, login value panel, 404); T5's docs
+ascent; two reviewed feature-page chunks (T-F1 dynamic-codes/analytics,
+T-F2 brand-studio/access-controls); T6's changelog, status.qrcdn.com, and
+OSS pack; T-R's blog and help center (with the MDX-to-TSX reversal and two
+real content-honesty fixes); T7's four product quick wins plus the
+phase's own em-dash sweep; and this T8 close. Every unit landed on a green
+CI+E2E run for its own SHA before the next began — the one time that bar
+was actually tested (T7's first push going E2E-red on its own new test),
+the response was fix-forward-and-report, not quiet re-polling or
+loosening what "done" means.
+
+**The divergences `docs/guides/p9.5-ascent.md` now records, summarized
+(full detail and sourcing lives there, unit by unit):** T-R shipped typed-
+TSX blog posts, not MDX — MDX was tried live and genuinely compiles under
+Turbopack, reverted because this codebase has no MDX styling layer and
+typed TSX gives that for free without one. T-R's own required fact-check
+found and fixed two real content defects: `privacy.tsx`'s account-deletion
+claim (a page outside T-R's own unit boundary) corrected to the real
+single path, and help article 8 states plainly that downgrade has no live
+path yet, since Stripe/P8.5 has never shipped. T-F2 found a "scheduling"
+capability described in its own copy deck that doesn't exist in the
+product, dropped it from its own ledes on the spot, and flagged
+`lib/pricing.ts`'s shared row label carrying the same imprecision for a
+later fix — T7 closed that loop. T7 itself found and fixed a standing-rule
+miss the marketing-only sweep had left open (47 em-dash violations across
+product and public scan-facing copy, now guarded by
+`lib/no-em-dash.test.ts`). The hero's board rounds 2-5 (orbit over dial,
+poster H1, the destination-hue palette, the no-em-dash rule's own origin)
+are recorded as the decision arc they were; `docs/guides/design-system.md`
+holds the implementation detail so the two docs don't duplicate it.
+
+**What explicitly did NOT happen, on purpose:** the deep studio/codes
+redesign — P9.5-T7's own scope note already names it a later phase, and
+nothing in this phase touched it beyond the four named quick wins.
+Stripe/P8.5 remains deferred, still blocked on the board creating the
+Stripe account (P8 verified zero code coupling; every "billing opens at
+launch" line across the site is still true today). Legal counsel review of
+`/terms`/`/privacy` remains queued to P10, flagged since P9-U4 and
+untouched here. `/explore` stays deleted (P9-U5). No new product surface
+was added this unit — T8's own spec explicitly forbade it, and the one
+place T8 touched product code at all (the `/codes` pause control) was a
+like-for-like mechanism swap proven against the same existing test, not a
+new feature.
+
+**T8's own work, this commit:**
+- **The one real proof gap: shiki markup in the served HTML.** Two new e2e
+  tests in `apps/web/e2e/marketing.spec.ts` fetch `/developers` via
+  `request.get()` (the raw server response, not the hydrated DOM) and
+  assert the real emitted shape — `class="shiki qrcdn-code"` plus at least
+  one `<span style="color:var(--code-KIND)">` token span, read directly
+  off `lib/code-theme.ts`/`lib/highlight.test.ts`'s own snapshot rather
+  than guessed — and a companion test walks `.next/static/chunks`
+  asserting zero files contain the string `shiki`, codifying the manual
+  grep every prior shiki-touching unit (T1b, T3c, T5) ran by hand each
+  time. The markup test was proven meaningful, not just present:
+  temporarily stubbing `lib/highlight.ts` to return a plain unhighlighted
+  `<pre><code>` wrapper, rebuilding, and running just this test produced a
+  clean failure (`Expected substring: "class=\"shiki qrcdn-code\""`, not
+  found in the received plain HTML); restoring the real highlighter and
+  rebuilding brought it back to green. Neither the stub nor its diff was
+  ever committed — `diff` against a pre-edit backup confirmed a
+  byte-identical restore before rebuilding the real version.
+- **Rider, folded in mid-unit at the orchestrator's instruction: three em
+  dashes rendering on the live landing page, sourced from a different
+  package.** The founder's own full production sweep (28 routes × 4
+  widths × 2 themes, chromium + webkit) found section 09's build-time
+  excerpt of `packages/qr-engine/src/guardrails.ts`
+  (`lib/guardrails-excerpt.ts`) rendering three em dashes to every visitor,
+  straight from that file's own doc comments (lines 9, 27-28) —
+  customer-facing by effect (the excerpt renders verbatim) even though the
+  source is a comment in a different workspace package, which is exactly
+  why T7's `app`/`components`/`lib`-scoped sweep couldn't have caught it.
+  Fixed at the source (`packages/qr-engine/src/guardrails.ts`, colon/
+  parens restructure, meaning unchanged) rather than in the excerpt logic
+  — the excerpt has to stay a verbatim slice, that's the entire point of
+  the section; one further em dash at line 72 sits outside the excerpted
+  range (never rendered to a visitor) and was deliberately left alone.
+  `lib/guardrails-excerpt.test.ts` gained a direct assertion that
+  `readGuardrailsExcerpt()`'s return value contains no em dash, closing
+  the specific class of gap (a different package, customer-facing only by
+  passing through this one function) rather than widening
+  `lib/no-em-dash.test.ts`'s own scope past what its header already
+  documents it can honestly cover. `packages/qr-engine`'s own 55-test
+  decode suite re-run directly per the playbook (comment-only change,
+  unaffected, still green).
+- **Honest-content mechanical pass** (not the judgment audit — that's the
+  board's own, separately). Two real hardcoded-entitlement literals found
+  and fixed, both trivial, both now interpolating `PLAN_LIMITS` instead of
+  a hand-typed number that happened to still be correct today:
+  `components/studio/create-code.tsx`'s free/pro dynamic-code-limit
+  message (the file already imported `PLAN_LIMITS` for other copy on the
+  same page) and `components/studio/kit-bar.tsx`'s free-kit-limit message
+  (which didn't import `entitlements.ts` at all before this fix). Zero
+  fake metrics, logos, testimonials, or invented customer names found
+  anywhere in rendered copy — checked across every marketing/blog/help/
+  changelog surface plus the comparison table and guardrails plot
+  specifically (no `Math.random`-sourced data anywhere; the guardrails
+  plot's scatter is fixed and authored; the comparison table's own
+  footnote already disclaims "category patterns, not claims about any
+  specific vendor"). Confirmed `lib/no-em-dash.test.ts` is wired into
+  plain `pnpm test` with no special configuration needed — vitest's
+  default include glob picks up every `*.test.ts` file outside `e2e/**`
+  automatically — and a direct run confirms both its assertions execute
+  (including its own canary against silently checking zero files).
+- **`/codes`' pause toggle: `router.refresh()` tried once, timeboxed, and
+  it worked.** T7 shipped `window.location.reload()` after two smoother
+  mechanisms (a form action, a `useActionState` form) both failed
+  empirically. The one mechanism T7 explicitly hadn't tried —
+  `router.refresh()` called imperatively from the client handler after the
+  action resolves, a genuinely different mechanism since it issues its own
+  explicit request rather than depending on an action response being
+  applied — was tried once here, per this unit's own strict timebox. It
+  worked on the first attempt: three consecutive full local
+  `money-path.spec.ts` runs against real production Supabase, 16/16 green
+  every time including the pause-then-resume test, zero flakes. Kept; the
+  hard reload is gone; `components/codes/pause-toggle-button.tsx`'s doc
+  comment now records this as the fourth mechanism and why it won.
+- **Docs reconciliation.** `docs/guides/p9.5-ascent.md` walked against the
+  real commit history (`6f63b2e..e695670`, plus this close) and rewritten
+  unit-by-unit as the phase record rather than the forward-looking plan it
+  started as — every unit now states plainly whether it shipped as planned
+  or diverged, and why, with real commit SHAs. `docs/guides/
+  design-system.md` gained three sections this phase's units had earned
+  but never written up: feature-page composition (the "compose, don't
+  fork" rule, plus the truth-gate discipline T-F used to verify every
+  boundary claim against source before shipping copy), the blog/help prose
+  system (measure, byline, category index, the `CodeBlock`-in-post
+  pattern, the MDX-vs-TSX call), and the T7 app-shell additions (the
+  studio rail's two-cluster grouping, `/codes`' header action slot —
+  explicitly noted as NOT a sitewide convention, since `/api-keys`' own
+  header, touched in the same T7 commit, has no such slot), plus a short
+  note on why `status.qrcdn.com` deliberately doesn't share this design
+  system at all. D16 had already landed at T0, so no new decision entry
+  was needed here. The T7 entry above gained the dated amendment
+  (immediately above this entry) recording `e695670`, which existed on
+  main but had never been folded into this file until this pass found the
+  gap while walking the real git history for the ascent-doc reconciliation.
+
+Verified: root `pnpm lint && pnpm typecheck && pnpm test` green across
+every workspace package (786 vitest: 23 shared + 25 workers/status + 55
+qr-engine + 138 workers/redirect + 545 web — the qr-engine decode suite
+re-run directly per the playbook since this unit touched
+`packages/qr-engine`), `pnpm build` keeps every marketing route at `○`
+(or `●` SSG for `/blog/[slug]`/`/help/[slug]`) and every `(app)` route at
+`ƒ`, byte-identical to the T7 baseline. Full local e2e (`pnpm test:e2e`,
+`next start`, real cloud Supabase fixture): **83/83 green** (81 baseline +
+2 new shiki assertions), including three additional standalone runs of
+`money-path.spec.ts` alone while proving the `router.refresh()` attempt
+(16/16 each time, on top of the 83/83 combined run). CI/E2E confirmation
+for this exact commit's SHA is the subject of this unit's own report, not
+asserted here in advance — same discipline this file has followed at
+every unit this phase.
+
+No deviations from the spec's numbered items. Judgment calls, all
+recorded above: the two entitlement-literal fixes went beyond "report
+only" because they were genuinely trivial and directly served the hard
+rule the audit was checking, matching the spec's own "do not refactor
+beyond trivial" allowance rather than its default of report-only; the
+`status.qrcdn.com` design-system note and the T7 amendment note were both
+found rather than assigned, and both included because leaving them out
+would have left the record less true than this unit found it.
+
 ## Phase ledger
 
 | Phase | Status | Ref |
@@ -944,7 +1146,8 @@ explicit exemption (`lib/guardrails-excerpt.ts`).
 | P7.5 Pro feature completion (vanity slugs, expiry+password, bulk) | ✅ shipped → founder review | `498ac62`…`1a8a290` |
 | P8 Proof & Protection (e2e, monitoring, uptime, rate limiting, staged abuse controls) | ✅ shipped | `ffd3dae`…`c87974b` |
 | P8.5 Stripe billing + entitlements | — deferred (board creating the account; verified zero coupling) | — |
-| P9 Marketing site (reference-site IA: big-idea landing + supporting pages) | ✅ shipped → board round 2 | `649f5ee`…U6 (this commit) |
+| P9 Marketing site (reference-site IA: big-idea landing + supporting pages) | ✅ shipped → board round 2 | `649f5ee`…`1548e4a` |
+| P9.5 The Ascent (2 auth fixes, system + landing rebuild, feature pages, docs ascent, changelog/status/OSS, blog/help, product quick wins, proof + docs close) | ✅ closed | `6f63b2e`…`e695670` + T8 (this commit) |
 | P10 Launch hardening → **Checkpoint C** (pre-launch founder review) | — | — |
 
 ## P10 backlog

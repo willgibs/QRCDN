@@ -1,16 +1,8 @@
 import Link from "next/link";
+import type { ReactNode } from "react";
 import { ChartLine } from "lucide-react";
 import type { DynamicCodeSummary } from "@/lib/codes-core";
 import { shortUrl } from "@/lib/short-url";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { CopyButton } from "@/components/marketing/copy-button";
 import { cn } from "@/lib/utils";
@@ -84,10 +76,6 @@ export function ProtectedTag() {
   );
 }
 
-/**
- * Status + protected-tag cluster, shared by both the desktop row and the
- * mobile card below so the two layouts can't drift on this piece.
- */
 function StatusCluster({ code }: { code: DynamicCodeSummary }) {
   return (
     <span className="flex flex-wrap items-center gap-1.5">
@@ -97,12 +85,6 @@ function StatusCluster({ code }: { code: DynamicCodeSummary }) {
   );
 }
 
-/** The primary-label link every row/card uses for click-through to
- *  `/codes/[slug]` — kept as a small shared piece so desktop and mobile
- *  render byte-identical link text/target, never nested inside a `<button>`
- *  or vice versa (both PauseToggleButton and the copy button sit as
- *  siblings, never inside this link, so there is no nested-interactive-
- *  element hazard). */
 function NameLink({ code, className }: { code: DynamicCodeSummary; className?: string }) {
   return (
     <Link
@@ -117,19 +99,18 @@ function NameLink({ code, className }: { code: DynamicCodeSummary; className?: s
   );
 }
 
-/** Short-link text + copy affordance, shared by both layouts. Displays the
- *  lowercase, no-scheme form (`qrcdn.com/SLUG`) — the printed/QR-encoded
- *  uppercase form (`lib/short-url.ts`'s `printedShortUrl`) is for the
- *  artifact, not a screen; the copy button still copies the full, usable
- *  `https://` URL (`shortUrl`, same construction `codes-core.ts`'s
- *  `bulkResultUrl` already uses for the bulk-create result list). */
-function ShortLink({ code, className }: { code: DynamicCodeSummary; className?: string }) {
+/** Short-link text + copy affordance. Displays the lowercase, no-scheme
+ *  form (`qrcdn.com/SLUG`) — the printed/QR-encoded uppercase form
+ *  (`lib/short-url.ts`'s `printedShortUrl`) is for the artifact, not a
+ *  screen; the copy button still copies the full, usable `https://` URL
+ *  (`shortUrl`, same construction `codes-core.ts`'s `bulkResultUrl` already
+ *  uses for the bulk-create result list). No manual max-width here — the
+ *  grid column itself (`CodeRow`'s `minmax(0, ...)` track) is what gives
+ *  `truncate` a boundary to clip against at desktop; at mobile the row's
+ *  own width does the same job. */
+function ShortLink({ code }: { code: DynamicCodeSummary }) {
   return (
-    <span className={cn("flex min-w-0 items-center gap-1", className)}>
-      {/* `min-w-0` here, not just on the flex container above: a flex
-       *  ITEM's default min-width is `auto` (its content size), which
-       *  overrides `truncate`'s overflow/ellipsis entirely until the item
-       *  itself is told it may shrink below that. */}
+    <span className="flex min-w-0 items-center gap-1">
       <span className="min-w-0 truncate font-mono text-xs text-muted-foreground">
         {shortUrl(code.slug).replace("https://", "")}
       </span>
@@ -142,25 +123,9 @@ function ShortLink({ code, className }: { code: DynamicCodeSummary; className?: 
   );
 }
 
-/** Sparkline cell content — falls back to `[]` (renders as the flat/quiet
- *  geometry, not a broken cell) if a code is somehow missing from the
- *  `scan_sparklines` result, which its own zero-fill contract (P9.6-U1)
- *  says should never happen for a real dynamic code. */
-function ActivityCell({
-  code,
-  sparklines,
-  className,
-}: {
-  code: DynamicCodeSummary;
-  sparklines: Map<string, number[]>;
-  className?: string;
-}) {
-  return <Sparkline values={sparklines.get(code.id) ?? []} className={className} />;
-}
-
 function RowActions({ code }: { code: DynamicCodeSummary }) {
   return (
-    <div className="flex items-center justify-end gap-1">
+    <div className="flex items-center gap-1 md:justify-end">
       <Button
         asChild
         variant="ghost"
@@ -176,19 +141,86 @@ function RowActions({ code }: { code: DynamicCodeSummary }) {
   );
 }
 
+/** Small muted field label, visible only below `md` — at desktop the
+ *  column header (`HeaderRow`) already gives each grid column its label. */
+function FieldLabel({ children }: { children: ReactNode }) {
+  return <span className="block text-xs text-muted-foreground md:hidden">{children}</span>;
+}
+
 /**
- * Below `md`, one card per code — same six pieces of information as the
- * desktop table, same reading order (name, short link, status, activity,
- * scans, actions), no column hidden. The pattern
- * `components/marketing/comparison-section.tsx` already uses for its own
- * mobile/desktop split: two real, independent variants gated by Tailwind
- * responsive display classes (`hidden md:block` / `md:hidden`), not one
- * variant reflowed via CSS — that file's own doc comment records why this
- * is reliable (a `display:none` subtree is excluded from the accessibility
- * tree, so exactly one variant is ever "there" for anything that queries
- * it, screen reader included).
+ * The grid-template-columns shared by the header row and every code row —
+ * one constant so the two can never drift apart. Name/Short link flex
+ * (`minmax(0, Nfr)`, so `truncate` inside them has a real boundary at any
+ * viewport width); Status hugs its content (pill width varies:
+ * "Active"/"Active Protected"/"Expired"...); Activity/Scans/Actions are
+ * fixed, sized to their known content (a sparkline, a right-aligned number,
+ * two small controls).
  */
-function MobileCodeCard({
+const GRID_COLUMNS =
+  "md:grid-cols-[minmax(0,1.7fr)_minmax(0,1.3fr)_auto_140px_84px_112px]";
+
+function HeaderRow() {
+  return (
+    <div
+      role="row"
+      className={cn(
+        "hidden border-b border-border/60 px-4 py-2 md:grid md:items-center md:gap-4",
+        GRID_COLUMNS,
+      )}
+    >
+      <span role="columnheader" className="text-xs font-medium text-foreground">
+        Name
+      </span>
+      <span role="columnheader" className="text-xs font-medium text-foreground">
+        Short link
+      </span>
+      <span role="columnheader" className="text-xs font-medium text-foreground">
+        Status
+      </span>
+      <span role="columnheader" className="text-xs font-medium text-foreground">
+        Activity
+      </span>
+      <span role="columnheader" className="text-right text-xs font-medium text-foreground">
+        Scans
+      </span>
+      <span role="columnheader" className="sr-only">
+        Actions
+      </span>
+    </div>
+  );
+}
+
+/**
+ * One code, one row — the single source of truth for both the desktop
+ * "table" look and the mobile "card" look (P9.6-U2 follow-up; this
+ * replaced an earlier version that rendered every row TWICE, once per
+ * layout, real `<table>`/`<tr>` markup for one and a parallel `<div>` card
+ * list for the other). Measured cost of that: 60 seeded codes produced a
+ * ~980KB response — 422 `<svg>`/120 `<polyline>` (60 sparklines × 2
+ * variants) — and, independently, React's own streaming SSR taxed every
+ * row a SECOND time: a `<tr>` can't be safely streamed as a standalone
+ * out-of-order chunk (a bare `<tr>` outside a `<table>` gets
+ * foster-parented by the browser's HTML parser), so React wrapped each of
+ * the 60 real `<table>` rows in its own temporary `<table
+ * hidden><tbody id="S:N">…</tbody></table>` replacement segment — ~339KB
+ * (34% of the response) in wrapper overhead alone, verified by inspecting
+ * the raw response text, gone once nothing here is a real `<table>`.
+ *
+ * One `role="row"`/`role="cell"` markup, styled two ways via `md:` —
+ * mobile-first: a bordered card, fields stacked top-to-bottom in the exact
+ * column order (Name, Short link, Status, Activity, Scans, Actions), each
+ * with its own small `FieldLabel` since there's no column header at this
+ * width. At `md` and up: `display` switches to `grid`
+ * (`GRID_COLUMNS`), the card chrome turns off, and `FieldLabel` hides
+ * (the header row already named the column). Real ARIA roles
+ * (`table`/`row`/`cell`/`columnheader`) are set explicitly rather than
+ * relied on implicitly from `<table>`/`<tr>`/`<td>` tag semantics — the
+ * accessibility tree gets the same table structure either way, but
+ * `display: grid`/`flex` on a plain `<div>` has no risk of a browser
+ * stripping an implicit role the way `display` changes historically could
+ * for native table elements.
+ */
+function CodeRow({
   code,
   sparklines,
 }: {
@@ -196,40 +228,65 @@ function MobileCodeCard({
   sparklines: Map<string, number[]>;
 }) {
   return (
-    <div className="flex flex-col gap-3 rounded-xl border border-border/60 p-4">
-      <div className="flex items-start justify-between gap-3">
-        <NameLink code={code} className="min-w-0 truncate font-medium" />
-        <PauseToggleButton id={code.id} paused={code.status === "paused"} />
+    <div
+      role="row"
+      className={cn(
+        "flex flex-col gap-3 rounded-xl border border-border/60 p-4",
+        "md:grid md:items-center md:gap-4 md:rounded-none md:border-0 md:p-0 md:px-4 md:py-3",
+        GRID_COLUMNS,
+      )}
+    >
+      <div role="cell" className="min-w-0">
+        <FieldLabel>Name</FieldLabel>
+        <NameLink code={code} className="block truncate font-medium" />
       </div>
-      <ShortLink code={code} />
-      <StatusCluster code={code} />
-      <ActivityCell code={code} sparklines={sparklines} className="h-8 w-full" />
-      <div className="flex items-center justify-between border-t border-border/60 pt-2.5">
-        <span className="text-xs text-muted-foreground">Scans</span>
-        <span className="font-mono text-sm tabular-nums text-foreground">
+      <div role="cell" className="min-w-0">
+        <FieldLabel>Short link</FieldLabel>
+        <ShortLink code={code} />
+      </div>
+      <div role="cell">
+        <FieldLabel>Status</FieldLabel>
+        <StatusCluster code={code} />
+      </div>
+      <div role="cell">
+        <FieldLabel>Activity</FieldLabel>
+        <Sparkline
+          values={sparklines.get(code.id) ?? []}
+          className="h-8 w-full md:h-7 md:w-32"
+        />
+      </div>
+      <div role="cell" className="md:text-right">
+        <FieldLabel>Scans</FieldLabel>
+        <span className="block font-mono text-sm tabular-nums text-foreground">
           {code.scan_count.toLocaleString()}
         </span>
+      </div>
+      <div role="cell">
+        <span className="sr-only">Actions</span>
+        <RowActions code={code} />
       </div>
     </div>
   );
 }
 
 /**
- * The `/codes` overview table (P9.6-U2 redesign) — server-renderable (no
- * "use client"). Columns: Name · Short link · Status · Activity (sparkline)
- * · Scans · actions. Row click-through to `/codes/[slug]` lives on the Name
- * cell's own link (`NameLink`) rather than a row-wide overlay — real anchor,
- * zero JS, keyboard-operable, and it sits away from the Actions cell's
- * controls by construction (different cells), so there's no
- * click-interference to design around. The Actions cell groups an explicit
- * "view analytics" icon-link with `PauseToggleButton` (kept byte-for-byte —
- * see that file's own do-not-retry note) instead of today's two bare
- * floating text links.
+ * The `/codes` table (P9.6-U2 redesign, single-DOM follow-up) —
+ * server-renderable, no "use client" anywhere in this file. Columns: Name ·
+ * Short link · Status · Activity (sparkline) · Scans · actions. Row
+ * click-through to `/codes/[slug]` lives on the Name cell's own link
+ * (`NameLink`) rather than a row-wide overlay — real anchor, zero JS,
+ * keyboard-operable, and it sits in its own cell away from the Actions
+ * cell's controls, so there's no click-interference to design around. The
+ * Actions cell groups an explicit "view analytics" icon-link with
+ * `PauseToggleButton` (kept byte-for-byte — see that file's own
+ * do-not-retry note) instead of the original page's two bare floating text
+ * links.
  *
- * `sparklines`: `code_id -> daily scan counts`, one array per code, from
- * `scan_sparklines` (P9.6-U1) — already zero-filled server-side over the
- * page's resolved range. Built once in `app/(app)/codes/page.tsx` and
- * threaded straight through; this component does no data fetching.
+ * `codes` is the CALLER's already-paginated slice (`app/(app)/codes/page.tsx`,
+ * `lib/pagination.ts`), not the full account — this component has no
+ * pagination awareness of its own. `sparklines`: `code_id -> daily scan
+ * counts`, one array per code, from `scan_sparklines` (P9.6-U1) — already
+ * zero-filled server-side over the page's resolved range.
  */
 export function CodesTable({
   codes,
@@ -239,58 +296,17 @@ export function CodesTable({
   sparklines: Map<string, number[]>;
 }) {
   return (
-    <>
-      <Card className="hidden md:block">
-        <CardContent className="px-0">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Name</TableHead>
-                <TableHead>Short link</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Activity</TableHead>
-                <TableHead className="text-right">Scans</TableHead>
-                <TableHead className="sr-only">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {codes.map((code) => (
-                <TableRow key={code.id}>
-                  <TableCell className="font-medium">
-                    <NameLink code={code} />
-                  </TableCell>
-                  <TableCell>
-                    {/* max-w constrains the flex row so `truncate` inside
-                     *  ShortLink has an actual boundary to clip against —
-                     *  a <td> otherwise sizes to its widest content (a
-                     *  30-char vanity slug, D14's Pro ceiling), which would
-                     *  make `truncate` a no-op. */}
-                    <ShortLink code={code} className="max-w-[200px]" />
-                  </TableCell>
-                  <TableCell>
-                    <StatusCluster code={code} />
-                  </TableCell>
-                  <TableCell>
-                    <ActivityCell code={code} sparklines={sparklines} className="h-7 w-28" />
-                  </TableCell>
-                  <TableCell className="text-right font-mono tabular-nums">
-                    {code.scan_count.toLocaleString()}
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <RowActions code={code} />
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
-
-      <div className="flex flex-col gap-3 md:hidden">
+    <div
+      role="table"
+      aria-label="Dynamic codes"
+      className="flex flex-col gap-3 md:block md:overflow-x-auto md:rounded-xl md:border md:border-border/60"
+    >
+      <HeaderRow />
+      <div role="rowgroup" className="flex flex-col gap-3 md:block md:divide-y md:divide-border/60">
         {codes.map((code) => (
-          <MobileCodeCard key={code.id} code={code} sparklines={sparklines} />
+          <CodeRow key={code.id} code={code} sparklines={sparklines} />
         ))}
       </div>
-    </>
+    </div>
   );
 }

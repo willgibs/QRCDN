@@ -6,8 +6,10 @@ import { listDynamicCodesCore } from "@/lib/codes-core";
 import { PLAN_LIMITS, type Plan } from "@/lib/entitlements";
 import { rangeLabel, rangeWindowUtc, resolveRangeDays } from "@/lib/analytics";
 import { parseSparklinePoints } from "@/lib/sparkline";
+import { pageSliceFor, resolveCodesPage, totalPagesFor } from "@/lib/pagination";
 import { CodesTable } from "@/components/codes/codes-table";
 import { CodesOverviewPanel } from "@/components/codes/codes-overview-panel";
+import { CodesPagination } from "@/components/codes/codes-pagination";
 import { StatTile } from "@/components/codes/stat-tile";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -29,7 +31,7 @@ const STRIP_CELL_CLASS = "px-4 py-3 sm:px-5 sm:py-4";
  * codes/[slug]/page.tsx.
  */
 export default async function CodesOverviewPage(props: PageProps<"/codes">) {
-  const { range: rangeParam } = await props.searchParams;
+  const { range: rangeParam, page: pageParam } = await props.searchParams;
 
   const supabase = await createClient();
   const { data, error } = await supabase.auth.getClaims();
@@ -93,11 +95,28 @@ export default async function CodesOverviewPage(props: PageProps<"/codes">) {
   );
 
   // All-time total: qr_codes.scan_count, a denormalized lifetime counter —
-  // unaffected by the selected range, exactly as today.
+  // unaffected by the selected range, exactly as today. Computed from the
+  // FULL `codes` array, same as activeCodes/codeLimit below — pagination
+  // (next) only ever slices what the TABLE renders, never these
+  // account-wide stat-strip figures.
   const totalScans = codes.reduce((sum, code) => sum + code.scan_count, 0);
   const rangeTotal = dailyRows.reduce((sum, row) => sum + row.scans, 0);
   const activeCodes = codes.filter((code) => code.status === "active").length;
   const codeLimit = PLAN_LIMITS[plan].dynamicCodes;
+
+  // P9.6-U2 follow-up: 250 rows in one document was never a reasonable
+  // target regardless of any single row's byte cost — this slices `codes`
+  // to one page's worth before it ever reaches CodesTable. `?page=`
+  // resolved server-side the same way `?range=` already is
+  // (resolveRangeDays's own sibling, lib/pagination.ts's
+  // resolveCodesPage): malformed/out-of-range input clamps rather than
+  // erroring. sparklines stays built from every code (cheap — one RPC call
+  // regardless of page size) but only the current page's codes ever call
+  // `.get()` on it, so only this page's sparkline SVGs actually render.
+  const totalPages = totalPagesFor(codes.length);
+  const codesPage = resolveCodesPage(Array.isArray(pageParam) ? pageParam[0] : pageParam, codes.length);
+  const { start, end } = pageSliceFor(codesPage);
+  const pagedCodes = codes.slice(start, end);
 
   return (
     <div>
@@ -178,7 +197,10 @@ export default async function CodesOverviewPage(props: PageProps<"/codes">) {
             .
           </p>
         ) : (
-          <CodesTable codes={codes} sparklines={sparklines} />
+          <>
+            <CodesTable codes={pagedCodes} sparklines={sparklines} />
+            <CodesPagination page={codesPage} totalPages={totalPages} />
+          </>
         )}
       </main>
     </div>

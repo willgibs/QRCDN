@@ -273,22 +273,18 @@ test.describe.serial("money path", () => {
     await page.goto(`${E2E_BASE_URL}/codes`);
     await expect(page.getByRole("heading", { name: "Codes" })).toBeVisible();
 
-    // P9.6-U2 redesign: /codes now renders the codes list twice in the DOM
-    // — a real <table> (md and up) and a card-per-code list (<md) — each
-    // gated by a Tailwind responsive display class, same pattern
-    // components/marketing/comparison-section.tsx already uses for its own
-    // mobile/desktop column-order split. Only one is ever actually visible
-    // at a given viewport, but a viewport-agnostic locator like
-    // `getByText(CODE_NAME)` would still resolve to BOTH copies in the DOM
-    // and throw a strict-mode violation. `table:visible` (this suite runs
-    // "Desktop Chrome", playwright.config.ts, so the <table> is always the
-    // visible one here) scopes every lookup below to the one variant that's
-    // actually on screen — the same fix comparison-section.tsx's own e2e
-    // coverage already established for this exact two-variant shape.
-    const table = page.locator("table:visible");
-    await expect(table.getByText(CODE_NAME, { exact: true })).toBeVisible();
-    await expect(table.getByText(BULK_NAME_1, { exact: true })).toBeVisible();
-    await expect(table.getByText(BULK_NAME_2, { exact: true })).toBeVisible();
+    // P9.6-U2 follow-up: the table redesign that first shipped here rendered
+    // every code TWICE (a real <table> at md+, a parallel card list below
+    // md), which meant a viewport-agnostic locator like this one had to be
+    // scoped to whichever variant was actually visible. That two-variant
+    // shape was itself the root cause of a real /codes byte-size defect
+    // (measured, fixed the same follow-up: see codes-table.tsx's own doc
+    // comment) — CodesTable now renders each code's row exactly ONCE,
+    // reflowing via CSS (grid at md+, a stacked card below it) rather than
+    // duplicating markup, so a plain unscoped locator is correct again.
+    await expect(page.getByText(CODE_NAME, { exact: true })).toBeVisible();
+    await expect(page.getByText(BULK_NAME_1, { exact: true })).toBeVisible();
+    await expect(page.getByText(BULK_NAME_2, { exact: true })).toBeVisible();
   });
 
   test("/codes shows the Create button, and the row pause toggle flips the status text and back", async () => {
@@ -296,10 +292,11 @@ test.describe.serial("money path", () => {
     // create entry point — there is no separate create route).
     await expect(page.getByRole("link", { name: "Create code" })).toHaveAttribute("href", "/studio");
 
-    // Scope to CODE_NAME's own row (within the visible desktop <table> —
-    // see the comment above) so this can't accidentally match one of the
-    // two bulk-created rows also on this page.
-    const row = page.locator("table:visible").getByRole("row").filter({ hasText: CODE_NAME });
+    // Scope to CODE_NAME's own row so this can't accidentally match one of
+    // the two bulk-created rows also on this page. CodesTable's rows are
+    // `role="row"` (explicit ARIA, not a native <tr> — see that file's own
+    // doc comment), which `getByRole("row")` matches identically either way.
+    const row = page.getByRole("row").filter({ hasText: CODE_NAME });
     await expect(row.getByText("Active", { exact: true })).toBeVisible();
 
     await row.getByRole("button", { name: "Pause" }).click();

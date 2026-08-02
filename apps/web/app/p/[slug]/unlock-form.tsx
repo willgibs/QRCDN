@@ -11,7 +11,7 @@ const WRONG_PASSWORD_ERROR = "Wrong password. Try again.";
 // P8-U4: verifyCodeAccess can now return a distinct `rate_limited` error
 // (apps/web/app/p/[slug]/actions.ts, P_UNLOCK_LIMIT) — surfaced here rather
 // than left to fall through to GENERIC_ERROR, same reasoning
-// components/studio/code-access-dialog.tsx's ERROR_COPY map exists for: a
+// components/codes/code-access-dialog.tsx's ERROR_COPY map exists for: a
 // generic "try again" is actively misleading for a non-transient failure
 // (retrying immediately can only fail again). Not one of this unit's
 // explicitly-named UI error-copy spots (those are all Studio components);

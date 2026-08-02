@@ -5,6 +5,8 @@ import { Area, AreaChart, CartesianGrid, XAxis } from "recharts";
 import type { Json, Tables } from "@qrcdn/shared";
 import {
   ChartContainer,
+  ChartLegend,
+  ChartLegendContent,
   ChartTooltip,
   ChartTooltipContent,
   type ChartConfig,
@@ -14,7 +16,15 @@ import { EASE_OUT } from "@/components/brand/magic";
 import { RangeSelector, rangeLabel } from "@/components/codes/range-selector";
 import { StatTile } from "@/components/codes/stat-tile";
 import { useMounted } from "@/hooks/use-mounted";
-import { maxRangeDaysFor, peakDayFrom, sumBuckets, toChartSeries, type RangeDays } from "@/lib/analytics";
+import { formatDate } from "@/lib/date-format";
+import {
+  axisTicks,
+  maxRangeDaysFor,
+  peakDayFrom,
+  sumBuckets,
+  toChartSeries,
+  type RangeDays,
+} from "@/lib/analytics";
 import { PLAN_LIMITS, type Plan } from "@/lib/entitlements";
 
 type DailyRow = Pick<
@@ -149,8 +159,36 @@ function AnimatedStatTile({
   );
 }
 
+/**
+ * One breakdown row, WITH a proportion bar (P9.6-U3) — previously bare
+ * label+count text, while our own marketing mock of this exact dashboard
+ * (components/marketing/dashboard-window.tsx's BreakdownRow) already showed
+ * bars. Same recipe ported over: width proportional to that column's OWN
+ * max value (`sumBuckets` already returns entries sorted descending, so
+ * `entries[0].count` IS that max — no separate Math.max pass needed), one
+ * accent color regardless of rank (D13 single-accent rule, same stance
+ * sparkline.tsx already takes).
+ */
+function BreakdownRow({ label, count, maxCount }: { label: string; count: number; maxCount: number }) {
+  return (
+    <li className="flex items-center gap-3 text-sm">
+      <span className="w-20 shrink-0 truncate text-foreground sm:w-24">{label}</span>
+      <span className="h-1.5 flex-1 overflow-hidden rounded-full bg-muted">
+        <span
+          className="block h-full rounded-full bg-chart-1"
+          style={{ width: `${(count / maxCount) * 100}%` }}
+        />
+      </span>
+      <span className="w-12 shrink-0 text-right font-mono text-xs tabular-nums text-muted-foreground">
+        {count.toLocaleString()}
+      </span>
+    </li>
+  );
+}
+
 function Breakdown({ title, buckets }: { title: string; buckets: Json[] }) {
   const entries = sumBuckets(buckets);
+  const maxCount = entries[0]?.count ?? 0;
   return (
     <div>
       <h3 className="mb-2 font-mono text-xs uppercase tracking-[0.15em] text-muted-foreground">
@@ -161,12 +199,7 @@ function Breakdown({ title, buckets }: { title: string; buckets: Json[] }) {
       ) : (
         <ul className="flex flex-col gap-1.5">
           {entries.map((entry) => (
-            <li key={entry.key} className="flex items-center justify-between gap-3 text-sm">
-              <span className="truncate text-foreground">{prettyKey(entry.key)}</span>
-              <span className="font-mono text-xs tabular-nums text-muted-foreground">
-                {entry.count.toLocaleString()}
-              </span>
-            </li>
+            <BreakdownRow key={entry.key} label={prettyKey(entry.key)} count={entry.count} maxCount={maxCount} />
           ))}
         </ul>
       )}
@@ -174,11 +207,34 @@ function Breakdown({ title, buckets }: { title: string; buckets: Json[] }) {
   );
 }
 
-function RecentActivity({ events, cityGeo }: { events: RecentEvent[]; cityGeo: boolean }) {
+/**
+ * P9.6-U3 honesty fix: `events` (raw `scan_events`, limited to the last 10)
+ * used to render "No scans yet" whenever it was empty — even for a code
+ * with real lifetime activity. That's a real, reachable false statement:
+ * `scan_events` and the `scan_daily` rollups the chart above reads have
+ * DIFFERENT retention (lib/purge.ts — raw events trim at the plan's
+ * `analyticsRetentionDays`, 30 free / 365 Pro; rollups trim at 400 days),
+ * so a code scanned only outside the raw-event retention window has real,
+ * chartable history with zero raw events left to list here.
+ * `lifetimeScans` (qr_codes.scan_count, threaded down from the page's
+ * DynamicCodeSummary) is data this page already has and is exactly the
+ * fact needed to tell the two cases apart honestly.
+ */
+function RecentActivity({
+  events,
+  cityGeo,
+  lifetimeScans,
+}: {
+  events: RecentEvent[];
+  cityGeo: boolean;
+  lifetimeScans: number;
+}) {
   if (events.length === 0) {
     return (
       <p className="text-sm text-muted-foreground">
-        No scans yet. Activity shows up here the moment someone scans this code.
+        {lifetimeScans > 0
+          ? `No recent activity to show here, though this code has ${lifetimeScans.toLocaleString()} scans on record. See the chart above for its full history.`
+          : "No scans yet. Activity shows up here the moment someone scans this code."}
       </p>
     );
   }
@@ -231,12 +287,16 @@ export function CodeAnalyticsPanel({
   dailyRows,
   scansToday,
   recentEvents,
+  lifetimeScans,
 }: {
   plan: Plan;
   range: RangeDays;
   dailyRows: DailyRow[];
   scansToday: number;
   recentEvents: RecentEvent[];
+  /** qr_codes.scan_count — see RecentActivity's own doc comment for why
+   *  this page needs it alongside `recentEvents`. */
+  lifetimeScans: number;
 }) {
   const cityGeo = PLAN_LIMITS[plan].cityGeo;
   const maxDays = maxRangeDaysFor(plan);
@@ -284,9 +344,19 @@ export function CodeAnalyticsPanel({
                   tickLine={false}
                   axisLine={false}
                   tickMargin={8}
-                  interval="preserveStartEnd"
+                  ticks={axisTicks(series)}
+                  tickFormatter={formatDate}
                 />
-                <ChartTooltip content={<ChartTooltipContent />} />
+                <ChartTooltip
+                  content={<ChartTooltipContent labelFormatter={(label) => formatDate(String(label))} />}
+                />
+                {/* Two series, one color each (violet scans, cyan uniques) —
+                    the chart had no legend at all before P9.6-U3, so nothing
+                    on the page said which line was which.
+                    ChartLegend/ChartLegendContent (components/ui/chart.tsx)
+                    already existed for exactly this, just unused
+                    repo-wide until now. */}
+                <ChartLegend content={<ChartLegendContent />} />
                 <Area
                   dataKey="scans"
                   type="monotone"
@@ -320,7 +390,7 @@ export function CodeAnalyticsPanel({
         <AnimatedStatTile
           label="Peak day"
           value={peakDay.scans.toLocaleString()}
-          caption={peakDay.day ?? undefined}
+          caption={peakDay.day ? formatDate(peakDay.day) : undefined}
         />
         <AnimatedStatTile label="Today so far" value={scansToday.toLocaleString()} />
       </div>
@@ -338,7 +408,7 @@ export function CodeAnalyticsPanel({
         </h3>
         <Card>
           <CardContent>
-            <RecentActivity events={recentEvents} cityGeo={cityGeo} />
+            <RecentActivity events={recentEvents} cityGeo={cityGeo} lifetimeScans={lifetimeScans} />
           </CardContent>
         </Card>
       </div>

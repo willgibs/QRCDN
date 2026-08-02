@@ -67,19 +67,34 @@ function localInputValueToIso(value: string): string | null {
 }
 
 /**
- * "Access…" dialog on a codes-list row (P7.5-U2) — the vendored `Dialog`
- * primitive's first consumer. Lets the caller set/clear an expiry and set/
- * remove a password on a dynamic code. Free-plan callers see the same
- * controls disabled behind a "Pro" pill + tooltip that
+ * "Access…" dialog (P7.5-U2, lifted to this shared location at P9.6-U3) —
+ * the vendored `Dialog` primitive's first consumer. Lets the caller set/
+ * clear an expiry and set/remove a password on a dynamic code. Free-plan
+ * callers see the same controls disabled behind a "Pro" pill + tooltip that
  * components/codes/range-selector.tsx uses for its own Pro-locked range
  * options — same affordance, new surface.
+ *
+ * Originally studio-only (components/studio/code-access-dialog.tsx). Moved
+ * here unchanged at P9.6-U3 once the code detail page
+ * (app/(app)/codes/[slug]/page.tsx, via components/codes/code-actions-panel.tsx)
+ * needed the exact same dialog: this component was already uncoupled from
+ * studio state (imports only ui primitives, `PLAN_LIMITS`, `setCodeAccess`,
+ * and `DynamicCodeSummary`), so the move is a relocation, not a rewrite.
  *
  * Save calls the `setCodeAccess` server action (code-actions.ts,
  * requireUserContext — same destructive-adjacent tier as retarget/pause:
  * this changes what a printed, live code does when scanned) and, on
  * success, bubbles the new `{expiresAt, passwordProtected}` up via
- * `onSaved` so the caller (codes-list.tsx -> studio-shell.tsx) can refresh
- * its `codes` state exactly the way retarget/pause already do.
+ * `onSaved`. Callers must mount this component CONDITIONALLY on their own
+ * open state (`{open && <CodeAccessDialog ... open .../>}`), never
+ * unconditionally with just `open={boolean}` — `expiresDraft`/`passwordDraft`
+ * initialize via `useState` initializers read from `code` once, at mount
+ * time, so an always-mounted instance would keep showing a stale draft after
+ * `code` changes underneath it. `components/studio/codes-list.tsx` and
+ * `code-actions-panel.tsx` both follow this pattern; see their own call
+ * sites for the two different post-`onSaved` strategies (smooth local
+ * state update vs. a full reload) — this component itself is agnostic to
+ * which.
  */
 export function CodeAccessDialog({
   code,

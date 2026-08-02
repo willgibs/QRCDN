@@ -46,6 +46,7 @@ const RUN_ID = randomUUID().slice(0, 8);
 const CODE_NAME = `E2E money path ${RUN_ID}`;
 const ORIGINAL_DESTINATION = "https://example.com/e2e-original";
 const RETARGETED_DESTINATION = "https://example.com/e2e-retargeted";
+const DETAIL_PAGE_DESTINATION = "https://example.com/e2e-detail-page-retarget";
 
 const BULK_NAME_1 = `E2E bulk one ${RUN_ID}`;
 const BULK_NAME_2 = `E2E bulk two ${RUN_ID}`;
@@ -304,6 +305,98 @@ test.describe.serial("money path", () => {
 
     await row.getByRole("button", { name: "Resume" }).click();
     await expect(row.getByText("Active", { exact: true })).toBeVisible();
+  });
+
+  // P9.6-U3: /codes/[slug] rebuilt from an analytics-only page into the
+  // code's real home — the artifact itself, plus all four actions. Each
+  // sub-test below exercises exactly one action from THIS page (not the
+  // Studio rail, which the earlier tests above already cover), reusing the
+  // same fixture code/slug the rest of this file already minted.
+  test("code detail page: shows the artifact and its identity", async () => {
+    await page.goto(`${E2E_BASE_URL}/codes/${slug}`);
+    await expect(page.getByRole("heading", { name: CODE_NAME })).toBeVisible();
+    await expect(page.getByRole("link", { name: "← Codes" })).toHaveAttribute("href", "/codes");
+
+    // Rendered server-side from the code's frozen style snapshot
+    // (app/(app)/codes/[slug]/page.tsx, via lib/preview.ts's renderPreview) —
+    // this is the assertion that would fail if the style/QR fetch 500'd.
+    await expect(page.getByRole("img", { name: `QR code for ${CODE_NAME}` })).toBeVisible();
+
+    // Short link + copy affordance (U2's shortUrl helper + CopyButton).
+    // lib/short-url.ts's shortUrl() only lowercases the HOST constant, not
+    // the slug itself (slugs are minted uppercase, lib/slug.ts's
+    // SLUG_CHARSET) — "qrcdn.com/<SLUG-AS-MINTED>" is the exact rendered
+    // text, not a fully-lowercased mintedShortUrl.
+    await expect(page.getByText(`qrcdn.com/${slug}`)).toBeVisible();
+    await expect(page.getByRole("button", { name: `Copy short link for ${CODE_NAME}` })).toBeVisible();
+
+    // The destination, shown as an outbound link distinct from the short
+    // link — still RETARGETED_DESTINATION at this point in the run (the
+    // studio-driven retarget test above already changed it once).
+    await expect(page.getByRole("link", { name: RETARGETED_DESTINATION })).toBeVisible();
+  });
+
+  test("code detail page: retargets the code and the new destination renders", async () => {
+    await page.getByRole("button", { name: "Retarget…" }).click();
+    const destinationInput = page.getByLabel(`New destination for ${CODE_NAME}`);
+    await destinationInput.fill(DETAIL_PAGE_DESTINATION);
+    await page.getByRole("button", { name: "Confirm retarget" }).click();
+
+    // A real assertion, not a proxy for one: this reloads the page
+    // (code-actions-panel.tsx's documented, pause-toggle-button.tsx-proven
+    // mechanism), so seeing the NEW destination render is proof the
+    // retarget actually persisted server-side, not just that a client
+    // state update happened.
+    await expect(page.getByRole("link", { name: DETAIL_PAGE_DESTINATION })).toBeVisible();
+  });
+
+  test("code detail page: pause/resume flips the status pill and back", async () => {
+    await expect(page.getByText("Active", { exact: true })).toBeVisible();
+
+    await page.getByRole("button", { name: "Pause" }).click();
+    await expect(page.getByText("Paused", { exact: true })).toBeVisible();
+
+    await page.getByRole("button", { name: "Resume" }).click();
+    // exact:true, unlike the Studio-rail equivalent of this assertion
+    // (this file's "resumes the code" test above, which has no adjacent
+    // "Download" button to collide with): a non-exact getByText("Paused")
+    // is a case-insensitive SUBSTRING match, and this page's action row
+    // puts "Pause" immediately before a "Download" button — their
+    // concatenated accessible text, "PauseDownload", itself contains
+    // "paused" as a substring once lowercased. Found by running this
+    // suite locally, not assumed: the non-exact version failed here with
+    // exactly that false match.
+    await expect(page.getByText("Paused", { exact: true })).toBeHidden();
+    await expect(page.getByText("Active", { exact: true })).toBeVisible();
+  });
+
+  test("code detail page: Access controls opens and reflects the saved expiry and password", async () => {
+    await page.getByRole("button", { name: "Access…" }).click();
+    const dialog = page.getByRole("dialog");
+    await expect(page.getByRole("heading", { name: "Access controls" })).toBeVisible();
+
+    // Same proof shape as the Studio's own re-open assertion earlier in
+    // this file: capital-P "Protected" only appears once a password is
+    // actually set, and this dialog is the SAME lifted CodeAccessDialog
+    // component reading the SAME code's real persisted state — not a
+    // second copy that could silently disagree. Scoped to the dialog
+    // itself: code-actions-panel.tsx's own static summary line (shown
+    // beside the "Access…" trigger even before it's clicked) renders the
+    // same "Protected · expires <date>" prefix in a shorter date format,
+    // so an unscoped match against the whole page hits both and strict
+    // mode rejects the ambiguity — found by running this suite locally.
+    await expect(dialog.getByText(/^Protected · expires/)).toBeVisible();
+
+    await page.getByRole("button", { name: "Cancel" }).click();
+    await expect(page.getByRole("heading", { name: "Access controls" })).toBeHidden();
+  });
+
+  test("code detail page: exports the code as an SVG download", async () => {
+    await page.getByRole("button", { name: "Download" }).click();
+    const downloadPromise = page.waitForEvent("download");
+    await page.getByRole("button", { name: "SVG", exact: true }).click();
+    const download = await downloadPromise;
+    expect(download.suggestedFilename()).toMatch(/\.svg$/);
   });
 
   test("/api-keys: mints a key and the reveal-once card shows a qrcdn_live_ key", async () => {

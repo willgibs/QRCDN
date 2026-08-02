@@ -2,10 +2,9 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { Check, Loader2, MoreHorizontal, X } from "lucide-react";
+import { Loader2, MoreHorizontal } from "lucide-react";
 import type { QrStyle } from "@qrcdn/shared";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -14,40 +13,17 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
 import { codeState } from "@/lib/access";
-import { validateDestination } from "@/lib/validation";
 import type { Plan } from "@/lib/entitlements";
-import {
-  getDynamicCodeStyle,
-  retargetCode,
-  setCodePaused,
-} from "@/app/(app)/studio/code-actions";
+import { getDynamicCodeStyle, setCodePaused } from "@/app/(app)/studio/code-actions";
 import type { DynamicCodeSummary } from "@/lib/codes-core";
-import { CodeAccessDialog } from "@/components/studio/code-access-dialog";
+import { CodeAccessDialog } from "@/components/codes/code-access-dialog";
+import { RetargetControl, rowErrorMessage } from "@/components/codes/retarget-control";
 
 const ROW_NOTICE_TIMEOUT_MS = 6000;
 
 const GENERIC_ROW_ERROR = "Couldn't complete that. Try again.";
-// P8-U4: retargetCode/setCodePaused are now rate-limited (STUDIO_MUTATE_LIMIT).
-const RATE_LIMITED_ROW_ERROR = "Too many changes just now. Try again in a few minutes.";
-// P8-U5: retargetCode now screens the new destination through Safe Browsing
-// (lib/safe-browsing.ts, via retargetCodeCore) — this code can only ever
-// come from the retarget action, never from pause/resume, but living in the
-// shared rowErrorMessage below costs nothing and keeps every row error's
-// copy resolved in one place.
-const UNSAFE_DESTINATION_ROW_ERROR = "That destination was flagged as unsafe.";
 
 type RowNotice = { id: string; kind: "error" | "propagating"; message: string };
-
-/** `rate_limited`/`destination_unsafe` override whatever generic copy the
- *  caller would otherwise show for a failed row action — every other error
- *  code keeps falling back to `fallback`, same collapse-to-generic stance
- *  the rest of this action surface already takes for codes it doesn't have
- *  specific copy for. */
-function rowErrorMessage(error: string, fallback: string): string {
-  if (error === "rate_limited") return RATE_LIMITED_ROW_ERROR;
-  if (error === "destination_unsafe") return UNSAFE_DESTINATION_ROW_ERROR;
-  return fallback;
-}
 
 /** Status dot+label — every state renders as labeled text, never a bare
  *  dot (founder rule). "archived" is unreachable through any action in this
@@ -119,7 +95,6 @@ export function CodesList({
 }) {
   const [busyId, setBusyId] = useState<string | null>(null);
   const [retargetingId, setRetargetingId] = useState<string | null>(null);
-  const [retargetDraft, setRetargetDraft] = useState("");
   const [notice, setNotice] = useState<RowNotice | null>(null);
   const [accessDialogCodeId, setAccessDialogCodeId] = useState<string | null>(null);
   /** Controlled so opening the Access dialog can close the menu explicitly —
@@ -141,13 +116,11 @@ export function CodesList({
 
   function startRetarget(code: DynamicCodeSummary) {
     setNotice(null);
-    setRetargetDraft(code.destination_url ?? "");
     setRetargetingId(code.id);
   }
 
   function cancelRetarget() {
     setRetargetingId(null);
-    setRetargetDraft("");
   }
 
   async function handleLoad(code: DynamicCodeSummary) {
@@ -162,27 +135,6 @@ export function CodesList({
       onCodeLoad(code, result.data);
     } catch {
       showNotice(code.id, "error", GENERIC_ROW_ERROR);
-    } finally {
-      setBusyId(null);
-    }
-  }
-
-  async function handleRetargetSubmit(id: string) {
-    if (busyId || !validateDestination(retargetDraft).ok) return;
-    setBusyId(id);
-    try {
-      const result = await retargetCode(id, retargetDraft);
-      if (!result.ok) {
-        showNotice(id, "error", rowErrorMessage(result.error, "Couldn't retarget that code. Try again."));
-        return;
-      }
-      onRetargeted(id, result.data.destinationUrl);
-      if (!result.data.kvSynced) {
-        showNotice(id, "propagating", "Propagating (~1 min)");
-      }
-      cancelRetarget();
-    } catch {
-      showNotice(id, "error", "Couldn't retarget that code. Try again.");
     } finally {
       setBusyId(null);
     }
@@ -302,46 +254,20 @@ export function CodesList({
             </div>
 
             {isRetargeting && (
-              <form
-                onSubmit={(e) => {
-                  e.preventDefault();
-                  handleRetargetSubmit(code.id);
+              <RetargetControl
+                code={code}
+                onSuccess={(id, destinationUrl, kvSynced) => {
+                  onRetargeted(id, destinationUrl);
+                  if (!kvSynced) {
+                    showNotice(id, "propagating", "Propagating (~1 min)");
+                  }
+                  cancelRetarget();
                 }}
-                className="flex items-center gap-1.5 pt-0.5"
-              >
-                <Input
-                  autoFocus
-                  value={retargetDraft}
-                  onChange={(e) => setRetargetDraft(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Escape") cancelRetarget();
-                  }}
-                  placeholder="https://example.com"
-                  aria-label={`New destination for ${code.name}`}
-                  spellCheck={false}
-                  disabled={isBusy}
-                  className="h-8 flex-1 font-mono text-xs"
-                />
-                <Button
-                  type="submit"
-                  size="icon-sm"
-                  variant="ghost"
-                  disabled={isBusy || !validateDestination(retargetDraft).ok}
-                  aria-label="Confirm retarget"
-                >
-                  {isBusy ? <Loader2 className="size-3.5 animate-spin" aria-hidden /> : <Check className="size-3.5" aria-hidden />}
-                </Button>
-                <Button
-                  type="button"
-                  size="icon-sm"
-                  variant="ghost"
-                  onClick={cancelRetarget}
-                  disabled={isBusy}
-                  aria-label="Cancel retarget"
-                >
-                  <X className="size-3.5" aria-hidden />
-                </Button>
-              </form>
+                onError={(message) => showNotice(code.id, "error", message)}
+                onCancel={cancelRetarget}
+                onBusyChange={(busy) => setBusyId(busy ? code.id : null)}
+                className="pt-0.5"
+              />
             )}
 
             {rowNotice && (

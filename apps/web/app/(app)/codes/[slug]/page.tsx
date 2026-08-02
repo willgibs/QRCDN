@@ -9,7 +9,7 @@ import { renderPreview } from "@/lib/preview";
 import { isLogoDataUri } from "@/lib/logo";
 import { printedShortUrl, shortUrl } from "@/lib/short-url";
 import { formatDate } from "@/lib/date-format";
-import { CodeAnalyticsPanel } from "@/components/codes/code-analytics-panel";
+import { CodeAnalyticsPanel, CodeStatTiles } from "@/components/codes/code-analytics-panel";
 import { CodeActionsPanel } from "@/components/codes/code-actions-panel";
 import { StatusPill, ProtectedTag } from "@/components/codes/codes-table";
 import { CopyButton } from "@/components/marketing/copy-button";
@@ -180,7 +180,7 @@ export default async function CodeDetailPage(props: PageProps<"/codes/[slug]">) 
         </div>
       </header>
 
-      <main className="mx-auto grid max-w-[1600px] gap-10 px-4 py-8 md:grid-cols-[320px_1fr] md:gap-8 lg:grid-cols-[360px_1fr] lg:px-8">
+      <main className="mx-auto grid grid-cols-1 max-w-[1600px] gap-10 px-4 py-8 md:grid-cols-[320px_minmax(0,1fr)] md:gap-8 lg:grid-cols-[360px_minmax(0,1fr)] lg:px-8">
         {/* Left: the artifact and its identity. */}
         <div className="flex flex-col gap-6">
           {svg ? (
@@ -235,6 +235,16 @@ export default async function CodeDetailPage(props: PageProps<"/codes/[slug]">) 
               <p className="mt-1 text-sm text-foreground">{formatDate(code.created_at)}</p>
             </div>
           </div>
+
+          {/* Scans/Peak day/Today so far live here, not in the right
+              column, as of P9.6-U3 review round 1: the identity rail had a
+              lot of dead space next to the right column's full analytics
+              stack, and these numbers read better beside the code they're
+              about than buried under the chart. Same range-scoped data
+              CodeAnalyticsPanel gets below (both re-render together on
+              every ?range= navigation, driven by that component's own
+              RangeSelector). */}
+          <CodeStatTiles range={range} dailyRows={dailyRows} scansToday={scansToday} />
         </div>
 
         {/* Right: actions and analysis. */}
@@ -247,7 +257,6 @@ export default async function CodeDetailPage(props: PageProps<"/codes/[slug]">) 
             plan={plan}
             range={range}
             dailyRows={dailyRows}
-            scansToday={scansToday}
             recentEvents={recentEvents}
             lifetimeScans={code.scan_count}
           />

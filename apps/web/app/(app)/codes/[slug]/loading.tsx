@@ -24,8 +24,10 @@ export default function Loading() {
         </div>
       </header>
 
-      <main className="mx-auto grid max-w-[1600px] gap-10 px-4 py-8 md:grid-cols-[320px_1fr] md:gap-8 lg:grid-cols-[360px_1fr] lg:px-8">
-        {/* Left: artifact + identity */}
+      <main className="mx-auto grid grid-cols-1 max-w-[1600px] gap-10 px-4 py-8 md:grid-cols-[320px_minmax(0,1fr)] md:gap-8 lg:grid-cols-[360px_minmax(0,1fr)] lg:px-8">
+        {/* Left: artifact + identity + stat tiles (P9.6-U3 review round 1
+            moved Scans/Peak day/Today so far here, out of the right
+            column, to fill this rail's dead space). */}
         <div className="flex flex-col gap-6">
           <Skeleton className="aspect-square w-full rounded-2xl" />
           <div className="flex flex-col gap-4">
@@ -35,6 +37,11 @@ export default function Loading() {
                 <Skeleton className="h-4 w-3/4" />
               </div>
             ))}
+          </div>
+          <div className="flex flex-col gap-4">
+            <Skeleton className="h-16 w-full rounded-xl" />
+            <Skeleton className="h-16 w-full rounded-xl" />
+            <Skeleton className="h-16 w-full rounded-xl" />
           </div>
         </div>
 
@@ -50,13 +57,7 @@ export default function Loading() {
 
             <Skeleton className="h-64 w-full rounded-xl" />
 
-            <div className="grid gap-4 sm:grid-cols-3">
-              <Skeleton className="h-20 rounded-xl" />
-              <Skeleton className="h-20 rounded-xl" />
-              <Skeleton className="h-20 rounded-xl" />
-            </div>
-
-            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+            <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 xl:grid-cols-4">
               {Array.from({ length: 4 }).map((_, i) => (
                 <div key={i} className="flex flex-col gap-2">
                   <Skeleton className="h-3 w-20" />

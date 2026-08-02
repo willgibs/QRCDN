@@ -399,6 +399,127 @@ test.describe.serial("money path", () => {
     expect(download.suggestedFilename()).toMatch(/\.svg$/);
   });
 
+  /**
+   * Standing regression guard (P9.6-U3 review round 1) for two real bugs
+   * found by the orchestrator's own device testing, not by this suite:
+   *
+   * 1. /codes/[slug] overflowed horizontally at 390px — a `<main>` grid,
+   *    and two nested grids inside CodeAnalyticsPanel, all missing an
+   *    explicit base `grid-cols-N`. Without one, Tailwind never applies
+   *    ANY `grid-template-columns` below the breakpoint it's prefixed at,
+   *    so the browser falls back to an implicit, content-sized column
+   *    instead of one clamped to the viewport. A related bug in the same
+   *    fix used a bare `1fr` in a custom `grid-cols-[320px_1fr]` value,
+   *    which has the same "no minimum clamp" problem `minmax(0,1fr)`
+   *    exists to prevent.
+   * 2. A SEPARATE overflow, found while chasing #1 with a full-width
+   *    sweep rather than trusting the single reported width: the
+   *    breakdown grid's `lg:grid-cols-4` squeezed each column to ~124px
+   *    at the narrow end of the `lg:` range (1024px viewport) — less
+   *    than a BreakdownRow's fixed parts alone need (label + count + gaps
+   *    = 168px, before the flexible bar gets anything). 390px alone would
+   *    NOT have caught this one (verified: reintroducing it locally left
+   *    a 390px-only version of this test green) — hence checking a
+   *    representative width from every breakpoint below, not just the
+   *    originally-reported one.
+   *
+   * Both fixed at the CSS level; this test is what stops either from
+   * shipping silently again.
+   *
+   * Deliberately does NOT reuse the near-empty CODE_NAME fixture code
+   * as-is: that code has no seeded scan_daily rows, so its breakdown
+   * grids render their "No data yet" empty state — which never had this
+   * bug (there's nothing to overflow) and would make this guard pass
+   * whether or not the CSS regressed. A couple of scan_daily rows with
+   * deliberately long labels and large numbers (same shape as the
+   * orchestrator's own repro) are seeded directly here so this test
+   * actually exercises the code path that broke.
+   *
+   * Runs in its OWN context/page rather than resizing the shared `page`
+   * above: every other test in this file expects Playwright's default
+   * desktop viewport, and this keeps that assumption safe regardless of
+   * what order tests run in within this file. Re-signs in with a fresh
+   * magic-link token (mintSignInToken is single-use, same reasoning the
+   * top-of-file sign-in test documents) — cheap, and keeps this test able
+   * to run standalone if this file's structure changes later.
+   */
+  test("code detail page: /codes and /codes/[slug] never scroll horizontally, at any breakpoint", async ({ browser }) => {
+    const admin = createAdminClient();
+    const { data: dbCode, error: lookupError } = await admin
+      .from("qr_codes")
+      .select("id")
+      .eq("slug", slug)
+      .single();
+    if (lookupError || !dbCode) {
+      throw new Error(`[e2e] couldn't look up code id for slug ${slug}: ${lookupError?.message}`);
+    }
+
+    // Yesterday, not today: scan_daily's own `[start, end)` range query
+    // (lib/analytics.ts's rangeWindowUtc) excludes today by design — the
+    // rollup only covers completed days (D8) — so a row dated today would
+    // silently never appear in the default 30d window this page queries.
+    const yesterday = new Date(Date.now() - 86_400_000).toISOString().slice(0, 10);
+    const { error: seedError } = await admin.from("scan_daily").insert({
+      code_id: dbCode.id,
+      day: yesterday,
+      scans: 87_000,
+      uniques: 50_000,
+      by_country: { US: 45_000, GB: 12_000, DE: 8_000 },
+      by_device: { mobile: 60_000, desktop: 20_000, tablet: 7_000 },
+      by_referer: {
+        direct: 40_000,
+        "instagram.com": 15_000,
+        "some-very-long-referrer-host.example.com": 32_000,
+      },
+      by_city: { "New York": 20_000, London: 15_000, "San Francisco Bay Area": 10_000 },
+    });
+    if (seedError) {
+      throw new Error(`[e2e] couldn't seed scan_daily for the overflow guard: ${seedError.message}`);
+    }
+
+    // One representative width per Tailwind breakpoint band this page's
+    // grids branch on (base/sm/md/lg/xl), not just the 390px originally
+    // reported — bug #2 above is exactly why a single width isn't enough.
+    const WIDTHS_TO_CHECK = [390, 640, 768, 1024, 1280, 1600];
+
+    const mobileContext = await browser.newContext({ baseURL: E2E_BASE_URL });
+    try {
+      const probePage = await mobileContext.newPage();
+      const hashedToken = await mintSignInToken(manifest.email);
+      await probePage.goto(
+        `${E2E_BASE_URL}/auth/confirm?token_hash=${encodeURIComponent(hashedToken)}&type=email&next=/codes`,
+        { waitUntil: "commit" },
+      );
+      // A predicate on url.pathname, NOT a regex against the full URL
+      // string — found by running this exact test locally: the
+      // interstitial's OWN URL is .../auth/confirm?token_hash=...&next=/codes,
+      // which as a raw string also ends in "/codes", so /\/codes$/ matched
+      // immediately on the pre-redirect URL rather than waiting for the
+      // real client-side auto-submit + redirect. That let every check below
+      // run against an unauthenticated (redirected-to-/login) session,
+      // which never overflows — the guard silently checked the wrong page
+      // and always passed regardless of the CSS underneath it.
+      await probePage.waitForURL((url) => url.pathname === "/codes", { timeout: 30000 });
+
+      for (const width of WIDTHS_TO_CHECK) {
+        await probePage.setViewportSize({ width, height: 900 });
+        for (const path of ["/codes", `/codes/${slug}`]) {
+          await probePage.goto(`${E2E_BASE_URL}${path}`, { waitUntil: "networkidle" });
+          const { scrollWidth, clientWidth } = await probePage.evaluate(() => ({
+            scrollWidth: document.documentElement.scrollWidth,
+            clientWidth: document.documentElement.clientWidth,
+          }));
+          expect(
+            scrollWidth,
+            `${path} scrollWidth (${scrollWidth}) vs clientWidth (${clientWidth}) at ${width}px`,
+          ).toBeLessThanOrEqual(clientWidth + 1);
+        }
+      }
+    } finally {
+      await mobileContext.close();
+    }
+  });
+
   test("/api-keys: mints a key and the reveal-once card shows a qrcdn_live_ key", async () => {
     await page.goto(`${E2E_BASE_URL}/api-keys`);
     await page.getByLabel("New API key name").fill(API_KEY_NAME);

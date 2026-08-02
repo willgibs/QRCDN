@@ -276,23 +276,77 @@ function RecentActivity({
 }
 
 /**
- * P6-U3 per-code analytics surface. Client component only because Recharts
- * needs the DOM (ChartContainer's ResponsiveContainer) — every prop here is
- * server-fetched in app/(app)/codes/[slug]/page.tsx and passed straight in;
- * zero client-side data fetching (spec).
+ * The three range-scoped stat tiles (Scans / Peak day / Today so far),
+ * split out from `CodeAnalyticsPanel` (P9.6-U3 review round 1) so the
+ * detail page can mount them in the left identity rail instead of the
+ * right analysis column — orchestrator design note: the left rail had a
+ * lot of dead space next to the right column's full analytics stack, and
+ * these numbers read better beside the code's own identity than buried
+ * under the chart. Still driven by the SAME range-scoped `dailyRows`/
+ * `scansToday` props `CodeAnalyticsPanel` receives
+ * (app/(app)/codes/[slug]/page.tsx passes both components the same
+ * values) — the range selector living in `CodeAnalyticsPanel` still drives
+ * both, since both re-render from the same server-fetched `range`-scoped
+ * data on every `?range=` navigation.
+ *
+ * A plain `flex flex-col` stack, not a grid: this rail is already narrow
+ * (~320-360px) and always single-column here, so there's no responsive
+ * column count to get wrong — deliberately avoiding a second grid to audit
+ * right after review round 1 found a real overflow bug in this file's
+ * OTHER two grids (missing base `grid-cols-N`, and `lg:grid-cols-4`
+ * squeezing BreakdownRow below its own minimum content width — see the
+ * Breakdown/BreakdownRow comments below).
+ */
+export function CodeStatTiles({
+  range,
+  dailyRows,
+  scansToday,
+}: {
+  range: RangeDays;
+  dailyRows: DailyRow[];
+  scansToday: number;
+}) {
+  const series = toChartSeries(dailyRows, range);
+  const rangeTotal = dailyRows.reduce((sum, row) => sum + row.scans, 0);
+  const peakDay = peakDayFrom(series);
+
+  return (
+    <div className="flex flex-col gap-4">
+      <AnimatedStatTile
+        label="Scans"
+        value={rangeTotal.toLocaleString()}
+        caption={`last ${rangeLabel(range)}`}
+      />
+      <AnimatedStatTile
+        label="Peak day"
+        value={peakDay.scans.toLocaleString()}
+        caption={peakDay.day ? formatDate(peakDay.day) : undefined}
+      />
+      <AnimatedStatTile label="Today so far" value={scansToday.toLocaleString()} />
+    </div>
+  );
+}
+
+/**
+ * P6-U3 per-code analytics surface: chart, breakdowns, recent activity.
+ * The Scans/Peak day/Today so far stat tiles that used to render here moved
+ * to `CodeStatTiles` above at P9.6-U3 review round 1 (mounted in the left
+ * identity rail instead) — this component no longer takes `scansToday`,
+ * since that was only ever used for the tile that left. Client component
+ * only because Recharts needs the DOM (ChartContainer's ResponsiveContainer)
+ * — every prop here is server-fetched in app/(app)/codes/[slug]/page.tsx
+ * and passed straight in; zero client-side data fetching (spec).
  */
 export function CodeAnalyticsPanel({
   plan,
   range,
   dailyRows,
-  scansToday,
   recentEvents,
   lifetimeScans,
 }: {
   plan: Plan;
   range: RangeDays;
   dailyRows: DailyRow[];
-  scansToday: number;
   recentEvents: RecentEvent[];
   /** qr_codes.scan_count — see RecentActivity's own doc comment for why
    *  this page needs it alongside `recentEvents`. */
@@ -302,13 +356,11 @@ export function CodeAnalyticsPanel({
   const maxDays = maxRangeDaysFor(plan);
   const series = toChartSeries(dailyRows, range);
   const rangeTotal = dailyRows.reduce((sum, row) => sum + row.scans, 0);
-  // peakDayFrom (lib/analytics.ts) — real found bug (P9.5-T7 review round
-  // 1, identical pattern fixed in codes-overview-panel.tsx too): a naive
-  // `series.reduce(..., series[0])` silently "peaks" on the range's first
-  // day when every day has 0 scans, so this tile used to render a
-  // fabricated date as "Peak day" for any code with no scans in range. See
-  // that function's own doc comment for the full reasoning.
-  const peakDay = peakDayFrom(series);
+  // Only "does the chart have anything to plot" is needed here now — the
+  // Peak day figure itself moved to CodeStatTiles above (P9.6-U3 review
+  // round 1), which computes peakDayFrom(series) itself from the same
+  // dailyRows/range props. See peakDayFrom's own doc comment (lib/analytics.ts)
+  // for why it can't just be `series.reduce(..., series[0])`.
   const hasScans = rangeTotal > 0;
 
   const countries = dailyRows.map((row) => row.by_country);
@@ -381,21 +433,18 @@ export function CodeAnalyticsPanel({
         </CardContent>
       </Card>
 
-      <div className="grid gap-4 sm:grid-cols-3">
-        <AnimatedStatTile
-          label="Scans"
-          value={rangeTotal.toLocaleString()}
-          caption={`last ${rangeLabel(range)}`}
-        />
-        <AnimatedStatTile
-          label="Peak day"
-          value={peakDay.scans.toLocaleString()}
-          caption={peakDay.day ? formatDate(peakDay.day) : undefined}
-        />
-        <AnimatedStatTile label="Today so far" value={scansToday.toLocaleString()} />
-      </div>
-
-      <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+      {/* sm:grid-cols-2, not lg:grid-cols-4, is this grid's floor now that
+          P9.6-U3 confines it to the detail page's right rail instead of the
+          full page width the pre-U3 layout gave it: a BreakdownRow's fixed
+          parts alone (label sm:w-24 = 96px + count w-12 = 48px + gap-3 x2 =
+          24px = 168px minimum, before the flexible bar gets anything) don't
+          fit a 4-column split of that narrower rail until xl: (1280px,
+          where the rail is wide enough — measured, not guessed: a 1024px
+          viewport put each lg:grid-cols-4 column at 124px, well under the
+          168px floor, and the row's children overflowed their own <li>
+          silently since nothing here wraps or clips them). xl:grid-cols-4
+          is the first breakpoint where the math holds. */}
+      <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 xl:grid-cols-4">
         <Breakdown title="Top countries" buckets={countries} />
         <Breakdown title="Devices" buckets={devices} />
         <Breakdown title="Top sources" buckets={referrers} />

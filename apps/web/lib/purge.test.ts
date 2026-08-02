@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { purgePlanScanEvents } from "./purge";
+import { purgePlanScanEvents, purgeScanDailyRollups } from "./purge";
 
 // Hand-rolled chain-mock admin object — mirrors the style
 // apps/web/lib/kv-sync.test.ts uses for `fetch` (vi.fn()s returning
@@ -238,6 +238,179 @@ describe("purgePlanScanEvents — error propagation", () => {
     });
 
     await expect(purgePlanScanEvents(admin, "free", CUTOFF)).rejects.toEqual({
+      message: "delete boom",
+    });
+  });
+});
+
+// ============================================================ purgeScanDailyRollups
+// Separate hand-rolled mock: this function's chain shape is genuinely
+// different (select().lt().order().limit() to find the oldest stale day,
+// then delete().gte().lt() per chunk) — not a reuse of createAdminMock's
+// profiles/scan_events chains above.
+
+interface OldestDayPage {
+  data: { day: string }[] | null;
+  error: { message: string } | null;
+}
+
+function createScanDailyAdminMock(opts: {
+  oldestPages: OldestDayPage[];
+  deleteResults?: { count: number; error: { message: string } | null }[];
+}) {
+  const { oldestPages, deleteResults = [] } = opts;
+
+  const selectCalls: string[] = [];
+  const ltSelectCalls: string[] = [];
+  const orderCalls: [string, unknown][] = [];
+  const limitCalls: number[] = [];
+  let oldestIndex = 0;
+
+  const selectChain = {
+    lt: vi.fn((col: string, value: string) => {
+      ltSelectCalls.push(value);
+      return selectChain;
+    }),
+    order: vi.fn((col: string, options: unknown) => {
+      orderCalls.push([col, options]);
+      return selectChain;
+    }),
+    limit: vi.fn((n: number) => {
+      limitCalls.push(n);
+      const page = oldestPages[oldestIndex] ?? { data: [], error: null };
+      oldestIndex++;
+      return Promise.resolve(page);
+    }),
+  };
+
+  const gteCalls: string[] = [];
+  const ltDeleteCalls: string[] = [];
+  const deleteCalls: unknown[] = [];
+  let deleteIndex = 0;
+
+  const deleteChain = {
+    gte: vi.fn((col: string, value: string) => {
+      gteCalls.push(value);
+      return deleteChain;
+    }),
+    lt: vi.fn((col: string, value: string) => {
+      ltDeleteCalls.push(value);
+      const result = deleteResults[deleteIndex] ?? { count: 0, error: null };
+      deleteIndex++;
+      return Promise.resolve(result);
+    }),
+  };
+
+  const scanDailyBuilder = {
+    select: vi.fn((cols: string) => {
+      selectCalls.push(cols);
+      return selectChain;
+    }),
+    delete: vi.fn((options: unknown) => {
+      deleteCalls.push(options);
+      return deleteChain;
+    }),
+  };
+
+  const from = vi.fn((table: string) => {
+    if (table === "scan_daily") return scanDailyBuilder;
+    throw new Error(`unexpected table in mock: ${table}`);
+  });
+
+  return {
+    admin: { from } as unknown as Parameters<typeof purgeScanDailyRollups>[0],
+    from,
+    selectCalls,
+    ltSelectCalls,
+    orderCalls,
+    limitCalls,
+    gteCalls,
+    ltDeleteCalls,
+    deleteCalls,
+  };
+}
+
+describe("purgeScanDailyRollups — nothing stale", () => {
+  it("returns 0 and never calls delete when the oldest-day lookup is empty", async () => {
+    const { admin, limitCalls, deleteCalls } = createScanDailyAdminMock({
+      oldestPages: [{ data: [], error: null }],
+    });
+
+    const total = await purgeScanDailyRollups(admin, "2026-06-15");
+
+    expect(total).toBe(0);
+    expect(limitCalls).toEqual([1]);
+    expect(deleteCalls).toHaveLength(0);
+  });
+
+  it("treats a null data page the same as empty", async () => {
+    const { admin, deleteCalls } = createScanDailyAdminMock({
+      oldestPages: [{ data: null, error: null }],
+    });
+
+    const total = await purgeScanDailyRollups(admin, "2026-06-15");
+
+    expect(total).toBe(0);
+    expect(deleteCalls).toHaveLength(0);
+  });
+});
+
+describe("purgeScanDailyRollups — single chunk", () => {
+  it("issues one delete when the stale range fits inside one day-chunk", async () => {
+    const { admin, selectCalls, ltSelectCalls, orderCalls, gteCalls, ltDeleteCalls } =
+      createScanDailyAdminMock({
+        oldestPages: [{ data: [{ day: "2026-06-01" }], error: null }],
+        deleteResults: [{ count: 42, error: null }],
+      });
+
+    const total = await purgeScanDailyRollups(admin, "2026-06-15");
+
+    expect(total).toBe(42);
+    expect(selectCalls).toEqual(["day"]);
+    expect(ltSelectCalls).toEqual(["2026-06-15"]);
+    expect(orderCalls).toEqual([["day", { ascending: true }]]);
+    expect(gteCalls).toEqual(["2026-06-01"]);
+    expect(ltDeleteCalls).toEqual(["2026-06-15"]);
+  });
+});
+
+describe("purgeScanDailyRollups — multi-chunk backlog", () => {
+  it("walks a 70-day backlog in three 30/30/10-day windows", async () => {
+    const { admin, gteCalls, ltDeleteCalls } = createScanDailyAdminMock({
+      oldestPages: [{ data: [{ day: "2026-01-01" }], error: null }],
+      deleteResults: [
+        { count: 10, error: null },
+        { count: 20, error: null },
+        { count: 5, error: null },
+      ],
+    });
+
+    const total = await purgeScanDailyRollups(admin, "2026-03-12");
+
+    expect(total).toBe(35);
+    expect(gteCalls).toEqual(["2026-01-01", "2026-01-31", "2026-03-02"]);
+    expect(ltDeleteCalls).toEqual(["2026-01-31", "2026-03-02", "2026-03-12"]);
+  });
+});
+
+describe("purgeScanDailyRollups — error propagation", () => {
+  it("throws when the oldest-day lookup returns an error", async () => {
+    const { admin } = createScanDailyAdminMock({
+      oldestPages: [{ data: null, error: { message: "lookup boom" } }],
+    });
+
+    await expect(purgeScanDailyRollups(admin, "2026-06-15")).rejects.toEqual({
+      message: "lookup boom",
+    });
+  });
+
+  it("throws when a delete chunk returns an error", async () => {
+    const { admin } = createScanDailyAdminMock({
+      oldestPages: [{ data: [{ day: "2026-06-01" }], error: null }],
+      deleteResults: [{ count: 0, error: { message: "delete boom" } }],
+    });
+
+    await expect(purgeScanDailyRollups(admin, "2026-06-15")).rejects.toEqual({
       message: "delete boom",
     });
   });

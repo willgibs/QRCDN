@@ -1,6 +1,10 @@
 import { NextResponse } from "next/server";
 import { createAdminClient } from "../../../../lib/supabase/admin";
-import { purgePlanScanEvents } from "../../../../lib/purge";
+import {
+  purgePlanScanEvents,
+  purgeScanDailyRollups,
+  SCAN_DAILY_ROLLUP_RETENTION_DAYS,
+} from "../../../../lib/purge";
 import { PLAN_LIMITS, type Plan } from "../../../../lib/entitlements";
 
 // Vercel Cron hits this on a schedule (apps/web/vercel.json — daily, 09:00
@@ -13,6 +17,15 @@ import { PLAN_LIMITS, type Plan } from "../../../../lib/entitlements";
 // doesn't exist) to know how far back to delete. D8 amendment: rollup stays
 // in Postgres; retention enforcement stays wherever the retention constants
 // live.
+//
+// P9.6-U1: this route now also runs `purgeScanDailyRollups`, trimming the
+// rollup table itself (nothing had before — only raw scan_events was
+// bounded). Deliberately a THIRD, separate try/catch rather than folded
+// into the per-plan loop below: it isn't plan-scoped (see
+// SCAN_DAILY_ROLLUP_RETENTION_DAYS's own comment in lib/purge.ts), so it
+// runs once, and its failure must not prevent either plan's scan_events
+// purge from completing, exactly as the per-plan loop already isolates
+// failures from each other.
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
 
@@ -21,6 +34,7 @@ const PLANS = ["free", "pro"] as const satisfies readonly Plan[];
 const DAY_MS = 86_400_000;
 
 type PlanPurgeResult = { plan: Plan; deleted: number } | { plan: Plan; error: string };
+type RollupPurgeResult = { deleted: number } | { error: string };
 
 /**
  * Constant-time secret comparison — duplicated from
@@ -85,5 +99,23 @@ export async function GET(request: Request) {
     }
   }
 
-  return NextResponse.json({ results });
+  let scanDailyRollups: RollupPurgeResult;
+  try {
+    // Date-only cutoff (`YYYY-MM-DD`): scan_daily.day is a `date` column,
+    // not a timestamptz — same string-comparison convention
+    // lib/analytics.ts's rangeWindowUtc relies on, unlike the per-plan
+    // cutoffIso above (scan_events.ts IS timestamptz, needs the full ISO
+    // instant).
+    const cutoffDate = new Date(Date.now() - SCAN_DAILY_ROLLUP_RETENTION_DAYS * DAY_MS)
+      .toISOString()
+      .slice(0, 10);
+    const deleted = await purgeScanDailyRollups(admin, cutoffDate);
+    scanDailyRollups = { deleted };
+  } catch (error) {
+    scanDailyRollups = {
+      error: error instanceof Error ? error.message : "unknown_error",
+    };
+  }
+
+  return NextResponse.json({ results, scanDailyRollups });
 }

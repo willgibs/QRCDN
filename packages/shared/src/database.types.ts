@@ -431,6 +431,21 @@ export type Database = {
         }[]
       }
       rollup_scan_daily: { Args: { window_days?: number }; Returns: undefined }
+      scan_sparklines: {
+        Args: { end_date: string; start_date: string }
+        Returns: {
+          code_id: string
+          points: Json
+        }[]
+      }
+      scan_totals_by_day: {
+        Args: { end_date: string; start_date: string }
+        Returns: {
+          day: string
+          scans: number
+          uniques: number
+        }[]
+      }
     }
     Enums: {
       [_ in never]: never

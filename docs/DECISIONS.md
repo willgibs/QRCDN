@@ -115,6 +115,36 @@ the free/pro day-counts it needs are single-sourced in
 duplicate them. Rollup stays in Postgres; retention enforcement lives where the
 retention constants live.
 
+*Amended at P9.6-U1 (2026-08-02):* two additions, plus one verified-but-unresolved
+finding. (1) Two `security invoker` RPCs, `scan_totals_by_day`/`scan_sparklines`
+(`supabase/migrations/20260802000010_scan_aggregation.sql`), replace the
+truncation-prone pattern `apps/web/lib/analytics.ts`'s `sumDailyAcrossCodes` doc
+comment already named: an all-codes `scan_daily` select with no `code_id` filter
+returns one row per (code, day), silently truncated by PostgREST's `max_rows=1000`
+at Pro scale. `security invoker`, not definer as that comment originally suggested —
+aggregation happens inside Postgres either way, so invoker keeps "read own scan
+daily" as the only tenant boundary instead of re-implementing owner filtering in a
+definer body. (2) `scan_daily` itself is now trimmed — nothing had ever purged it
+before this unit, only raw `scan_events` was bounded. 400 days, deliberately not a
+`PLAN_LIMITS` entitlement (`apps/web/lib/purge.ts`'s `SCAN_DAILY_ROLLUP_RETENTION_DAYS`,
+headroom above Pro's 365-day analytics window) since it has no plan dimension — every
+plan's rollups are trimmed at the same age. (3) **Finding, not yet fixed:** this
+unit's spec claimed `qr_codes.scan_count` (a lifetime total) "stays correct after old
+rollups are trimmed." Verified false in the general case against
+`20260723000007_scan_rollup.sql`: `rollup_scan_daily()` maintains `scan_count` by a
+full RESUM over every currently-present `scan_daily` row for a touched code, not an
+incremental counter. Once `purgeScanDailyRollups` has actually deleted a code's rows
+older than 400 days, the next resum for that code (if it is ever scanned again) will
+silently undercount relative to true lifetime scans by whatever was purged. A code
+that goes permanently quiet before its old rows age out is unaffected — its
+`scan_count` simply stops being recomputed and keeps its last (accurate) value
+forever. Not reachable in practice for a long time (the earliest any `scan_daily` row
+can turn 400 days old is roughly mid-2027 given this product's age), so shipped
+deliberately rather than blocking this unit on it — but a real gap, not a
+hypothetical one, and worth fixing (incremental `scan_count` maintenance, or
+preserving purged sums somewhere durable) before it can bite. Owner: engineering,
+next time `rollup_scan_daily()` is touched.
+
 ## D9 — Auth: Supabase `@supabase/ssr`, new API keys only
 
 `sb_publishable_`/`sb_secret_` keys (legacy anon/service_role die end-2026). Magic link

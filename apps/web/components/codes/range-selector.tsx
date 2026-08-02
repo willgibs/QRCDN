@@ -7,20 +7,24 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { RANGE_OPTIONS, type RangeDays } from "@/lib/analytics";
+import { RANGE_OPTIONS, rangeLabel, type RangeDays } from "@/lib/analytics";
 import { cn } from "@/lib/utils";
 
+// Re-exported so this file's existing importers (code-analytics-panel.tsx)
+// don't need to change — `rangeLabel` itself now lives in lib/analytics.ts
+// (P9.6-U2: a Server Component needed to call it, and any export of a "use
+// client" file like this one becomes an uncallable client reference from
+// server code, even a plain function with no client-only behavior).
+export { rangeLabel };
+
 /**
- * `RangeSelector` + `rangeLabel`, extracted verbatim from
- * code-analytics-panel.tsx (P6.5-U1) so `/codes`' global overview panel can
- * reuse the exact same range control the per-code panel already has — zero
- * behavior change. Every `href="?range=N"` link below is relative, so it
- * resolves against whichever route segment renders this component: both
- * `/codes` and `/codes/[slug]` work unmodified.
+ * `RangeSelector`, extracted verbatim from code-analytics-panel.tsx
+ * (P6.5-U1) so `/codes`' global overview panel can reuse the exact same
+ * range control the per-code panel already has — zero behavior change.
+ * Every `href="?range=N"` link below is relative, so it resolves against
+ * whichever route segment renders this component: both `/codes` and
+ * `/codes/[slug]` work unmodified.
  */
-export function rangeLabel(days: number): string {
-  return days === 365 ? "1y" : `${days}d`;
-}
 
 /**
  * Each option is a plain `<Link href="?range=N">` — a server refetch by

@@ -12,6 +12,22 @@ import { PLAN_LIMITS, type Plan } from "./entitlements";
 export const RANGE_OPTIONS = [7, 30, 90, 365] as const;
 export type RangeDays = (typeof RANGE_OPTIONS)[number];
 
+/**
+ * The short display form for a range ("30d", "1y" for the 365 case) — moved
+ * here at P9.6-U2 from `components/codes/range-selector.tsx` (a "use
+ * client" module) after `app/(app)/codes/page.tsx` needed to call it from a
+ * Server Component: any export of a "use client" file becomes a client
+ * reference to server code, even a plain, side-effect-free function, and
+ * Next.js throws at request time (not at build/typecheck — a force-dynamic
+ * route is never actually rendered during `next build`, so this only
+ * surfaced in e2e) rather than statically. `range-selector.tsx` re-exports
+ * this rather than keeping its own copy, so its existing importers
+ * (`code-analytics-panel.tsx`) don't need to change.
+ */
+export function rangeLabel(days: number): string {
+  return days === 365 ? "1y" : `${days}d`;
+}
+
 const DEFAULT_RANGE_DAYS: RangeDays = 30;
 
 /**

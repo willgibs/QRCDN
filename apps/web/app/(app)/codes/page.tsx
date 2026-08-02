@@ -4,12 +4,11 @@ import { Plus } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { listDynamicCodesCore } from "@/lib/codes-core";
 import { PLAN_LIMITS, type Plan } from "@/lib/entitlements";
-import { rangeWindowUtc, resolveRangeDays } from "@/lib/analytics";
+import { rangeLabel, rangeWindowUtc, resolveRangeDays } from "@/lib/analytics";
 import { parseSparklinePoints } from "@/lib/sparkline";
 import { CodesTable } from "@/components/codes/codes-table";
 import { CodesOverviewPanel } from "@/components/codes/codes-overview-panel";
 import { StatTile } from "@/components/codes/stat-tile";
-import { rangeLabel } from "@/components/codes/range-selector";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 

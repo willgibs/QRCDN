@@ -3,6 +3,7 @@ import {
   axisTicks,
   maxRangeDaysFor,
   peakDayFrom,
+  rangeLabel,
   rangeWindowUtc,
   resolveRangeDays,
   sumBuckets,
@@ -14,6 +15,15 @@ describe("maxRangeDaysFor", () => {
   it("reuses entitlements.ts's retention constant per plan", () => {
     expect(maxRangeDaysFor("free")).toBe(30);
     expect(maxRangeDaysFor("pro")).toBe(365);
+  });
+});
+
+describe("rangeLabel", () => {
+  it("renders every RANGE_OPTIONS value, 365 as the sole '1y' special case", () => {
+    expect(rangeLabel(7)).toBe("7d");
+    expect(rangeLabel(30)).toBe("30d");
+    expect(rangeLabel(90)).toBe("90d");
+    expect(rangeLabel(365)).toBe("1y");
   });
 });
 

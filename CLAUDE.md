@@ -14,7 +14,8 @@ Design-forward QR platform: brand style system → generator → dynamic codes o
 
 ## Knowledge modules — read the one your task touches
 
-- `docs/DECISIONS.md` — architecture decision log (D1–D15) with rationale. Read before changing infrastructure, schema, or redirect behavior.
+- `docs/DECISIONS.md` — architecture decision log (D1–D16) with rationale. Read before changing infrastructure, schema, or redirect behavior.
+- `docs/deferred-verification.md` — the standing ledger of what is **not proven yet** and who can prove it. Add an entry whenever a check is deferred rather than skipped silently; remove one only when it actually passes.
 - `docs/guides/agent-playbook.md` — **every sub-agent reads this**: delegation tiers, mandatory guardrails, verification before "done", commit conventions.
 - `docs/guides/qr-engine.md` — engine contract, empirical scannability limits, how to extend styles safely.
 - `docs/guides/design-system.md` — token architecture, lock protocol, brand direction, fonts, component inventory.

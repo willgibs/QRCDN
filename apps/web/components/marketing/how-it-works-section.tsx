@@ -16,40 +16,36 @@ import { Filmstrip } from "@/components/marketing/filmstrip";
  * so the filmstrip's baseline rule can span the full viewport width) +
  * `rhythm="standard"`.
  *
- * BOARD REVIEW ROUND 1 corrected three things in the first pass, all mine:
+ * BOARD REVIEW, two rounds. Round 1: the stations bled to the viewport edge
+ * while the heading sat on the page measure (two left edges in one section),
+ * the heading was too quiet, and the artwork was too small to carry a band.
  *
- * 1. `frame="bleed"` was taken as licence for the STATIONS to bleed too, so
- *    the station labels and copy ran to the viewport edge while the heading
- *    above them sat on the page measure. Two different left edges in one
- *    section reads as broken, because it is. Only the RULE bleeds now; every
- *    piece of content in here shares `max-w-page px-gutter` with the
- *    heading. That is also what makes the three stations sit close enough
- *    together to read as one filmstrip rather than three islands.
- * 2. `titleSize="h3"` was too quiet for the first section after the hero.
- *    Now `titleSize="h1"` on a `titleAs="h2"` tag (P9.7-U1 decoupled size
- *    from semantics precisely so this is reachable without a second page
- *    `<h1>`). The page's heading hierarchy is now hero `display` -> 01 `h1`
- *    -> every other section `h2`, which is a real ladder rather than the 23
- *    identical headings this round exists to fix.
- * 3. The artwork was too small to carry a full-width band: an 84px code and
- *    ~50px print artifacts read as specks on a 1440px field. Every object in
- *    `filmstrip.tsx` is scaled up substantially.
+ * ROUND 2 settled the shape, and reversed two of my round-1 answers:
  *
- * Eyebrow/index/title copy is byte-identical to what shipped before this
- * unit; nothing in `e2e/marketing.spec.ts` asserts on it (checked by grep).
+ * 1. `frame` drops back to the default `page`. Bleeding the rule was the
+ *    whole reason for `frame="bleed"`, and measurement showed the rule was
+ *    geometrically perfect (full viewport, every tile bottoming exactly on
+ *    it) while still reading as broken: a hairline spanning 1440px with the
+ *    content clustered in the middle 1088 is a line ACROSS the section, not
+ *    a baseline UNDER it. The rule now spans the same measure as everything
+ *    else. The bleed experiment did not earn its keep.
+ * 2. `titleSize` drops back to the default `h2`. I over-corrected from h3 to
+ *    h1; the board's call is the established h2, so 01 sits in the same
+ *    register as every other section and the hero keeps the only display
+ *    size on the page.
+ * 3. Heading copy is new. "Three steps, then it's printed." was accurate but
+ *    clipped, and it described a printing sequence the three steps no longer
+ *    describe. "Set it up once. Change it whenever." states the payoff in
+ *    plain speech and sets up Design / Create / Update beneath it.
+ *
+ * The step titles are the board's own wording. Nothing in
+ * `e2e/marketing.spec.ts` asserts on this section's copy (grep-checked
+ * before each change, not assumed).
  */
 export function HowItWorksSection() {
   return (
-    <Section variant="band" surface="tint" frame="bleed">
-      <div className="mx-auto w-full max-w-page px-gutter">
-        <SectionHeading
-          eyebrow="How it works"
-          index="01"
-          title="Three steps, then it's printed."
-          titleAs="h2"
-          titleSize="h1"
-        />
-      </div>
+    <Section variant="band" surface="tint">
+      <SectionHeading eyebrow="How it works" index="01" title="Set it up once. Change it whenever." />
 
       <SectionBody>
         <Filmstrip />

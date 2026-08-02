@@ -63,9 +63,15 @@ import { cn } from "@/lib/utils";
  * not specific to this section.)
  */
 
-const QR_DATA = "HTTPS://QRCDN.COM/CAFE";
-const lightSvg = renderQr({ data: QR_DATA, style: brandQrStyles.precision.light }).svg;
-const darkSvg = renderQr({ data: QR_DATA, style: brandQrStyles.precision.dark }).svg;
+/* Three distinct codes, one shared kit. Code A is the thread: it is the code
+   you style at station 1, one of the codes you mint at station 2, and the
+   code you repoint at station 3. B and C exist only to make station 2's
+   "create new codes" literal — three visibly different module patterns that
+   obviously share one style is the only way to draw "the kit propagates"
+   without saying it. */
+const QR_A = "HTTPS://QRCDN.COM/CAFE";
+const QR_B = "HTTPS://QRCDN.COM/MENU";
+const QR_C = "HTTPS://QRCDN.COM/TOUR";
 
 /** The D13-locked precision ink hex, derived rather than re-hardcoded β€” same
  *  helper `kit-contact-sheet.tsx`'s own ink legend already uses. Always the
@@ -87,8 +93,21 @@ function extractSymbol(svg: string, id: string): { id: string; viewBox: string; 
   return { id, viewBox: match[1], inner: match[2] };
 }
 
-const QR_LIGHT = extractSymbol(lightSvg, "how-it-works-qr-light");
-const QR_DARK = extractSymbol(darkSvg, "how-it-works-qr-dark");
+/** One code, both themes, extracted into a `<symbol>` pair. */
+function buildCode(data: string, slug: string) {
+  return {
+    light: extractSymbol(renderQr({ data, style: brandQrStyles.precision.light }).svg, `hiw-${slug}-light`),
+    dark: extractSymbol(renderQr({ data, style: brandQrStyles.precision.dark }).svg, `hiw-${slug}-dark`),
+  };
+}
+
+const CODES = {
+  a: buildCode(QR_A, "a"),
+  b: buildCode(QR_B, "b"),
+  c: buildCode(QR_C, "c"),
+} as const;
+
+type CodeKey = keyof typeof CODES;
 
 /** Rendered once, referenced by every `FilmstripQr` below via `<use>`. Zero
  *  visual footprint (`size-0`, `absolute`) β€” matches the reference
@@ -96,16 +115,16 @@ const QR_DARK = extractSymbol(darkSvg, "how-it-works-qr-dark");
 function QrDefs() {
   return (
     <svg aria-hidden className="absolute size-0">
-      <symbol
-        id={QR_LIGHT.id}
-        viewBox={QR_LIGHT.viewBox}
-        dangerouslySetInnerHTML={{ __html: QR_LIGHT.inner }}
-      />
-      <symbol
-        id={QR_DARK.id}
-        viewBox={QR_DARK.viewBox}
-        dangerouslySetInnerHTML={{ __html: QR_DARK.inner }}
-      />
+      {Object.values(CODES).flatMap((code) =>
+        [code.light, code.dark].map((sym) => (
+          <symbol
+            key={sym.id}
+            id={sym.id}
+            viewBox={sym.viewBox}
+            dangerouslySetInnerHTML={{ __html: sym.inner }}
+          />
+        )),
+      )}
     </svg>
   );
 }
@@ -114,14 +133,15 @@ function QrDefs() {
  *  instance, CSS-toggled by theme β€” the same `dark:hidden`/`hidden
  *  dark:block` swap `qr-tile.tsx` uses, just against a `<use>` reference
  *  instead of a second inlined copy. */
-function FilmstripQr({ className }: { className?: string }) {
+function FilmstripQr({ code = "a", className }: { code?: CodeKey; className?: string }) {
+  const { light, dark } = CODES[code];
   return (
     <>
-      <svg viewBox={QR_LIGHT.viewBox} aria-hidden className={cn("block dark:hidden", className)}>
-        <use href={`#${QR_LIGHT.id}`} />
+      <svg viewBox={light.viewBox} aria-hidden className={cn("block dark:hidden", className)}>
+        <use href={`#${light.id}`} />
       </svg>
-      <svg viewBox={QR_DARK.viewBox} aria-hidden className={cn("hidden dark:block", className)}>
-        <use href={`#${QR_DARK.id}`} />
+      <svg viewBox={dark.viewBox} aria-hidden className={cn("hidden dark:block", className)}>
+        <use href={`#${dark.id}`} />
       </svg>
     </>
   );
@@ -129,10 +149,36 @@ function FilmstripQr({ className }: { className?: string }) {
 
 /** The 84x84 "hero" QR presentation shared by stations 1 and 3 (`.qr-node`
  *  in the reference artifact): white paper, the QR at full opacity. */
-function QrNode() {
+/**
+ * `tone` exists because the accent glow does not survive being repeated.
+ * One code carrying a violet bloom reads as the hero object of its station;
+ * five of them across one baseline wash the whole band blue and the bloom
+ * stops meaning anything. Only the two solo codes (stations 1 and 3) keep it;
+ * the three-up trio at station 2 gets a plain neutral lift instead, which is
+ * also truer to what that station is saying (these are ordinary codes you
+ * made, not a featured one).
+ */
+function QrNode({
+  code = "a",
+  size = 132,
+  tone = "accent",
+}: {
+  code?: CodeKey;
+  size?: number;
+  tone?: "accent" | "plain";
+}) {
+  const pad = Math.round(size * 0.083);
   return (
-    <div className="size-[132px] shrink-0 rounded-[14px] bg-qr-bg p-[11px] shadow-[0_1px_0_var(--border),0_20px_44px_-22px_var(--primary)]">
-      <FilmstripQr className="h-full w-full" />
+    <div
+      className={cn(
+        "shrink-0 rounded-[14px] bg-qr-bg",
+        tone === "accent"
+          ? "shadow-[0_1px_0_var(--border),0_20px_44px_-22px_var(--primary)]"
+          : "shadow-[0_1px_0_var(--border),0_12px_28px_-20px_rgb(0_0_0/0.55)]",
+      )}
+      style={{ width: size, height: size, padding: pad }}
+    >
+      <FilmstripQr code={code} className="h-full w-full" />
     </div>
   );
 }
@@ -223,9 +269,9 @@ function SetStation() {
         </StationStage>
       </StationArt>
       <StationMeta
-        label="Set"
-        title="Set the kit once."
-        note="Ink, shapes and logo become a kit. Every code you mint inherits it."
+        label="Design"
+        title="Design your style."
+        note="Pick your ink, module shape and corner style once. That kit becomes your look."
       />
     </Station>
   );
@@ -237,32 +283,25 @@ function PrintStation() {
       <StationArt>
         <StationTick />
         <StationStage>
-          {/* Scaled up at board review round 1: at ~50px these read as
-              specks on a full-width band. The code fills a print-plausible
-              share of each artifact now, which is what makes "the same code,
-              three surfaces" legible at a glance. */}
-          <div className="flex items-end gap-4">
-            {/* Tent card: portrait, a dashed fold line partway down. */}
-            <div className="relative flex h-[118px] w-[92px] shrink-0 items-center justify-center rounded-[4px] border border-border bg-qr-bg shadow-[0_1px_0_var(--border),0_16px_36px_-24px_rgb(0_0_0/0.9)]">
-              <span aria-hidden className="absolute inset-x-0 top-[28px] border-t border-dashed border-border" />
-              <FilmstripQr className="mt-6 h-[56%] w-[56%]" />
-            </div>
-            {/* Round sticker. */}
-            <div className="relative flex size-[86px] shrink-0 items-center justify-center rounded-full border border-border bg-qr-bg shadow-[0_1px_0_var(--border),0_16px_36px_-24px_rgb(0_0_0/0.9)]">
-              <FilmstripQr className="h-[62%] w-[62%]" />
-            </div>
-            {/* Poster corner: a heading bar above the code. */}
-            <div className="flex h-[104px] w-[74px] shrink-0 flex-col items-center justify-center gap-2 rounded-[3px] border border-border bg-qr-bg px-2 shadow-[0_1px_0_var(--border),0_16px_36px_-24px_rgb(0_0_0/0.9)]">
-              <span aria-hidden className="h-[3px] w-[34px] shrink-0 rounded-[1px] bg-muted-foreground opacity-50" />
-              <FilmstripQr className="aspect-square h-auto w-[72%]" />
-            </div>
+          {/* Board review round 2: this station used to show one code on three
+              print surfaces (a tent card, a sticker, a poster), which
+              illustrated "print anywhere" rather than the step it now carries,
+              "create new codes". Three genuinely different codes wearing one
+              identical style says that directly: the module patterns differ,
+              the ink, corner radius and eye shape do not. Code A is the same
+              code styled at station 1 and repointed at station 3, so the
+              thread through the filmstrip survives. */}
+          <div className="flex items-end gap-3.5">
+            <QrNode code="a" size={92} tone="plain" />
+            <QrNode code="b" size={92} tone="plain" />
+            <QrNode code="c" size={92} tone="plain" />
           </div>
         </StationStage>
       </StationArt>
       <StationMeta
-        label="Print"
-        title="Print or export anything."
-        note="The same code on every surface. SVG and PNG, no watermark."
+        label="Create"
+        title="Create new codes."
+        note="Every code you make inherits the kit. Export SVG or PNG, no watermark, no limits on static codes."
       />
     </Station>
   );
@@ -289,9 +328,9 @@ function RepointStation() {
         </div>
       </StationArt>
       <StationMeta
-        label="Repoint"
-        title="Change where it points, forever."
-        note="The printed code never changes. Only the destination does."
+        label="Update"
+        title="Update links anytime."
+        note="Repoint a code after it is printed. The code on the wall never changes, only where it sends people."
       />
     </Station>
   );
@@ -308,24 +347,16 @@ export function Filmstrip() {
         aria-hidden
         className="hidden md:absolute md:inset-x-0 md:top-[152px] md:block md:h-px md:bg-border"
       />
-      {/* Board review round 1: the stations used to sit on the section's own
-          bleed padding while the heading sat on `max-w-page`, so the section
-          had two different left edges. Everything shares the page measure
-          now; only the rule above bleeds. Keeping the stations on the measure
-          also pulls them close enough together to read as one filmstrip
-          rather than three islands on a 1440px field. */}
-      <div className="mx-auto w-full max-w-page px-gutter">
-        <div className="relative grid grid-cols-1 gap-y-12 md:grid-cols-3 md:gap-x-[clamp(1.5rem,2.6vw,3rem)] md:gap-y-0">
-          <SetStation />
-          <PrintStation />
-          <RepointStation />
-        </div>
+      <div className="relative grid grid-cols-1 gap-y-12 md:grid-cols-3 md:gap-x-[clamp(1.5rem,2.6vw,3rem)] md:gap-y-0">
+        <SetStation />
+        <PrintStation />
+        <RepointStation />
       </div>
-      <div className="mx-auto w-full max-w-page px-gutter">
+      <div>
         <div className="relative mt-7 md:mt-10">
           <span aria-hidden className="hidden md:absolute md:inset-x-0 md:top-1/2 md:block md:h-px md:bg-border" />
           <p className="relative mx-auto w-fit bg-transparent px-0 font-mono text-[11px] text-muted-foreground md:bg-surface-tint md:px-3.5">
-            one code, three moments · no reprints, ever
+            one kit, every code · no reprints, ever
           </p>
         </div>
       </div>

@@ -403,7 +403,11 @@
    entrance animations (`initial={{opacity:0,...}}` motion.div usage,
    unrelated to `Reveal`), out of this unit's scope since fixing it would
    mean editing `hero.tsx`'s dependency tree, which isn't in this unit's
-   file allowlist. See this unit's own report for the full breakdown. This
+   file allowlist. THOSE 9 ARE NOW ALSO FIXED, in a second round of this
+   same unit, by the `.hero-art-chip` / `.hero-art-tile` mount-entrance
+   classes further down this file — so the built `/` HTML now contains
+   zero `opacity:0` of any origin, and the e2e assertion that proves it
+   holds for the whole document rather than just the h1. This
    CSS keyframe animation runs the instant the stylesheet is parsed, gated
    on `animation-timeline`
    support — no rendered `opacity:0` ever ships as markup or a static
@@ -517,8 +521,57 @@
 .hero-enter-4 {
   animation-delay: 240ms;
 }
+/* Hero ARTWORK entrances (P9.7-U1 round 2) — the same SSR problem the h1
+   block above solves, in the other half of the hero. ScanNetwork's chips
+   and QrTile, and OrbitStage's whole stage, used motion/react
+   `initial={{opacity:0,...}}` + `animate`, which server-renders a static
+   `opacity:0` inline style: the hero's artwork was invisible with
+   JavaScript off, and invisible to anything reading the HTML. These two
+   keyframes reproduce those entrances exactly (same distances, same
+   durations, same curve, same delays) with `backwards` fill, so the
+   markup ships visible and the animation still plays from stylesheet
+   parse — earlier and more reliably than hydration could. The per-chip
+   stagger stays an inline `animation-delay` (a rendered style, but not a
+   hiding one). U1's SectionHeading/SectionBody fix is scroll-driven
+   because those entrances are scroll-triggered; these are mount
+   entrances, so they are plain keyframes like the h1's. */
+@keyframes hero-rise {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@keyframes hero-settle {
+  from {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+.hero-art-chip {
+  animation-name: hero-rise;
+  animation-duration: 500ms;
+  animation-timing-function: var(--motion-ease-out);
+  animation-fill-mode: backwards;
+}
+.hero-art-tile {
+  animation-name: hero-settle;
+  animation-duration: 600ms;
+  animation-delay: 200ms;
+  animation-timing-function: var(--motion-ease-out);
+  animation-fill-mode: backwards;
+}
 @media (prefers-reduced-motion: reduce) {
-  .hero-enter {
+  .hero-enter,
+  .hero-art-chip,
+  .hero-art-tile {
     animation: none;
     opacity: 1;
     transform: none;

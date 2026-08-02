@@ -1,8 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { motion, useReducedMotion } from "motion/react";
-import { EASE_OUT } from "@/components/brand/magic";
+import { useReducedMotion } from "motion/react";
 import { cn } from "@/lib/utils";
 import { DESTINATION_HUES, HUE_CLASSES, HUE_GLOW, HUE_TINT, HUE_VAR, type DestinationHue } from "./destination-hues";
 import { QrTile } from "./qr-tile";
@@ -230,12 +229,7 @@ export function OrbitStage() {
   }, [reduced]);
 
   return (
-    <motion.div
-      className="relative mx-auto w-full max-w-[358px]"
-      initial={{ opacity: 0, transform: reduced ? "scale(1)" : "scale(0.96)" }}
-      animate={{ opacity: 1, transform: "scale(1)" }}
-      transition={{ duration: 0.6, delay: 0.2, ease: EASE_OUT }}
-    >
+    <div className="hero-art-tile relative mx-auto w-full max-w-[358px]">
       <div className="relative aspect-[358/392] w-full">
         <svg
           viewBox="0 0 358 392"
@@ -343,6 +337,6 @@ export function OrbitStage() {
           <QrTile />
         </div>
       </div>
-    </motion.div>
+    </div>
   );
 }

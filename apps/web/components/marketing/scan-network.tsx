@@ -1,9 +1,8 @@
 "use client";
 
-import { motion, useReducedMotion } from "motion/react";
+import { useReducedMotion } from "motion/react";
 import { useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
-import { EASE_OUT } from "@/components/brand/magic";
 import { DESTINATION_HUES, HUE_CLASSES, HUE_TINT, type DestinationLabel } from "./destination-hues";
 import { OrbitStage } from "./orbit-stage";
 import { QrTile } from "./qr-tile";
@@ -200,38 +199,25 @@ export function ScanNetwork() {
             </svg>
 
             {DESTINATIONS.map((dest, i) => (
-              <motion.div
+              <div
                 key={dest.label}
-                className="absolute"
+                className="hero-art-chip absolute"
                 // Positioning never rides the animated transform: left chips
                 // anchor via `right`, so motion only ever touches opacity.
                 style={
                   dest.side === "left"
-                    ? { right: 1000 - dest.x, top: dest.y - 15 }
-                    : { left: dest.x, top: dest.y - 15 }
+                    ? { right: 1000 - dest.x, top: dest.y - 15, animationDelay: `${350 + i * 70}ms` }
+                    : { left: dest.x, top: dest.y - 15, animationDelay: `${350 + i * 70}ms` }
                 }
-                initial={{
-                  opacity: 0,
-                  transform: reduced ? "translateY(0px)" : "translateY(8px)",
-                }}
-                animate={{ opacity: 1, transform: "translateY(0px)" }}
-                transition={{ duration: 0.5, delay: 0.35 + i * 0.07, ease: EASE_OUT }}
               >
                 <DestinationChip label={dest.label} active={i === active} />
-              </motion.div>
+              </div>
             ))}
 
             <div className="absolute left-1/2 top-1/2 w-[176px] -translate-x-1/2 -translate-y-1/2">
-              <motion.div
-                initial={{
-                  opacity: 0,
-                  transform: reduced ? "scale(1)" : "scale(0.96)",
-                }}
-                animate={{ opacity: 1, transform: "scale(1)" }}
-                transition={{ duration: 0.6, delay: 0.2, ease: EASE_OUT }}
-              >
+              <div className="hero-art-tile">
                 <QrTile />
-              </motion.div>
+              </div>
             </div>
           </div>
         </div>
@@ -302,30 +288,16 @@ export function ScanNetwork() {
                     }
               }
             >
-              <motion.div
-                initial={{
-                  opacity: 0,
-                  transform: reduced ? "translateY(0px)" : "translateY(8px)",
-                }}
-                animate={{ opacity: 1, transform: "translateY(0px)" }}
-                transition={{ duration: 0.5, delay: 0.35 + i * 0.07, ease: EASE_OUT }}
-              >
+              <div className="hero-art-chip" style={{ animationDelay: `${350 + i * 70}ms` }}>
                 <DestinationChip label={dest.label} active={i === compactActive} />
-              </motion.div>
+              </div>
             </div>
           ))}
 
           <div className="absolute left-1/2 top-1/2 w-[176px] -translate-x-1/2 -translate-y-1/2">
-            <motion.div
-              initial={{
-                opacity: 0,
-                transform: reduced ? "scale(1)" : "scale(0.96)",
-              }}
-              animate={{ opacity: 1, transform: "scale(1)" }}
-              transition={{ duration: 0.6, delay: 0.2, ease: EASE_OUT }}
-            >
+            <div className="hero-art-tile">
               <QrTile />
-            </motion.div>
+            </div>
           </div>
         </div>
       </div>

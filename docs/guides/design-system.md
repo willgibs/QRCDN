@@ -867,13 +867,26 @@ vocabulary; this one only adds it.
   pre-existing defect in the hero's own `ScanNetwork`/`OrbitStage`
   destination-chip and `QrTile` entrance animations (plain motion.div
   `initial={{opacity:0,...}}` usage, nothing to do with `Reveal`), which
-  this unit could not fix without editing `hero.tsx`'s dependency tree
+  the first pass could not fix without editing `hero.tsx`'s dependency tree
   (`components/marketing/scan-network.tsx`, `orbit-stage.tsx`), outside
-  this unit's file allowlist. Both the built-HTML diff and this unit's
-  e2e additions (below) reflect the real, 33-wrapper defect this unit
-  actually fixes; a whole-document `grep -c 'opacity:0'` on `/` still
-  returns non-zero after this unit, for the 9 unrelated, still-open hero
-  instances — flagged as a follow-up rather than silently built around.
+  that pass's file allowlist. **A second round of this same unit fixed
+  those 9 too**, plus a tenth on `/pricing` (the annual "Save 33%" badge,
+  whose `AnimatePresence` was missing the `initial={false}` the price
+  cross-fade beside it already had). Every built page now contains zero
+  `opacity:0`, and the e2e assertion below holds for the whole document
+  rather than just the `h1`. The hero artwork uses `.hero-art-chip` /
+  `.hero-art-tile` mount keyframes reproducing the motion entrances
+  exactly: same distances, durations, curve and per-chip stagger.
+  **Proof the hero is visually unchanged** (it is the one design the board
+  has approved, so the burden was on the change): hero element captured
+  from the local production build and from live production at 390/768/
+  1024/1440 in both themes, identical bounding boxes throughout, and a
+  canvas pixel diff under `prefers-reduced-motion: reduce` returning a
+  **0-pixel difference at 390 in both themes** (where `OrbitStage` parks
+  completely). Residuals at the wider breakpoints are the destination-chip
+  cross-fade, which by design keeps cycling under reduced motion in both
+  versions. With JavaScript disabled the hero went from 6 invisible
+  elements to 1, that one being the intentionally `opacity-0` orbit trail.
   Fixed the same way the hero already was at
   P9.5-T1a (`hero-enter` CSS keyframes): both components now render a
   plain wrapper `div` carrying `data-reveal="true"` (and, for

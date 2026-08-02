@@ -142,7 +142,12 @@ export function PricingPlans() {
             <CardHeader>
               <div className="flex items-center justify-between gap-2">
                 <CardTitle className="font-display text-xl">Pro</CardTitle>
-                <AnimatePresence>
+                {/* initial={false} (P9.7-U1): annual is the default, so without
+                    it this badge server-rendered at opacity:0 and only appeared
+                    once JS ran. Toggling still animates; only the very first
+                    render skips the entrance. The price cross-fade below already
+                    did this; the badge was the one that missed it. */}
+                <AnimatePresence initial={false}>
                   {billing === "annual" && (
                     <motion.div
                       initial={{ opacity: 0, transform: `scale(${badgeScale})` }}

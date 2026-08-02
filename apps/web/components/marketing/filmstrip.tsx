@@ -131,7 +131,7 @@ function FilmstripQr({ className }: { className?: string }) {
  *  in the reference artifact): white paper, the QR at full opacity. */
 function QrNode() {
   return (
-    <div className="size-[84px] shrink-0 rounded-[9px] bg-qr-bg p-[7px] shadow-[0_1px_0_var(--border),0_14px_30px_-18px_var(--primary)]">
+    <div className="size-[132px] shrink-0 rounded-[14px] bg-qr-bg p-[11px] shadow-[0_1px_0_var(--border),0_20px_44px_-22px_var(--primary)]">
       <FilmstripQr className="h-full w-full" />
     </div>
   );
@@ -140,11 +140,13 @@ function QrNode() {
 function StationMeta({ label, title, note }: { label: string; title: string; note: string }) {
   return (
     <>
-      <p className="mt-[18px] font-mono text-[10.5px] tracking-[0.14em] text-muted-foreground uppercase">
+      <p className="mt-7 font-mono text-[11px] tracking-[0.18em] text-muted-foreground uppercase">
         {label}
       </p>
-      <p className="mt-[7px] text-[1.0625rem] font-medium text-foreground">{title}</p>
-      <p className="mt-[6px] max-w-[34ch] text-[0.85rem] text-muted-foreground">{note}</p>
+      <p className="mt-2.5 text-[1.25rem] leading-tight font-medium text-foreground">{title}</p>
+      <p className="mt-2 max-w-[36ch] text-[0.9375rem] leading-relaxed text-muted-foreground">
+        {note}
+      </p>
     </>
   );
 }
@@ -156,7 +158,7 @@ function StationTick() {
   return (
     <span
       aria-hidden
-      className="hidden md:absolute md:top-[103px] md:left-1/2 md:block md:h-[11px] md:w-px md:-translate-x-1/2 md:bg-muted-foreground md:opacity-45"
+      className="hidden md:absolute md:top-[146px] md:left-1/2 md:block md:h-[13px] md:w-px md:-translate-x-1/2 md:bg-muted-foreground md:opacity-45"
     />
   );
 }
@@ -171,7 +173,7 @@ function Station({ children }: { children: ReactNode }) {
 /** Station art area: 180px tall with a relative-positioning context for the
  *  tick/stage/under children at `md`, plain document flow below it. */
 function StationArt({ children }: { children: ReactNode }) {
-  return <div className="relative md:h-[180px]">{children}</div>;
+  return <div className="relative md:h-[248px]">{children}</div>;
 }
 
 /** The row that sits ON the rule (`bottom: 72px` of the 180px art area =
@@ -179,7 +181,7 @@ function StationArt({ children }: { children: ReactNode }) {
  *  `md`. */
 function StationStage({ children }: { children: ReactNode }) {
   return (
-    <div className="flex items-end justify-center gap-3.5 pt-2 pb-1 md:absolute md:inset-x-0 md:bottom-[72px] md:p-0">
+    <div className="flex items-end justify-center gap-4 pt-2 pb-1 md:absolute md:inset-x-0 md:bottom-[96px] md:p-0">
       {children}
     </div>
   );
@@ -191,31 +193,31 @@ function SetStation() {
       <StationArt>
         <StationTick />
         <StationStage>
-          <div className="flex flex-col gap-[11px] pb-[3px]">
-            <span className="flex items-center gap-2 font-mono text-[10px] whitespace-nowrap text-muted-foreground">
-              <span aria-hidden className="relative size-[14px] shrink-0 rounded-[3px] border border-border bg-white">
-                <span aria-hidden className="absolute inset-[3px] rounded-[1px]" style={{ backgroundColor: KIT_INK }} />
+          <div className="flex flex-col gap-4 pb-1">
+            <span className="flex items-center gap-2.5 font-mono text-[11px] whitespace-nowrap text-muted-foreground">
+              <span aria-hidden className="relative size-[18px] shrink-0 rounded-[4px] border border-border bg-white">
+                <span aria-hidden className="absolute inset-[4px] rounded-[1px]" style={{ backgroundColor: KIT_INK }} />
               </span>
               {KIT_INK}
             </span>
-            <span className="flex items-center gap-2 font-mono text-[10px] whitespace-nowrap text-muted-foreground">
-              <span aria-hidden className="size-[14px] shrink-0 rounded-[3px] border border-border bg-muted" />
+            <span className="flex items-center gap-2.5 font-mono text-[11px] whitespace-nowrap text-muted-foreground">
+              <span aria-hidden className="size-[18px] shrink-0 rounded-[5px] border border-border bg-muted" />
               rounded
             </span>
-            <span className="flex items-center gap-2 font-mono text-[10px] whitespace-nowrap text-muted-foreground">
-              <span aria-hidden className="size-[14px] shrink-0 rounded-full border border-border bg-muted" />
+            <span className="flex items-center gap-2.5 font-mono text-[11px] whitespace-nowrap text-muted-foreground">
+              <span aria-hidden className="size-[18px] shrink-0 rounded-full border border-border bg-muted" />
               circle eye
             </span>
           </div>
           <svg
             aria-hidden
-            width="30"
-            height="70"
-            viewBox="0 0 30 70"
+            width="34"
+            height="96"
+            viewBox="0 0 34 96"
             fill="none"
-            className="shrink-0 self-end pb-1 text-muted-foreground opacity-50"
+            className="shrink-0 self-end pb-2 text-muted-foreground opacity-50"
           >
-            <path d="M0 7h12M0 35h12M0 63h12M12 7v56M12 35h18" stroke="currentColor" strokeWidth="1" />
+            <path d="M0 9h13M0 48h13M0 87h13M13 9v78M13 48h21" stroke="currentColor" strokeWidth="1" />
           </svg>
           <QrNode />
         </StationStage>
@@ -235,20 +237,24 @@ function PrintStation() {
       <StationArt>
         <StationTick />
         <StationStage>
-          <div className="flex items-end gap-3.5">
+          {/* Scaled up at board review round 1: at ~50px these read as
+              specks on a full-width band. The code fills a print-plausible
+              share of each artifact now, which is what makes "the same code,
+              three surfaces" legible at a glance. */}
+          <div className="flex items-end gap-4">
             {/* Tent card: portrait, a dashed fold line partway down. */}
-            <div className="relative flex h-[74px] w-[58px] shrink-0 items-center justify-center rounded-[3px] border border-border bg-qr-bg">
-              <span aria-hidden className="absolute inset-x-0 top-[18px] border-t border-dashed border-border" />
-              <FilmstripQr className="h-[58%] w-[58%] opacity-90" />
+            <div className="relative flex h-[118px] w-[92px] shrink-0 items-center justify-center rounded-[4px] border border-border bg-qr-bg shadow-[0_1px_0_var(--border),0_16px_36px_-24px_rgb(0_0_0/0.9)]">
+              <span aria-hidden className="absolute inset-x-0 top-[28px] border-t border-dashed border-border" />
+              <FilmstripQr className="mt-6 h-[56%] w-[56%]" />
             </div>
             {/* Round sticker. */}
-            <div className="relative flex size-[52px] shrink-0 items-center justify-center rounded-full border border-border bg-qr-bg">
-              <FilmstripQr className="h-[58%] w-[58%] opacity-90" />
+            <div className="relative flex size-[86px] shrink-0 items-center justify-center rounded-full border border-border bg-qr-bg shadow-[0_1px_0_var(--border),0_16px_36px_-24px_rgb(0_0_0/0.9)]">
+              <FilmstripQr className="h-[62%] w-[62%]" />
             </div>
             {/* Poster corner: a heading bar above the code. */}
-            <div className="flex h-[66px] w-[46px] shrink-0 flex-col items-center justify-center gap-[5px] rounded-[2px] border border-border bg-qr-bg pt-2">
-              <span aria-hidden className="h-0.5 w-[22px] shrink-0 rounded-[1px] bg-muted-foreground opacity-50" />
-              <FilmstripQr className="aspect-square h-auto w-[62%] opacity-90" />
+            <div className="flex h-[104px] w-[74px] shrink-0 flex-col items-center justify-center gap-2 rounded-[3px] border border-border bg-qr-bg px-2 shadow-[0_1px_0_var(--border),0_16px_36px_-24px_rgb(0_0_0/0.9)]">
+              <span aria-hidden className="h-[3px] w-[34px] shrink-0 rounded-[1px] bg-muted-foreground opacity-50" />
+              <FilmstripQr className="aspect-square h-auto w-[72%]" />
             </div>
           </div>
         </StationStage>
@@ -270,13 +276,13 @@ function RepointStation() {
         <StationStage>
           <QrNode />
         </StationStage>
-        <div className="mt-3.5 flex justify-center md:absolute md:inset-x-0 md:top-[122px] md:mt-0">
-          <div className="flex flex-col items-center gap-[5px] font-mono text-[10.5px]">
+        <div className="mt-4 flex justify-center md:absolute md:inset-x-0 md:top-[170px] md:mt-0">
+          <div className="flex flex-col items-center gap-2 font-mono text-[12px]">
             <span className="text-muted-foreground opacity-65 line-through decoration-1">
               yourcafe.com/menu
             </span>
-            <span className="flex items-center gap-1.5 text-foreground">
-              <span aria-hidden className={cn("size-[5px] rounded-full", HUE_CLASSES["dest-1"].dot)} />
+            <span className="flex items-center gap-2 text-foreground">
+              <span aria-hidden className={cn("size-[6px] rounded-full", HUE_CLASSES["dest-1"].dot)} />
               yourcafe.com/winter
             </span>
           </div>
@@ -300,12 +306,20 @@ export function Filmstrip() {
           gutter-padded stations grid below it). */}
       <span
         aria-hidden
-        className="hidden md:absolute md:inset-x-0 md:top-[108px] md:block md:h-px md:bg-border"
+        className="hidden md:absolute md:inset-x-0 md:top-[152px] md:block md:h-px md:bg-border"
       />
-      <div className="relative grid grid-cols-1 gap-y-11 px-gutter md:grid-cols-3 md:gap-x-[clamp(1.5rem,3vw,3.5rem)] md:gap-y-0">
-        <SetStation />
-        <PrintStation />
-        <RepointStation />
+      {/* Board review round 1: the stations used to sit on the section's own
+          bleed padding while the heading sat on `max-w-page`, so the section
+          had two different left edges. Everything shares the page measure
+          now; only the rule above bleeds. Keeping the stations on the measure
+          also pulls them close enough together to read as one filmstrip
+          rather than three islands on a 1440px field. */}
+      <div className="mx-auto w-full max-w-page px-gutter">
+        <div className="relative grid grid-cols-1 gap-y-12 md:grid-cols-3 md:gap-x-[clamp(1.5rem,2.6vw,3rem)] md:gap-y-0">
+          <SetStation />
+          <PrintStation />
+          <RepointStation />
+        </div>
       </div>
       <div className="mx-auto w-full max-w-page px-gutter">
         <div className="relative mt-7 md:mt-10">

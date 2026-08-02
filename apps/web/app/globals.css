@@ -14,6 +14,10 @@
   --font-heading: var(--brand-font-display);
   --color-surface-studio: var(--surface-studio);
   --color-surface-tint: var(--surface-tint);
+  --color-surface-ink: var(--surface-ink);
+  --color-ink-foreground: var(--ink-foreground);
+  --color-ink-muted: var(--ink-muted);
+  --color-ink-border: var(--ink-border);
   --color-qr-fg: var(--qr-fg);
   --color-qr-bg: var(--qr-bg);
   --color-code-bg: var(--code-bg);
@@ -98,6 +102,7 @@
      either fits its purpose or it doesn't, unlike vertical rhythm there's
      no min/max range to bound. ---- */
   --container-page: 72rem; /* 1152px — outer page frame (mx-auto max-w-page px-gutter) */
+  --container-wide: 88rem; /* 1408px — Section's frame="wide" (P9.7-U1): more breathing room than the page frame, still gutter-bound. Verified against the installed tailwindcss@4.3.3 (throwaway compile()) that this generates a real max-w-wide utility, same method D13's T1b amendment used for the rest of this token family. */
   --container-copy: 34rem; /* 544px — narrow copy column; pair with an aside or a full-measure visual below (dead-measure ban) */
   --container-lede: 42rem; /* 672px — subhead/lede paragraphs under a heading */
   --container-docs: 46rem; /* 736px — docs content column, beside a TOC rail */
@@ -181,6 +186,19 @@
      register. background(1.0) -> tint(0.98) -> surface-studio(0.975) ->
      muted(0.96): a graduated staircase, not a duplicate of surface-studio. */
   --surface-tint: oklch(0.98 0.003 280);
+  /* The page's one inverted plate (P9.7-U1, Section's surface="ink"):
+     background AND foreground flip, independent of site theme — this
+     surface reads dark in both light-mode and dark-mode. --ink-border is
+     its own hairline color (not --border, which is far too close to
+     --surface-ink's own lightness to read against it) — load-bearing per
+     the board artifact: without it, an inverted surface reads as "more
+     page," not a hard stop. Only --surface-ink itself is redeclared below
+     in .dark (a touch darker still); foreground/muted/border stay fixed
+     across both site themes, since this plate never un-inverts. */
+  --surface-ink: oklch(0.14 0.006 280);
+  --ink-foreground: oklch(0.97 0.002 280);
+  --ink-muted: oklch(0.64 0.008 280);
+  --ink-border: oklch(1 0 0 / 14%);
   --qr-fg: #131316;
   --qr-bg: #ffffff;
   /* Destination-identity hues (P9.5-T3a) — a second color family, scoped
@@ -255,6 +273,10 @@
      the one exception (recessed BELOW background — see design-system.md's
      "luminous staging grammar"). Same graduated-staircase logic as light. */
   --surface-tint: oklch(0.155 0.004 280);
+  /* A touch darker still than the light-mode plate — foreground/muted/
+     border are unchanged from :root (see the light-mode comment above):
+     this surface was already dark, dark mode just deepens it further. */
+  --surface-ink: oklch(0.07 0.006 280);
   --qr-fg: #ececf1;
   --qr-bg: #101013;
   /* Destination-identity hues, dark-mode values (P9.5-T3a) — --dest-1
@@ -319,15 +341,109 @@
    SectionHeading (same data-slot convention as the button rule above: the
    DOM carries the fact, CSS reacts to it, no context needed). Scoped to
    `-main` (eyebrow/title/lede), not the whole heading row, so an `aside`/
-   `actions` slot can still sit apart from the centered column. */
+   `actions` slot can still sit apart from the centered column.
+
+   Every rule below is rooted at `[data-slot="section"]` (P9.7-U1), never a
+   bare `[data-variant="X"]` — `data-variant` is also emitted by several
+   vendored shadcn primitives (`components/ui/button.tsx`, `badge.tsx`,
+   `tabs.tsx`, `toggle-group.tsx`, `dropdown-menu.tsx`), so an unscoped
+   attribute selector would reach into all of them. */
 @layer components {
-  [data-variant="centered"] [data-slot="section-heading"] {
+  [data-slot="section"][data-variant="centered"] [data-slot="section-heading"] {
     flex-direction: column;
     align-items: center;
   }
-  [data-variant="centered"] [data-slot="section-heading-main"] {
+  [data-slot="section"][data-variant="centered"] [data-slot="section-heading-main"] {
     align-items: center;
     text-align: center;
+  }
+}
+
+/* variant="split" real layout (P9.7-U1) — gated behind the `splitRail` opt-in
+   prop (`data-split="rail"`) IN ADDITION to `data-variant="split"`, so the
+   four sections that already declare `variant="split"` today (03 brand-
+   system, 05 guardrails, 07 api, 09 open-source — none of which pass
+   `splitRail`) keep rendering exactly as before: plain stacked children,
+   no grid, at every viewport. Below `md` this rule doesn't apply at all,
+   so a `splitRail` section also just stacks there, unchanged.
+
+   `> div:last-child` targets Section's own inner frame div without adding
+   a new attribute to it (which would show up on every Section's rendered
+   HTML, split or not — the frame div is unconditionally the last child of
+   `<section>`, since the optional hairline/fade divider divs, when
+   present, always render before it). Both tracks use `minmax(0, ...)`,
+   never a bare `1fr` — a grid item's default `min-width: auto` refuses to
+   shrink below its content, which is exactly what produced 116px of
+   horizontal overflow on `/codes/[slug]` in an earlier round. */
+@media (min-width: 48rem) {
+  [data-slot="section"][data-variant="split"][data-split="rail"] > div:last-child {
+    display: grid;
+    grid-template-columns: minmax(0, 20rem) minmax(0, 1fr);
+    column-gap: var(--spacing-block);
+  }
+  [data-slot="section"][data-variant="split"][data-split="rail"]
+    > div:last-child
+    > *:first-child {
+    position: sticky;
+    top: 5rem;
+    align-self: start;
+  }
+}
+
+/* SSR-safe scroll reveal (P9.7-U1) — replaces the `Reveal` (motion/react
+   `whileInView`) wrapper `SectionHeading`/`SectionBody` used to render,
+   which shipped a static `opacity:0;transform:translateY(18px)` inline
+   style in the server HTML: with JavaScript disabled, or before hydration
+   completes, that content was permanently invisible. The build spec's own
+   pre-flight measurement (`grep -o 'opacity:0' | wc -l` against served `/`
+   HTML) counted 42; the true count attributable to THIS wrapper is 33
+   (verified by counting the Reveal-specific `translateY(18px)` distance
+   specifically, before/after) — the other 9 are a separate, pre-existing
+   defect in the hero's own `ScanNetwork`/`OrbitStage` chip and `QrTile`
+   entrance animations (`initial={{opacity:0,...}}` motion.div usage,
+   unrelated to `Reveal`), out of this unit's scope since fixing it would
+   mean editing `hero.tsx`'s dependency tree, which isn't in this unit's
+   file allowlist. See this unit's own report for the full breakdown. This
+   CSS keyframe animation runs the instant the stylesheet is parsed, gated
+   on `animation-timeline`
+   support — no rendered `opacity:0` ever ships as markup or a static
+   class, only inside a keyframe a supporting browser applies at a scroll
+   position, so the un-supporting case (see below) is simply "always
+   visible," never "stuck invisible."
+
+   Distance matches the old Reveal component's own values (18px). No
+   easing curve: scroll-driven animations run linear against scroll
+   progress by design (an eased curve would look wrong tied to scroll
+   position rather than time) — `animation-range` is the tuning knob
+   instead. `data-reveal-delay` (set by `SectionBody` when its `delay` prop
+   is > 0) approximates the old stagger with a slightly later range rather
+   than `animation-delay`, which has no meaning against a scroll timeline.
+
+   Firefox has no `animation-timeline: view()` support as of this writing.
+   That's an accepted, deliberate degradation, not a bug: `@supports` gates
+   the whole rule out, so Firefox simply renders the content at full
+   opacity with no entrance — never a JS fallback, never a stuck-hidden
+   state. */
+@keyframes section-reveal {
+  from {
+    opacity: 0;
+    transform: translateY(18px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@media (prefers-reduced-motion: no-preference) {
+  @supports (animation-timeline: view()) {
+    [data-reveal] {
+      animation: section-reveal linear both;
+      animation-timeline: view();
+      animation-range: entry 8% cover 24%;
+    }
+    [data-reveal][data-reveal-delay] {
+      animation-range: entry 14% cover 30%;
+    }
   }
 }
 

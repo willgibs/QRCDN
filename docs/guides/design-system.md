@@ -250,7 +250,8 @@ Cross-surface primitives — shared by studio, auth, and explore/marketing alike
 
 | Module | Exports | Server-safe? | What it's for |
 |---|---|---|---|
-| `magic.tsx` | `EASE_OUT`, `useRevealVariants`, `Reveal`, `ModuleMark`, `Eyebrow` | No (`"use client"`, uses `motion/react` + `useReducedMotion`) | Shared motion language (entrance variants, scroll reveal) + the eyebrow/module-mark brand mark, used by login, studio, and every marketing section |
+| `magic.tsx` | `EASE_OUT`, `useRevealVariants`, `Reveal`, `ModuleMark`, `Eyebrow` | No (`"use client"`, uses `motion/react` + `useReducedMotion`) | Shared motion language (entrance variants, scroll reveal). `ModuleMark`/`Eyebrow` (P9.7-U1) are re-exports of `marks.tsx` below, kept here so every pre-existing `@/components/brand/magic` import site is unaffected — this file's own remaining direct export is `Reveal` (still used by `/login`) plus the hook/curve pair |
+| `marks.tsx` | `ModuleMark`, `Eyebrow` | **Yes** — presentational, no hooks | The brand-mark pair, moved out of `magic.tsx` at P9.7-U1 (neither used a hook; they only lived in a `"use client"` file because `Reveal` did). `components/marketing/section.tsx` imports `Eyebrow` from here directly, post P9.7-U1's reveal fix — `Section`'s whole module tree is now client-boundary-free. Every other consumer still imports either name from `@/components/brand/magic` unchanged |
 | `backdrop.tsx` | `HeroBackdrop` | **Yes** — presentational, no hooks | Atmosphere layer (violet glow + QR-module grid texture) behind a hero/floor-register surface. Moved here from `components/explore/backdrop.tsx` at P9-U5 (was already cross-surface before the move — P2 birthplace mischaracterized it as explore-only, same story as every module in this table). 6 importers: `/login`, `/developers`, `/u/[slug]`, `/p/[slug]`, `app/not-found.tsx`, `components/marketing/hero.tsx` |
 | `artifact-stage.tsx` | `ArtifactStage` | **Yes** — presentational, no hooks | Glow-layer wrapper for a floating "luminous artifact" — now the **marketing-only** staging rig (P9 static product visuals) since round 3 moved the studio preview to `TiltStage`. See "Luminous staging grammar" below |
 | `tilt-stage.tsx` | `TiltStage` | No (`"use client"`, uses `motion/react` + `useReducedMotion`) | Interactive 3D staging wrapper — tilt-toward-cursor + moving specular sheen + reactive floor shadow. Studio-only (round 3, replacing `ArtifactStage` on that one surface). See "Luminous staging grammar" below |
@@ -842,6 +843,149 @@ would undermine the one property that makes it worth having. If its dark palette
 ever drifts from `globals.css`, that's a manual re-sync (there's no build-time check
 for it, the same honest limitation `lib/brand-qr.ts`'s `brandQrBackdrop` map already
 documents for its own by-hand sync with `--qr-bg`), not a bug in either file.
+
+## Section system: frame, split-rail, ink surface, Note (P9.7-U1)
+
+System-foundation unit: gives `Section`/`SectionHeading`/`SectionBody` real
+vocabulary and fixes one defect, without touching a single section file
+(`*-section.tsx`, `hero.tsx`, `playground.tsx`, `comparison-section.tsx`,
+`pricing-teaser.tsx`, `closing-section.tsx`, `app/(marketing)/page.tsx` were
+all off-limits — every addition below is additive-default, proven
+byte-identical against the pre-unit build). Later units spend this
+vocabulary; this one only adds it.
+
+- **The SSR reveal defect, fixed — and the "42" claim corrected to 33.**
+  `SectionHeading`/`SectionBody` used to wrap their content in `Reveal`
+  (`components/brand/magic.tsx`, motion/react `whileInView`), which SSRs a
+  static `opacity:0;transform:translateY(18px)` inline style, invisible
+  with JavaScript disabled or before hydration completes. The build spec's
+  own pre-flight `grep -o 'opacity:0' | wc -l` against served `/` HTML
+  counted 42 and attributed all of it to this wrapper; verified instead
+  (counting the `Reveal`-specific `translateY(18px)` distance before/after
+  the fix, since the hero's own unrelated motion uses different distances)
+  that only **33** of the 42 are this wrapper — the other 9 are a separate,
+  pre-existing defect in the hero's own `ScanNetwork`/`OrbitStage`
+  destination-chip and `QrTile` entrance animations (plain motion.div
+  `initial={{opacity:0,...}}` usage, nothing to do with `Reveal`), which
+  this unit could not fix without editing `hero.tsx`'s dependency tree
+  (`components/marketing/scan-network.tsx`, `orbit-stage.tsx`), outside
+  this unit's file allowlist. Both the built-HTML diff and this unit's
+  e2e additions (below) reflect the real, 33-wrapper defect this unit
+  actually fixes; a whole-document `grep -c 'opacity:0'` on `/` still
+  returns non-zero after this unit, for the 9 unrelated, still-open hero
+  instances — flagged as a follow-up rather than silently built around.
+  Fixed the same way the hero already was at
+  P9.5-T1a (`hero-enter` CSS keyframes): both components now render a
+  plain wrapper `div` carrying `data-reveal="true"` (and, for
+  `SectionBody`, `data-reveal-delay="true"` when its `delay` prop is > 0,
+  approximating the old heading→body stagger since `animation-delay` has
+  no meaning against a scroll timeline) instead of the `Reveal`/`motion.div`
+  wrapper. `globals.css`'s `section-reveal` keyframes drive the entrance via
+  `animation-timeline: view()`, gated behind
+  `@supports (animation-timeline: view())` — the hidden `opacity: 0` state
+  only ever exists inside a keyframe a supporting browser applies at a
+  scroll position, never as rendered markup. **Firefox has no
+  `animation-timeline: view()` support as of this writing** — an accepted,
+  deliberate degradation: `@supports` gates the whole rule out there, so
+  content simply renders at full opacity with no entrance. No JS fallback
+  was added; none is planned for this gap. `Reveal` itself is **not**
+  deleted from `magic.tsx` — `/login` (`app/(auth)/login/page.tsx`) still
+  imports and renders it directly, grep-verified before removing anything.
+- **`frame` (`Section`).** `frame?: "page" | "wide" | "bleed"`, default
+  `"page"` — today's `mx-auto w-full max-w-page px-gutter` markup,
+  byte-identical (proven by build-diffing `/`'s rendered HTML before/after;
+  every call site omits `frame`, so every call site's class string is
+  unchanged). `"wide"` swaps to the new `max-w-wide` utility
+  (`--container-wide: 88rem`, additive second `@theme` block, same
+  T1b-established container-token family); `"bleed"` drops both the
+  max-width and the gutter, deliberately giving the caller no inner measure
+  to re-establish itself. `max-w-wide`'s generation was verified against
+  the installed `tailwindcss@4.3.3` with a throwaway `compile()` call
+  before writing any component against it (same method the T1b container
+  amendment used) — it generates a real utility, so the documented
+  arbitrary-property fallback was not needed.
+- **`variant="split"`, made real, without moving the four sections already
+  using it.** At `md` and up, `Section`'s inner frame div can lay its
+  direct children out as a sticky heading-rail + body grid
+  (`minmax(0, 20rem)` / `minmax(0, 1fr)`, both tracks `minmax(0, ...)` per
+  the standing "never a bare `1fr`" rule — a bare `1fr` track's default
+  `min-width: auto` is what produced 116px of horizontal overflow on
+  `/codes/[slug]` in an earlier round; heading rail `position: sticky; top:
+  5rem; align-self: start`). This is gated behind a **new opt-in `Section`
+  prop, `splitRail`** (emits `data-split="rail"`), required in addition to
+  `data-variant="split"` — sections 03 (brand-system), 05 (guardrails), 07
+  (api), 09 (open-source) already declare `variant="split"` today with no
+  `splitRail`, so the compound-attribute gate means the new grid rule can
+  never match them; they keep rendering their current plain stacked
+  children at every viewport, confirmed by build-diffing `/`'s full
+  rendered HTML (zero byte difference in those four sections beyond the
+  reveal-attribute swap above). Every new rule in this family is rooted at
+  `[data-slot="section"]`, never a bare `[data-variant="X"]` — `data-variant`
+  is also emitted by several vendored shadcn primitives (`button.tsx`,
+  `badge.tsx`, `tabs.tsx`, `toggle-group.tsx`, `dropdown-menu.tsx`), so an
+  unscoped attribute selector would reach into all of them; the pre-existing
+  `[data-variant="centered"]` rules were rescoped the same way in the same
+  pass. `variant="showcase"` stays **inert on purpose** — it exists so a
+  section can declare intent (pairs with `frame="wide"`) without claiming a
+  layout behavior it doesn't have yet; this is documented so the next
+  person doesn't read the absence of CSS as a bug.
+- **`titleSize` (`SectionHeading`).** Decouples visual size from the
+  semantic tag `titleAs` still controls. `titleSize?: "display" | "h1" |
+  "h2" | "h3"`, defaulting from `titleAs` (`"h1"` → `text-display`, `"h2"`
+  → `text-h2`) so every existing call site is byte-identical. `titleAs`
+  still accepts only `"h1" | "h2"` and there must never be a second page
+  `<h1>` — a section wanting bigger type while staying semantically an
+  `<h2>` sets `titleAs="h2"` with `titleSize="h1"` rather than reaching for
+  `titleAs="h1"`.
+- **`surface="ink"` (`Section`).** A fourth surface, the page's one
+  inverted plate: `--surface-ink`/`--ink-foreground`/`--ink-muted`/
+  `--ink-border`, declared in `:root`/`.dark` (only `--surface-ink` itself
+  is redeclared in `.dark`, a touch darker — foreground/muted/border stay
+  fixed across both site themes, since this plate never un-inverts) and
+  mapped through the *original* `@theme inline` block, per the standing D13
+  amendment exception for colors (they need per-mode re-evaluation, unlike
+  the spacing/container/type families in the additive second `@theme`
+  block). `surface="ink"` sets background, foreground, **and** a top/bottom
+  hairline in `--ink-border` (not `--border`, which is far too close to
+  `--surface-ink`'s own lightness to read against it) — load-bearing per
+  the board artifact: without the hairline, an inverted surface in dark
+  mode reads as "more page," not a hard stop. `Section` forces
+  `divider="none"` whenever `surface="ink"` (same reasoning, and the same
+  code path, as `variant="band"` already forcing it) so the generic
+  `--border`-colored hairline can never double up against the surface's own
+  edge. No new accent hue: the single-accent violet lock is unchanged, and
+  `--dest-1..4` stay restricted to destination identity. Lands unused this
+  unit — no section file may change to adopt it (the file allowlist above),
+  so this is pure vocabulary for a later unit to spend.
+- **`Note` (`components/marketing/note.tsx`, new).** A left-rule annotation
+  block, server component, zero client JS: `border-l-2` + generous
+  (`pl-6`) left padding, an optional bold `lead` phrase in `--foreground`
+  (`<strong className="font-semibold text-foreground">`, the same pattern
+  `/privacy` already established for inline emphasis), body copy in
+  `--muted-foreground` at `text-sm` (0.875rem), capped at `max-w-[76ch]`.
+  `tone?: "default" | "accent"` swaps the rule to `border-primary`. No
+  background, no radius, no border on more than one side — deliberate: the
+  landing has ~32 bordered rounded rectangles and essentially no other
+  shape, and this is the one device that isn't a box. Padding/rule-weight
+  mirror the page's other left-rule element,
+  `components/marketing/blog/post-shell.tsx`'s `Pull` blockquote
+  (`border-l-2 border-primary py-1 pl-6`), so the two treatments share one
+  physical vocabulary rather than drifting to slightly different numbers.
+  Lands unused this unit, same reason as `surface="ink"` above; later units
+  consume it sparingly for contextual/honesty copy that currently renders
+  at `text-xs` and reads as apologetic.
+- **`marks.tsx` rider, landed.** `ModuleMark`/`Eyebrow` moved out of
+  `magic.tsx` into a new directive-free `components/brand/marks.tsx` —
+  neither used a hook, they only lived in a `"use client"` file because
+  `Reveal` did. Re-exported from `magic.tsx` so every pre-existing
+  `@/components/brand/magic` import of either name is unaffected. One
+  consumer was updated beyond the mechanical move: `section.tsx` itself now
+  imports `Eyebrow` from `@/components/brand/marks` directly rather than
+  through `magic.tsx` — free to do once the reveal fix above meant
+  `section.tsx` no longer needed anything else from a `"use client"` file,
+  and it's the module every `SectionHeading` eyebrow flows through, so
+  `Section`'s whole tree is now client-boundary-free. See "Shared brand
+  primitives" above for the updated module table.
 
 ## The quality floor (founder-set, checkpoint A close)
 

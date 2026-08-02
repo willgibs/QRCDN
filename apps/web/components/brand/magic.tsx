@@ -9,7 +9,13 @@ import type { ReactNode } from "react";
  * motion's x/y shorthands run on the main thread), reduced-motion collapses
  * movement to opacity-only. Marketing entrances may exceed the 300ms UI
  * budget; in-app UI must not.
+ *
+ * `ModuleMark`/`Eyebrow` (P9.7-U1): moved to the directive-free
+ * `./marks.tsx` and re-exported here — neither used a hook, they only lived
+ * in this "use client" file because `Reveal` did. Every existing
+ * `@/components/brand/magic` import of either name keeps working unchanged.
  */
+export { ModuleMark, Eyebrow } from "./marks";
 
 export const EASE_OUT = [0.23, 1, 0.32, 1] as const;
 
@@ -72,49 +78,5 @@ export function Reveal({
     >
       {children}
     </motion.div>
-  );
-}
-
-/** 2×2 QR-module glyph used before eyebrow labels — the brand mark detail. */
-export function ModuleMark({ className }: { className?: string }) {
-  return (
-    <svg
-      viewBox="0 0 10 10"
-      aria-hidden
-      className={className ?? "size-2.5 text-primary"}
-    >
-      <rect x="0" y="0" width="4" height="4" fill="currentColor" />
-      <rect x="6" y="0" width="4" height="4" fill="currentColor" opacity="0.45" />
-      <rect x="0" y="6" width="4" height="4" fill="currentColor" opacity="0.45" />
-      <rect x="6" y="6" width="4" height="4" fill="currentColor" />
-    </svg>
-  );
-}
-
-/**
- * Standard eyebrow: module mark + tracked mono caps. `index` (P9.5-T1b,
- * optional — existing call sites are unaffected) renders an ordinal ("01")
- * before the label, for `SectionHeading`'s numbered-section treatment;
- * muted further than the label itself so the number reads as a secondary
- * cue, not competing with it. No separator glyph between the ordinal and
- * the label — the flex `gap-2.5` plus the ordinal's own lighter tint
- * already reads as two distinct tokens; an early draft used an em dash
- * here, which the P9.5-T3a no-em-dash copy rule (docs/guides/design-
- * system.md) caught before this prop had ever been exercised in
- * production (T3a is its first real consumer).
- */
-export function Eyebrow({
-  children,
-  index,
-}: {
-  children: ReactNode;
-  index?: string;
-}) {
-  return (
-    <p className="mb-3 flex items-center gap-2.5 font-mono text-xs uppercase tracking-[0.2em] text-muted-foreground">
-      <ModuleMark />
-      {index && <span className="text-muted-foreground/70">{index}</span>}
-      {children}
-    </p>
   );
 }

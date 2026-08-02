@@ -592,6 +592,26 @@ test.describe("marketing site", () => {
     expect(h1Match?.[0]).toContain("Two plans");
   });
 
+  // P9.7-U1: the whole-document version of the two h1-scoped opacity checks
+  // above. `SectionHeading`/`SectionBody` no longer ship a `Reveal`
+  // (motion/react whileInView) wrapper at all — the CSS `section-reveal`
+  // keyframes replacing it never render `opacity:0` as markup on ANY of
+  // the ~40+ reveal wrappers the landing renders, not just the hero/page
+  // h1. Raw served HTML via request.get(), not a rendered page: the actual
+  // bytes the server sent, same technique as the h1-scoped tests above.
+
+  test("/ never SSRs opacity:0 anywhere in the document (P9.7-U1)", async ({ request }) => {
+    const response = await request.get("/");
+    const html = await response.text();
+    expect(html).not.toMatch(/opacity\s*:\s*0(?!\.)/);
+  });
+
+  test("/pricing never SSRs opacity:0 anywhere in the document (P9.7-U1)", async ({ request }) => {
+    const response = await request.get("/pricing");
+    const html = await response.text();
+    expect(html).not.toMatch(/opacity\s*:\s*0(?!\.)/);
+  });
+
   // P9.5-T-F1: the two feature pages (/features/dynamic-codes,
   // /features/analytics) and the landing doorways that now point at them.
 

@@ -1,6 +1,6 @@
 # Status
 
-_Last updated: 2026-08-01 (P9.5-T8 closed the phase — proof, docs, and close. The one real proof gap: two new e2e tests prove shiki's server-highlighted markup actually reaches the browser response (raw `request.get()`, real emitted shape, no client chunk), the markup assertion proven meaningful by a temporary stub-and-restore cycle that watched it fail cleanly before restoring. `docs/guides/p9.5-ascent.md` reconciled unit-by-unit against the real git history as the phase's record rather than its forward-looking plan; `docs/guides/design-system.md` gained three sections (feature-page composition, the blog/help prose system, T7's app-shell additions) plus a note on why status.qrcdn.com deliberately doesn't share the design system. A same-day rider from the founder's own full production sweep: three em dashes rendering on the live landing page, sourced from packages/qr-engine's own doc comments via the build-time guardrails excerpt — fixed at the engine source (the excerpt must stay verbatim) plus a hardened assertion closing that specific class of gap. The honest-content pass found and fixed two small hardcoded-entitlement literals in the studio (both now read PLAN_LIMITS). The /codes pause control's fourth mechanism, `router.refresh()`, was tried once, timeboxed, and worked on the first attempt — three consecutive clean e2e runs — replacing the hard reload. This entry also amends the P9.5-T7 entry above with a third commit, `e695670` (a founder review round), that had never been folded in. **P9.5 — The Ascent — CLOSED.** Update this file at every phase boundary or significant commit._
+_Last updated: 2026-08-01 (P9.5-T8 closed the phase — proof, docs, and close. The one real proof gap: two new e2e tests prove shiki's server-highlighted markup actually reaches the browser response (raw `request.get()`, real emitted shape, no client chunk), the markup assertion proven meaningful by a temporary stub-and-restore cycle that watched it fail cleanly before restoring. `docs/guides/p9.5-ascent.md` reconciled unit-by-unit against the real git history as the phase's record rather than its forward-looking plan; `docs/guides/design-system.md` gained three sections (feature-page composition, the blog/help prose system, T7's app-shell additions) plus a note on why status.qrcdn.com deliberately doesn't share the design system. A same-day rider from the founder's own full production sweep: three em dashes rendering on the live landing page, sourced from packages/qr-engine's own doc comments via the build-time guardrails excerpt — fixed at the engine source (the excerpt must stay verbatim) plus a hardened assertion closing that specific class of gap. The honest-content pass found and fixed two small hardcoded-entitlement literals in the studio (both now read PLAN_LIMITS). The /codes pause control's fourth mechanism, `router.refresh()`, was tried once and timeboxed: it passed three consecutive local e2e runs, was committed on that basis, then failed CI's E2E job on that same SHA and was reverted to the CI-proven hard reload. Four mechanisms have now passed locally and failed in CI; local green is not the bar. This entry also amends the P9.5-T7 entry above with a third commit, `e695670` (a founder review round), that had never been folded in. **P9.5 — The Ascent — CLOSED.** Update this file at every phase boundary or significant commit._
 
 ## Current phase
 
@@ -1072,19 +1072,30 @@ new feature.
   default include glob picks up every `*.test.ts` file outside `e2e/**`
   automatically — and a direct run confirms both its assertions execute
   (including its own canary against silently checking zero files).
-- **`/codes`' pause toggle: `router.refresh()` tried once, timeboxed, and
-  it worked.** T7 shipped `window.location.reload()` after two smoother
-  mechanisms (a form action, a `useActionState` form) both failed
-  empirically. The one mechanism T7 explicitly hadn't tried —
+- **`/codes`' pause toggle: `router.refresh()` tried, timeboxed, and
+  REVERTED — it failed CI.** T7 shipped `window.location.reload()` after
+  two smoother mechanisms (a form action, a `useActionState` form) both
+  failed empirically. The one mechanism T7 hadn't tried —
   `router.refresh()` called imperatively from the client handler after the
-  action resolves, a genuinely different mechanism since it issues its own
-  explicit request rather than depending on an action response being
-  applied — was tried once here, per this unit's own strict timebox. It
-  worked on the first attempt: three consecutive full local
-  `money-path.spec.ts` runs against real production Supabase, 16/16 green
-  every time including the pause-then-resume test, zero flakes. Kept; the
-  hard reload is gone; `components/codes/pause-toggle-button.tsx`'s doc
-  comment now records this as the fourth mechanism and why it won.
+  action resolves, genuinely different since it issues its own explicit
+  request rather than depending on an action response being applied — was
+  tried once here per this unit's strict timebox. It passed three
+  consecutive full local `money-path.spec.ts` runs (16/16 each, zero
+  flakes) and was committed on that basis in `6eb2966`, and then **failed
+  CI's E2E job on that very SHA**, on the same two assertions
+  (`money-path.spec.ts:291`/`:294`) that every earlier mechanism failed on.
+  Reverted in the follow-up commit; the hard reload is back.
+
+  The pattern across all four attempts is the durable finding, not any one
+  mechanism: every approach that depends on Next's client router applying a
+  fresh render in place has passed locally and failed in CI, while the hard
+  reload has passed CI on every SHA it shipped on. **Local green was never
+  the bar; CI green by SHA is** — this unit briefly conflated them, and the
+  revert is the correction. Anyone wanting the smooth version back must
+  first explain WHY the router-dependent path diverges between local and
+  CI; another mechanism swap validated only on a dev machine will just
+  repeat this. Recorded in `components/codes/pause-toggle-button.tsx`'s own
+  doc comment as a do-not-retry note.
 - **Docs reconciliation.** `docs/guides/p9.5-ascent.md` walked against the
   real commit history (`6f63b2e..e695670`, plus this close) and rewritten
   unit-by-unit as the phase record rather than the forward-looking plan it

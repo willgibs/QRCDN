@@ -13,10 +13,26 @@ import { cn } from "@/lib/utils";
  * lines, and `motion-reduce`-safe (opacity/scale only, both GPU
  * properties, never below `scale-90` per emil-design-eng's "nothing
  * appears from nothing" rule).
+ *
+ * `label` (P9.6-U2, additive): the un-copied aria-label, defaulting to this
+ * component's original hardcoded "Copy code" so `code-block.tsx`'s existing
+ * call site is byte-identical. `components/codes/codes-table.tsx` passes a
+ * per-row label instead (up to 250 instances of this button on one page —
+ * "Copy code" repeated that many times would be useless to a screen-reader
+ * user tabbing through the table). The "Copied" label never varies — once
+ * copied, WHAT was copied stops mattering, only that the action succeeded.
  */
 const COPY_FLASH_TIMEOUT_MS = 1600;
 
-export function CopyButton({ code, className }: { code: string; className?: string }) {
+export function CopyButton({
+  code,
+  className,
+  label = "Copy code",
+}: {
+  code: string;
+  className?: string;
+  label?: string;
+}) {
   const [copied, setCopied] = useState(false);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -43,7 +59,7 @@ export function CopyButton({ code, className }: { code: string; className?: stri
     <button
       type="button"
       onClick={handleCopy}
-      aria-label={copied ? "Copied" : "Copy code"}
+      aria-label={copied ? "Copied" : label}
       className={cn(
         "inline-flex size-7 items-center justify-center rounded-md text-muted-foreground transition-colors duration-(--duration-fast) ease-(--motion-ease-out) hover:bg-muted hover:text-foreground motion-reduce:transition-none",
         className,

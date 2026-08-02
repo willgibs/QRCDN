@@ -272,9 +272,23 @@ test.describe.serial("money path", () => {
   test("the /codes dashboard renders the codes this run created", async () => {
     await page.goto(`${E2E_BASE_URL}/codes`);
     await expect(page.getByRole("heading", { name: "Codes" })).toBeVisible();
-    await expect(page.getByText(CODE_NAME, { exact: true })).toBeVisible();
-    await expect(page.getByText(BULK_NAME_1, { exact: true })).toBeVisible();
-    await expect(page.getByText(BULK_NAME_2, { exact: true })).toBeVisible();
+
+    // P9.6-U2 redesign: /codes now renders the codes list twice in the DOM
+    // — a real <table> (md and up) and a card-per-code list (<md) — each
+    // gated by a Tailwind responsive display class, same pattern
+    // components/marketing/comparison-section.tsx already uses for its own
+    // mobile/desktop column-order split. Only one is ever actually visible
+    // at a given viewport, but a viewport-agnostic locator like
+    // `getByText(CODE_NAME)` would still resolve to BOTH copies in the DOM
+    // and throw a strict-mode violation. `table:visible` (this suite runs
+    // "Desktop Chrome", playwright.config.ts, so the <table> is always the
+    // visible one here) scopes every lookup below to the one variant that's
+    // actually on screen — the same fix comparison-section.tsx's own e2e
+    // coverage already established for this exact two-variant shape.
+    const table = page.locator("table:visible");
+    await expect(table.getByText(CODE_NAME, { exact: true })).toBeVisible();
+    await expect(table.getByText(BULK_NAME_1, { exact: true })).toBeVisible();
+    await expect(table.getByText(BULK_NAME_2, { exact: true })).toBeVisible();
   });
 
   test("/codes shows the Create button, and the row pause toggle flips the status text and back", async () => {
@@ -282,9 +296,10 @@ test.describe.serial("money path", () => {
     // create entry point — there is no separate create route).
     await expect(page.getByRole("link", { name: "Create code" })).toHaveAttribute("href", "/studio");
 
-    // Scope to CODE_NAME's own row so this can't accidentally match one of
-    // the two bulk-created rows also on this page.
-    const row = page.getByRole("row").filter({ hasText: CODE_NAME });
+    // Scope to CODE_NAME's own row (within the visible desktop <table> —
+    // see the comment above) so this can't accidentally match one of the
+    // two bulk-created rows also on this page.
+    const row = page.locator("table:visible").getByRole("row").filter({ hasText: CODE_NAME });
     await expect(row.getByText("Active", { exact: true })).toBeVisible();
 
     await row.getByRole("button", { name: "Pause" }).click();

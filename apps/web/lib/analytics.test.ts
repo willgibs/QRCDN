@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  axisTicks,
   maxRangeDaysFor,
   peakDayFrom,
   rangeWindowUtc,
@@ -112,6 +113,31 @@ describe("toChartSeries", () => {
     const series = toChartSeries([], 7, now);
     expect(series).toHaveLength(7);
     expect(series.every((p) => p.scans === 0 && p.uniques === 0)).toBe(true);
+  });
+});
+
+describe("axisTicks", () => {
+  const now = new Date("2026-07-22T15:30:00Z");
+
+  it("returns every day untouched when the series is already <= count", () => {
+    const series = toChartSeries([], 3, now);
+    expect(axisTicks(series, 5)).toEqual(series.map((p) => p.day));
+  });
+
+  it("returns exactly `count` evenly-spaced, distinct days for a longer series, including first and last", () => {
+    const series = toChartSeries([], 30, now);
+    const ticks = axisTicks(series, 5);
+    expect(ticks).toHaveLength(5);
+    expect(new Set(ticks).size).toBe(5);
+    expect(ticks[0]).toBe(series[0]!.day);
+    expect(ticks[ticks.length - 1]).toBe(series[series.length - 1]!.day);
+  });
+
+  it("defaults to 5 ticks for a full year's series", () => {
+    const series = toChartSeries([], 365, now);
+    const ticks = axisTicks(series);
+    expect(ticks).toHaveLength(5);
+    expect(new Set(ticks).size).toBe(5);
   });
 });
 

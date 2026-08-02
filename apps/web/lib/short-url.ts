@@ -11,3 +11,16 @@ export const SHORT_URL_HOST = "QRCDN.COM";
 export function printedShortUrl(slug: string): string {
   return `HTTPS://${SHORT_URL_HOST}/${slug}`;
 }
+
+/**
+ * The lowercase, UI-display/copy-target short URL (`https://qrcdn.com/{slug}`)
+ * — as opposed to `printedShortUrl`'s uppercase QR-alphanumeric-mode form
+ * above, which is for the artifact itself, not a screen a person reads.
+ * `lib/codes-core.ts`'s `bulkResultUrl` already builds this exact shape
+ * inline for the bulk-create result list; promoted to a shared export here
+ * (P9.6-U2) so the /codes table's short-link column
+ * (`components/codes/codes-table.tsx`) doesn't hand-roll it a third time.
+ */
+export function shortUrl(slug: string): string {
+  return `https://${SHORT_URL_HOST.toLowerCase()}/${slug}`;
+}

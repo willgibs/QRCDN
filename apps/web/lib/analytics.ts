@@ -119,6 +119,32 @@ export function toChartSeries(
   return series;
 }
 
+/**
+ * `count` evenly-spaced `day` values out of `series`, for `<XAxis ticks={...}>`
+ * (P9.6-U2) — a "handful of labels, not fifteen" regardless of the
+ * selected range (7/30/90/365 points). Recharts' own `interval="preserveStartEnd"`
+ * auto-thins based on rendered label width, which back-fires once axis
+ * labels get SHORTER (this unit's own date-format fix): shorter text lets
+ * more ticks fit, the opposite of "sparser." Explicit `ticks` sidesteps
+ * that entirely.
+ *
+ * Always includes the first and last day (`series[0]`/`series[at-1]`) and
+ * fills the rest as close to evenly-spaced as integer indices allow;
+ * de-duplicated so a `series` shorter than `count` degrades to "every day"
+ * rather than repeating a label.
+ */
+export function axisTicks(series: ChartPoint[], count = 5): string[] {
+  if (series.length <= count) {
+    return series.map((point) => point.day);
+  }
+  const ticks: string[] = [];
+  for (let i = 0; i < count; i++) {
+    const idx = Math.round((i / (count - 1)) * (series.length - 1));
+    ticks.push(series[idx]!.day);
+  }
+  return Array.from(new Set(ticks));
+}
+
 export interface PeakDay {
   scans: number;
   /** `null` when no day in `series` has any scans — see this function's

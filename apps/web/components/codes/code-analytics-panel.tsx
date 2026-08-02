@@ -12,6 +12,7 @@ import {
 import { Card, CardContent } from "@/components/ui/card";
 import { EASE_OUT } from "@/components/brand/magic";
 import { RangeSelector, rangeLabel } from "@/components/codes/range-selector";
+import { StatTile } from "@/components/codes/stat-tile";
 import { useMounted } from "@/hooks/use-mounted";
 import { maxRangeDaysFor, peakDayFrom, sumBuckets, toChartSeries, type RangeDays } from "@/lib/analytics";
 import { PLAN_LIMITS, type Plan } from "@/lib/entitlements";
@@ -122,7 +123,15 @@ function PoppingStat({ value }: { value: string }) {
   );
 }
 
-function StatTile({
+/**
+ * Card-wrapped `StatTile` whose value pops in on change (P9.6-U2: the
+ * shared `components/codes/stat-tile.tsx` shell replaced this file's own
+ * near-identical `StatTile` — same consolidation as codes/page.tsx and
+ * codes-overview-panel.tsx). The shared shell renders a plain string value
+ * with its own default styling; this file passes `<PoppingStat>` instead so
+ * every call site below keeps its existing pop-in behavior byte-for-byte.
+ */
+function AnimatedStatTile({
   label,
   value,
   caption,
@@ -133,10 +142,8 @@ function StatTile({
 }) {
   return (
     <Card>
-      <CardContent className="flex flex-col gap-1">
-        <p className="text-xs text-muted-foreground">{label}</p>
-        <PoppingStat value={value} />
-        {caption && <p className="font-mono text-[11px] text-muted-foreground">{caption}</p>}
+      <CardContent>
+        <StatTile label={label} value={<PoppingStat value={value} />} caption={caption} />
       </CardContent>
     </Card>
   );
@@ -305,17 +312,17 @@ export function CodeAnalyticsPanel({
       </Card>
 
       <div className="grid gap-4 sm:grid-cols-3">
-        <StatTile
+        <AnimatedStatTile
           label="Scans"
           value={rangeTotal.toLocaleString()}
           caption={`last ${rangeLabel(range)}`}
         />
-        <StatTile
+        <AnimatedStatTile
           label="Peak day"
           value={peakDay.scans.toLocaleString()}
           caption={peakDay.day ?? undefined}
         />
-        <StatTile label="Today so far" value={scansToday.toLocaleString()} />
+        <AnimatedStatTile label="Today so far" value={scansToday.toLocaleString()} />
       </div>
 
       <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">

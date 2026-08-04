@@ -9,7 +9,7 @@ import {
   validateBrandKitPatch,
   type ActionResult,
 } from "@/lib/validation";
-import type { Tables, TablesInsert, TablesUpdate } from "@qrcdn/shared";
+import type { TablesInsert, TablesUpdate } from "@qrcdn/shared";
 import type { BrandKit } from "@/lib/brand-kits";
 
 // Server actions for Studio brand-kit CRUD (P4-U1). Every input is
@@ -126,7 +126,7 @@ export async function createBrandKit(input: {
 export async function updateBrandKit(
   id: string,
   input: { name?: string; style?: unknown },
-): Promise<ActionResult<BrandKit>> {
+): Promise<ActionResult<{ kit: BrandKit; syncedCodes: number }>> {
   const idResult = validateBrandKitId(id);
   if (!idResult.ok) {
     return idResult;
@@ -167,7 +167,25 @@ export async function updateBrandKit(
     return { ok: false, error: "update_failed" };
   }
 
-  return { ok: true, data };
+  // Hard-sync propagation (P9.8-B1, D5 as amended): a style edit fans out to
+  // every attached code in one atomic SQL call (sync_kit_codes, migration
+  // 20260804000011 — security invoker, so RLS scopes it to the caller's own
+  // rows). Rename-only saves never reach this branch and never touch codes.
+  // A propagation failure FAILS the save loudly rather than best-effort: a
+  // kit that saved but half-propagated is exactly the silent stale-style
+  // state hard sync exists to kill, and the caller can simply save again.
+  let syncedCodes = 0;
+  if (patchResult.data.style !== undefined) {
+    const { data: count, error: syncError } = await supabase.rpc("sync_kit_codes", {
+      p_kit_id: idResult.data,
+    });
+    if (syncError || typeof count !== "number") {
+      return { ok: false, error: "sync_failed" };
+    }
+    syncedCodes = count;
+  }
+
+  return { ok: true, data: { kit: data, syncedCodes } };
 }
 
 export async function deleteBrandKit(id: string): Promise<ActionResult<{ id: string }>> {

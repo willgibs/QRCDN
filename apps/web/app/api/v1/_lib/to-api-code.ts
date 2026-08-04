@@ -12,6 +12,11 @@ export interface ApiCode {
   destination: string;
   status: string;
   scanCount: number;
+  /** The brand kit this code mirrors under hard sync (P9.8-B1, D5 as
+   *  amended) — kit edits propagate to the code's style. `null` means the
+   *  code is kit-less and its style is a frozen snapshot (a create with an
+   *  explicit `style`, or a pre-P9.8 code). */
+  brandKitId: string | null;
   /** ISO-8601 UTC, or `null` when the code never expires (P7.5-U2). */
   expiresAt: string | null;
   /** Never the hash itself — see codes-core.ts's DynamicCodeSummary/
@@ -38,6 +43,7 @@ export function toApiCode(code: DynamicCodeSummary): ApiCode {
     destination: code.destination_url ?? "",
     status: code.status,
     scanCount: code.scan_count,
+    brandKitId: code.brandKitId,
     expiresAt: code.expiresAt,
     passwordProtected: code.passwordProtected,
     url: `https://${SHORT_URL_HOST.toLowerCase()}/${code.slug}`,

@@ -1,5 +1,4 @@
 import { NextResponse } from "next/server";
-import { defaultQrStyle } from "@qrcdn/shared";
 import { authenticateApiRequest, isApiError } from "../../../../lib/api-auth";
 import { createDynamicCodeCore, listDynamicCodesCore } from "../../../../lib/codes-core";
 import { toApiCode } from "../_lib/to-api-code";
@@ -74,10 +73,13 @@ export async function POST(request: Request) {
     {
       name: parsed.name,
       destination: parsed.destination,
-      // style omitted -> defaultQrStyle (packages/shared/src/style.ts),
-      // same fallback the studio's create flow would produce via its own
-      // form defaults.
-      style: parsed.style ?? defaultQrStyle,
+      // style EXPLICIT -> the code is kit-less and frozen forever
+      // (integrator-controlled, the original D5 guarantee). style omitted ->
+      // the core resolves the caller's DEFAULT BRAND KIT and attaches the
+      // code to it (P9.8-B1, D5 as amended: brand-correct by default, and
+      // the code follows later kit edits); only a caller with no default
+      // kit falls back to the generic engine style, kit-less.
+      style: parsed.style,
       // slug omitted (undefined) -> the core's auto-generated path,
       // unchanged (P7.5-U3).
       slug: parsed.slug,
@@ -104,7 +106,9 @@ export async function POST(request: Request) {
       return internalError();
     }
     // slug_taken / slug_reserved / invalid_slug fall through here, same as
-    // every other validateDynamicCodeInput failure string.
+    // every other validateDynamicCodeInput failure string. P9.8-B1 adds
+    // brand_kit_not_found and style_with_kit to the same 422 bucket —
+    // deliberate: both are request-content problems the caller can fix.
     return invalidRequest(result.error);
   }
 
@@ -123,6 +127,7 @@ export async function POST(request: Request) {
       status: result.data.status,
       scan_count: result.data.scan_count,
       created_at: result.data.created_at,
+      brandKitId: result.data.brand_kit_id,
       expiresAt: result.data.expires_at,
       passwordProtected: result.data.password_hash !== null,
     }),

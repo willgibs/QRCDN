@@ -23,7 +23,7 @@ Design-forward QR platform: brand style system → generator → dynamic codes o
 ## Hard rules (non-negotiable)
 
 - Scan redirects: **302 + `Cache-Control: no-store`, never 301.**
-- `qr_codes.style` is a **frozen snapshot** — never mutated by brand-kit edits. Style schema evolves additively only.
+- `qr_codes.style` **mirrors the code's brand kit** (hard sync, D5 as amended 2026-08-04): kit edits propagate to every attached code via `sync_kit_codes()`; codes with `brand_kit_id` null (explicit-style API creations, pre-P9.8 rows) are frozen snapshots, never mutated. Style schema evolves additively only.
 - Exported QR assets are **sRGB hex only** — oklch tokens never reach `qr-engine` output.
 - No per-scan writes to `qr_codes`; dashboards read `scan_daily` rollups.
 - Supabase: new `sb_publishable_`/`sb_secret_` keys only; `getClaims()` for page guards, `getUser()` before destructive/billing actions, never trust `getSession()` server-side.

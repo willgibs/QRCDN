@@ -1,5 +1,4 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { defaultQrStyle } from "@qrcdn/shared";
 
 // Relative-import mock specifiers, matching route.ts's own imports exactly
 // (vitest has no tsconfig-paths plugin — see app/api/cron/purge/route.test.ts).
@@ -57,6 +56,7 @@ describe("GET /api/v1/codes", () => {
           status: "active",
           scan_count: 5,
           created_at: "2026-01-01T00:00:00.000Z",
+          brandKitId: null,
           expiresAt: null,
           passwordProtected: false,
         },
@@ -74,6 +74,7 @@ describe("GET /api/v1/codes", () => {
           destination: "https://example.com/menu",
           status: "active",
           scanCount: 5,
+          brandKitId: null,
           expiresAt: null,
           passwordProtected: false,
           // Lowercase scheme+host; slug case preserved as stored — NOT
@@ -98,7 +99,7 @@ describe("GET /api/v1/codes", () => {
 });
 
 describe("POST /api/v1/codes", () => {
-  it("201s with the api-code shape on success, defaulting a missing style to defaultQrStyle", async () => {
+  it("201s with the api-code shape on success, passing a missing style through untouched (the core resolves the default kit, P9.8-B1)", async () => {
     createMock.mockResolvedValueOnce({
       ok: true,
       data: {
@@ -110,6 +111,7 @@ describe("POST /api/v1/codes", () => {
         status: "active",
         scan_count: 0,
         created_at: "2026-01-01T00:00:00.000Z",
+        brand_kit_id: null,
         expires_at: null,
         password_hash: null,
       } as never,
@@ -124,6 +126,7 @@ describe("POST /api/v1/codes", () => {
       destination: "https://example.com/menu",
       status: "active",
       scanCount: 0,
+      brandKitId: null,
       expiresAt: null,
       passwordProtected: false,
       url: "https://qrcdn.com/ABCD234",
@@ -131,7 +134,7 @@ describe("POST /api/v1/codes", () => {
     });
     expect(createMock).toHaveBeenCalledWith(
       { db: AUTH_CTX.db, ownerId: "owner-1" },
-      { name: "Menu", destination: "https://example.com/menu", style: defaultQrStyle },
+      { name: "Menu", destination: "https://example.com/menu", style: undefined, slug: undefined },
     );
   });
 
@@ -185,6 +188,7 @@ describe("POST /api/v1/codes", () => {
         status: "active",
         scan_count: 0,
         created_at: "2026-01-01T00:00:00.000Z",
+        brand_kit_id: null,
         expires_at: null,
         password_hash: null,
       } as never,
@@ -203,7 +207,7 @@ describe("POST /api/v1/codes", () => {
     });
     expect(createMock).toHaveBeenCalledWith(
       { db: AUTH_CTX.db, ownerId: "owner-1" },
-      { name: "Menu", destination: "https://example.com/menu", style: defaultQrStyle, slug: "party26" },
+      { name: "Menu", destination: "https://example.com/menu", style: undefined, slug: "party26" },
     );
   });
 

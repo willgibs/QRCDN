@@ -85,6 +85,11 @@ const CODE_FIELD_NOTES: Record<keyof ApiCode, { type: string; notes: string }> =
     notes:
       "All-time total, updated by an hourly rollup rather than per scan: a scan from the last few minutes may not be reflected yet. The analytics endpoint's today.scans is live.",
   },
+  brandKitId: {
+    type: "string | null",
+    notes:
+      "The brand kit this code mirrors: editing that kit in the Studio restyles the code. null means the code was created with an explicit style and is frozen, never restyled by kit edits.",
+  },
   expiresAt: {
     type: "string | null",
     notes:
@@ -252,7 +257,7 @@ export const API_ENDPOINTS: ApiEndpoint[] = [
         type: "object",
         required: false,
         notes:
-          "A QrStyle v1 snapshot (dots, eyes, fill, background, logo), the same JSON the Studio's editor exports. Omit it and QRCDN uses its default style.",
+          "A QrStyle v1 object (dots, eyes, fill, background, logo), the same JSON the Studio's editor exports. Providing one makes the code kit-less and frozen: kit edits never restyle it. Omit it and the code takes your default brand kit's style and attaches to that kit, following its future edits; with no default kit it falls back to the standard style, frozen.",
       },
       {
         name: "slug",
@@ -281,6 +286,7 @@ export const API_ENDPOINTS: ApiEndpoint[] = [
   "destination": "https://example.com/promo",
   "status": "active",
   "scanCount": 0,
+  "brandKitId": "8a9f1c2e-4b3d-4e5f-9a0b-1c2d3e4f5a6b",
   "expiresAt": null,
   "passwordProtected": false,
   "url": "https://qrcdn.com/MYBRAND26",

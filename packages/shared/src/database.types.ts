@@ -446,6 +446,7 @@ export type Database = {
           uniques: number
         }[]
       }
+      sync_kit_codes: { Args: { p_kit_id: string }; Returns: number }
     }
     Enums: {
       [_ in never]: never

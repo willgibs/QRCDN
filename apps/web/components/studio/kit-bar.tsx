@@ -150,11 +150,13 @@ export function KitBar({
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const [savedFlashId, setSavedFlashId] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
+  const [syncNote, setSyncNote] = useState<string | null>(null);
 
   const deleteTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const limitTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const savedFlashTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const actionErrorTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const syncNoteTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(
     () => () => {
@@ -162,6 +164,7 @@ export function KitBar({
       if (limitTimer.current) clearTimeout(limitTimer.current);
       if (savedFlashTimer.current) clearTimeout(savedFlashTimer.current);
       if (actionErrorTimer.current) clearTimeout(actionErrorTimer.current);
+      if (syncNoteTimer.current) clearTimeout(syncNoteTimer.current);
     },
     [],
   );
@@ -208,6 +211,18 @@ export function KitBar({
     setActionError(message);
     if (actionErrorTimer.current) clearTimeout(actionErrorTimer.current);
     actionErrorTimer.current = setTimeout(() => setActionError(null), ACTION_ERROR_TIMEOUT_MS);
+  }
+
+  /** Hard-sync awareness (P9.8-B1): after a style save propagates, say how
+   *  many attached codes followed — the count IS the confirm step under hard
+   *  sync (no dialog; the board's model is automatic propagation with
+   *  visibility). Muted register, same surface family as the limit note. */
+  function showSyncNote(count: number) {
+    setSyncNote(
+      count === 1 ? "Style applied to 1 attached code." : `Style applied to ${count} attached codes.`,
+    );
+    if (syncNoteTimer.current) clearTimeout(syncNoteTimer.current);
+    syncNoteTimer.current = setTimeout(() => setSyncNote(null), LIMIT_NOTE_TIMEOUT_MS);
   }
 
   function startCreating() {
@@ -268,7 +283,7 @@ export function KitBar({
         showActionError("Couldn't rename that kit. Try again.");
         return;
       }
-      onSaved(result.data);
+      onSaved(result.data.kit);
       cancelDraft();
     } catch {
       showActionError("Couldn't rename that kit. Try again.");
@@ -286,11 +301,21 @@ export function KitBar({
       }
       const result = await updateBrandKit(id, { style: currentStyle });
       if (!result.ok) {
-        showActionError("Couldn't save that kit. Try again.");
+        // sync_failed means the kit row saved but propagation to attached
+        // codes did not — materially different from a failed save, and
+        // saving again retries both (idempotent).
+        showActionError(
+          result.error === "sync_failed"
+            ? "Kit saved, but its codes didn't update. Save again to retry the sync."
+            : "Couldn't save that kit. Try again.",
+        );
         return;
       }
-      onSaved(result.data);
+      onSaved(result.data.kit);
       flashSaved(id);
+      if (result.data.syncedCodes > 0) {
+        showSyncNote(result.data.syncedCodes);
+      }
     } catch {
       showActionError("Couldn't save that kit. Try again.");
     } finally {
@@ -486,6 +511,14 @@ export function KitBar({
           className="absolute top-full left-0 z-10 mt-2 w-56 rounded-lg border border-destructive/25 bg-popover px-3 py-2 text-xs text-destructive shadow-md"
         >
           {actionError}
+        </div>
+      )}
+      {syncNote && !actionError && (
+        <div
+          role="status"
+          className="absolute top-full left-0 z-10 mt-2 w-56 rounded-lg border border-border/60 bg-popover px-3 py-2 text-xs text-muted-foreground shadow-md"
+        >
+          {syncNote}
         </div>
       )}
     </div>

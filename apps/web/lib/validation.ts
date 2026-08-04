@@ -134,16 +134,22 @@ export const pausedSchema = z.boolean();
 export interface ValidatedDynamicCode {
   name: string;
   destination: string;
-  style: QrStyle;
+  /** Present only when the caller supplied an explicit style (the kit-less
+   *  API path). Kit-attached creation resolves style server-side from the
+   *  kit row in codes-core (P9.8-B1, D5 as amended) and never sends one. */
+  style?: QrStyle;
 }
 
-/** Full validation for create: name, destination, and style all required.
- *  Name reuses the brand-kit rules (1..60 trimmed — stricter than the DB's
- *  1..80 check, deliberately). */
+/** Validation for create: name and destination required; style OPTIONAL as
+ *  of P9.8-B1 (kit-attached creation resolves style from the kit row in
+ *  codes-core; only the explicit-style API path still sends one). Name
+ *  reuses the brand-kit rules (1..60 trimmed — stricter than the DB's
+ *  1..80 check, deliberately). Check order stays name → destination →
+ *  style, pinned by validation.test.ts. */
 export function validateDynamicCodeInput(input: {
   name: unknown;
   destination: unknown;
-  style: unknown;
+  style?: unknown;
 }): ActionResult<ValidatedDynamicCode> {
   const name = brandKitNameSchema.safeParse(input.name);
   if (!name.success) {
@@ -153,6 +159,10 @@ export function validateDynamicCodeInput(input: {
   const destination = destinationUrlSchema.safeParse(input.destination);
   if (!destination.success) {
     return { ok: false, error: firstIssueMessage(destination, "invalid_destination") };
+  }
+
+  if (input.style === undefined) {
+    return { ok: true, data: { name: name.data, destination: destination.data } };
   }
 
   try {

@@ -16,6 +16,7 @@ import { checkUrlSafety } from "./safe-browsing";
 import { hashCodePassword } from "./passwords";
 import { SHORT_URL_HOST } from "./short-url";
 import {
+  validateBrandKitId,
   validateCodeAccessInput,
   validateDestination,
   validateDynamicCodeInput,
@@ -65,17 +66,21 @@ export interface CodesCoreCtx {
 
 export type QrCode = Tables<"qr_codes">;
 
-/** Columns the codes-list UI needs — never the frozen `style` snapshot
- *  (large jsonb, including a possible logo data URI) and never a write path
- *  for `scan_count` (D8: rollup-only). `expiresAt`/`passwordProtected`
- *  (P7.5-U2) are DERIVED from `expires_at`/`password_hash`, not the raw
- *  columns themselves — see `toSummary` below for THE INVARIANT this
- *  exists to enforce: the raw `password_hash` string never crosses this
- *  boundary. */
+/** Columns the codes-list UI needs — never the `style` jsonb itself (large,
+ *  including a possible logo data URI) and never a write path for
+ *  `scan_count` (D8: rollup-only). `brandKitId` (P9.8-B1) says which kit a
+ *  code mirrors under hard sync, `null` for kit-less frozen codes.
+ *  `expiresAt`/`passwordProtected` (P7.5-U2) are DERIVED from
+ *  `expires_at`/`password_hash`, not the raw columns themselves — see
+ *  `toSummary` below for THE INVARIANT this exists to enforce: the raw
+ *  `password_hash` string never crosses this boundary. */
 export type DynamicCodeSummary = Pick<
   Tables<"qr_codes">,
   "id" | "slug" | "name" | "destination_url" | "status" | "scan_count" | "created_at"
 > & {
+  /** The kit this code mirrors (hard sync, D5 as amended), or `null` for a
+   *  kit-less frozen code (explicit-style API creation / pre-P9.8 row). */
+  brandKitId: string | null;
   /** ISO-8601 UTC, or `null` when the code never expires. */
   expiresAt: string | null;
   /** Derived from `password_hash !== null` — never the hash itself. */
@@ -86,7 +91,7 @@ export type DynamicCodeSummary = Pick<
  *  every call site (listDynamicCodesCore, getCodeBySlugCore) stays in sync
  *  with `toSummary`'s destructuring below. */
 const SUMMARY_SELECT =
-  "id, slug, name, destination_url, status, scan_count, created_at, expires_at, password_hash" as const;
+  "id, slug, name, destination_url, status, scan_count, created_at, brand_kit_id, expires_at, password_hash" as const;
 
 type SummaryRow = Pick<
   Tables<"qr_codes">,
@@ -97,6 +102,7 @@ type SummaryRow = Pick<
   | "status"
   | "scan_count"
   | "created_at"
+  | "brand_kit_id"
   | "expires_at"
   | "password_hash"
 >;
@@ -111,8 +117,13 @@ type SummaryRow = Pick<
  * route it through this function rather than hand-mapping the row.
  */
 function toSummary(row: SummaryRow): DynamicCodeSummary {
-  const { password_hash, expires_at, ...rest } = row;
-  return { ...rest, expiresAt: expires_at, passwordProtected: password_hash !== null };
+  const { password_hash, expires_at, brand_kit_id, ...rest } = row;
+  return {
+    ...rest,
+    brandKitId: brand_kit_id,
+    expiresAt: expires_at,
+    passwordProtected: password_hash !== null,
+  };
 }
 
 /**
@@ -195,6 +206,63 @@ async function dynamicCodeCountFor(ctx: CodesCoreCtx): Promise<number | null> {
 }
 
 /**
+ * Owner-scoped kit lookup for kit-attached creation (P9.8-B1). The style is
+ * parsed here, server-side — the client never supplies a style for an
+ * attached code, which kills the dirty-studio hazard (a working style with
+ * unsaved edits minting a code that instantly diverges from its kit) by
+ * construction. A kit whose stored style no longer parses is a hard
+ * `invalid_style` error on the explicit path: the caller chose that kit,
+ * so silently substituting a default would mint something they didn't ask
+ * for.
+ */
+async function kitStyleFor(
+  ctx: CodesCoreCtx,
+  kitId: string,
+): Promise<ActionResult<{ id: string; style: QrStyle }>> {
+  const { data, error } = await ctx.db
+    .from("brand_kits")
+    .select("id, style")
+    .eq("id", kitId)
+    .eq("owner_id", ctx.ownerId)
+    .single();
+  if (error || !data) {
+    return { ok: false, error: "brand_kit_not_found" };
+  }
+  try {
+    return { ok: true, data: { id: data.id, style: parseQrStyle(data.style) } };
+  } catch {
+    return { ok: false, error: "invalid_style" };
+  }
+}
+
+/**
+ * The caller's default kit, for the convenience path (API POST with no
+ * explicit style, P9.8-B1): brand-correct by default instead of the generic
+ * engine style. `null` when the owner has no default kit OR its stored
+ * style fails to parse — on this implicit path a graceful fall-through to
+ * `defaultQrStyle` beats failing a request that never named a kit. At most
+ * one row exists (`brand_kits_one_default` partial unique index).
+ */
+async function defaultKitFor(
+  ctx: CodesCoreCtx,
+): Promise<{ id: string; style: QrStyle } | null> {
+  const { data } = await ctx.db
+    .from("brand_kits")
+    .select("id, style")
+    .eq("owner_id", ctx.ownerId)
+    .eq("is_default", true)
+    .maybeSingle();
+  if (!data) {
+    return null;
+  }
+  try {
+    return { id: data.id, style: parseQrStyle(data.style) };
+  } catch {
+    return null;
+  }
+}
+
+/**
  * The insert (+ auto-slug retry loop) at the bottom of `createDynamicCodeCore`
  * — extracted verbatim (P7.5-U3) so a caller-chosen vanity slug and an
  * auto-generated one can share the same insert shape without duplicating it.
@@ -212,7 +280,13 @@ async function dynamicCodeCountFor(ctx: CodesCoreCtx): Promise<number | null> {
  */
 async function insertDynamicCode(
   ctx: CodesCoreCtx,
-  args: { name: string; destination: string; style: unknown; slug?: string },
+  args: {
+    name: string;
+    destination: string;
+    style: unknown;
+    brandKitId: string | null;
+    slug?: string;
+  },
 ): Promise<ActionResult<QrCode>> {
   function payloadFor(slug: string): TablesInsert<"qr_codes"> {
     return {
@@ -221,10 +295,15 @@ async function insertDynamicCode(
       kind: "dynamic",
       name: args.name,
       destination_url: args.destination,
-      // Frozen snapshot at creation — never mutated by brand-kit edits
-      // afterward (D5 hard rule). No update path in this file accepts a
-      // style param.
+      // P9.8-B1, D5 as amended: with brand_kit_id set, `style` is a MIRROR
+      // of the kit that sync_kit_codes() keeps current on every kit save.
+      // With brand_kit_id null (explicit-style API creation), it is the old
+      // frozen snapshot, never mutated — the original D5 guarantee survives
+      // for exactly the codes that opted into it. No update path in this
+      // file accepts a style param either way; propagation is the SQL
+      // function only.
       style: args.style as TablesInsert<"qr_codes">["style"],
+      brand_kit_id: args.brandKitId,
     };
   }
 
@@ -268,8 +347,24 @@ async function insertDynamicCode(
 
 export async function createDynamicCodeCore(
   ctx: CodesCoreCtx,
-  input: { name: unknown; destination: unknown; style: unknown; slug?: unknown },
+  input: {
+    name: unknown;
+    destination: unknown;
+    /** Explicit style — the kit-less frozen path (API only). Mutually
+     *  exclusive with `brandKitId`. */
+    style?: unknown;
+    /** Attach to this kit and mirror its style (P9.8-B1, hard sync). */
+    brandKitId?: unknown;
+    slug?: unknown;
+  },
 ): Promise<ActionResult<QrCode>> {
+  // Exactly one style source, checked before any query: an explicit style
+  // AND a kit id together is a caller bug, and silently picking one would
+  // hide it.
+  if (input.style !== undefined && input.brandKitId !== undefined) {
+    return { ok: false, error: "style_with_kit" };
+  }
+
   const validated = validateDynamicCodeInput(input);
   if (!validated.ok) {
     return validated;
@@ -324,6 +419,40 @@ export async function createDynamicCodeCore(
   // `checked: false` shapes (unconfigured, or the check itself failing)
   // proceed to the insert exactly like today — getting this backwards
   // would break every mint the moment a key is unset or misconfigured.
+  // Style-source resolution (P9.8-B1, D5 as amended) — three paths, resolved
+  // BEFORE the Safe Browsing call below (a bad kit id is a cheap DB miss and
+  // must not spend an external API call):
+  //   kit id     → the kit's style, read server-side, code ATTACHED (mirror)
+  //   style      → the explicit style, code kit-less (frozen — API path)
+  //   neither    → the caller's default kit if one exists (brand-correct by
+  //                default; the code attaches), else the generic
+  //                defaultQrStyle, kit-less. This is the API's omitted-style
+  //                convenience path.
+  let style: QrStyle;
+  let brandKitId: string | null = null;
+  if (input.brandKitId !== undefined) {
+    const kitId = validateBrandKitId(input.brandKitId);
+    if (!kitId.ok) {
+      return kitId;
+    }
+    const kit = await kitStyleFor(ctx, kitId.data);
+    if (!kit.ok) {
+      return kit;
+    }
+    style = kit.data.style;
+    brandKitId = kit.data.id;
+  } else if (validated.data.style !== undefined) {
+    style = validated.data.style;
+  } else {
+    const defaultKit = await defaultKitFor(ctx);
+    if (defaultKit) {
+      style = defaultKit.style;
+      brandKitId = defaultKit.id;
+    } else {
+      style = defaultQrStyle;
+    }
+  }
+
   const safety = await checkUrlSafety(validated.data.destination);
   if (safety.checked && !safety.safe) {
     return { ok: false, error: "destination_unsafe" };
@@ -332,7 +461,8 @@ export async function createDynamicCodeCore(
   return insertDynamicCode(ctx, {
     name: validated.data.name,
     destination: validated.data.destination,
-    style: validated.data.style,
+    style,
+    brandKitId,
     slug,
   });
 }
@@ -389,15 +519,15 @@ export type BulkItemOutcome =
  *   function's own plan/limit checks (already done once, above, for the
  *   whole batch) and without ever throwing partway through.
  *
- * `style` is resolved ONCE up front and shared byte-identical across every
- * insert — `qr_codes.style` is a frozen snapshot per code (D5 hard rule), and
- * every code minted from one pasted batch is meant to look like the studio
- * state the caller had open when they pasted it, so sharing one parsed
- * object across inserts is correct, not a shortcut. Absent or malformed
- * input falls back to `defaultQrStyle` — the same try/parse/catch-to-default
- * shape `studio-shell.tsx`'s own `styleFromKit`/`validStyle` already use —
- * so a bad `style` value degrades to a sane default instead of failing every
- * item in the batch with an error the caller has no per-item way to fix.
+ * The style source is resolved ONCE up front and shared across every insert
+ * (P9.8-B1, D5 as amended): `brandKitId` present → that kit's style, read
+ * server-side, every minted code ATTACHED to it (hard sync keeps them
+ * current on later kit saves); a bad or cross-owner kit id fails the WHOLE
+ * batch before any insert — the caller explicitly named a kit, so minting
+ * fifty codes in some other look is worse than failing loudly. `brandKitId`
+ * absent → the caller's default kit if one exists (attached), else the
+ * generic `defaultQrStyle`, kit-less — mirroring `createDynamicCodeCore`'s
+ * own implicit path so the two cores stay congruent.
  *
  * No `writeSlugToKv` call anywhere in this function: creation never writes
  * KV (see `insertDynamicCode` above, and D2) — the Worker's own read-through
@@ -406,7 +536,7 @@ export type BulkItemOutcome =
 export async function createDynamicCodesBulkCore(
   ctx: CodesCoreCtx,
   items: { name: unknown; destination: unknown; slug?: unknown }[],
-  style: unknown,
+  brandKitId?: unknown,
 ): Promise<ActionResult<BulkItemOutcome[]>> {
   if (items.length === 0) {
     return { ok: false, error: "empty_batch" };
@@ -438,11 +568,27 @@ export async function createDynamicCodesBulkCore(
     return { ok: false, error: "code_limit" };
   }
 
-  let parsedStyle: QrStyle;
-  try {
-    parsedStyle = style === undefined ? defaultQrStyle : parseQrStyle(style);
-  } catch {
-    parsedStyle = defaultQrStyle;
+  let batchStyle: QrStyle;
+  let batchKitId: string | null = null;
+  if (brandKitId !== undefined) {
+    const kitId = validateBrandKitId(brandKitId);
+    if (!kitId.ok) {
+      return kitId;
+    }
+    const kit = await kitStyleFor(ctx, kitId.data);
+    if (!kit.ok) {
+      return kit;
+    }
+    batchStyle = kit.data.style;
+    batchKitId = kit.data.id;
+  } else {
+    const defaultKit = await defaultKitFor(ctx);
+    if (defaultKit) {
+      batchStyle = defaultKit.style;
+      batchKitId = defaultKit.id;
+    } else {
+      batchStyle = defaultQrStyle;
+    }
   }
 
   const outcomes: BulkItemOutcome[] = [];
@@ -451,7 +597,6 @@ export async function createDynamicCodesBulkCore(
     const validated = validateDynamicCodeInput({
       name: item.name,
       destination: item.destination,
-      style: parsedStyle,
     });
     if (!validated.ok) {
       outcomes.push({ name: bestEffortItemName(item.name), ok: false, error: validated.error });
@@ -493,7 +638,8 @@ export async function createDynamicCodesBulkCore(
     const insertResult = await insertDynamicCode(ctx, {
       name: validated.data.name,
       destination: validated.data.destination,
-      style: parsedStyle,
+      style: batchStyle,
+      brandKitId: batchKitId,
       slug,
     });
     if (!insertResult.ok) {

@@ -85,6 +85,7 @@ function makeBuilder(result: unknown) {
     order: vi.fn(record("order")),
     limit: vi.fn(record("limit")),
     single: vi.fn(record("single")),
+    maybeSingle: vi.fn(record("maybeSingle")),
     then(
       resolve: (value: unknown) => unknown,
       reject: (reason: unknown) => unknown,
@@ -429,7 +430,10 @@ describe("createDynamicCodeCore — vanity slugs (P7.5-U3)", () => {
 // through `createDynamicCodesBulkCore` here, same stance as the vanity-slug
 // suite above.
 describe("createDynamicCodesBulkCore", () => {
-  const STYLE = { v: 1 };
+  // P9.8-B1: the third arg is now the kit every code in the batch attaches
+  // to; its style is read server-side (kitStyleFor -> brand_kits query in
+  // each full plan below).
+  const KIT_ID = "8a9f1c2e-4b3d-4e5f-9a0b-1c2d3e4f5a6b";
 
   it("free plan: bulk_not_available, zero inserts", async () => {
     const { db, from, builders } = createDb([
@@ -439,7 +443,7 @@ describe("createDynamicCodesBulkCore", () => {
     const result = await createDynamicCodesBulkCore(
       ctxWith(db),
       [{ name: "Menu", destination: "https://example.com" }],
-      STYLE,
+      KIT_ID,
     );
 
     expect(result).toEqual({ ok: false, error: "bulk_not_available" });
@@ -450,7 +454,7 @@ describe("createDynamicCodesBulkCore", () => {
   it("empty batch: empty_batch, no queries at all", async () => {
     const { db, from } = createDb([]);
 
-    const result = await createDynamicCodesBulkCore(ctxWith(db), [], STYLE);
+    const result = await createDynamicCodesBulkCore(ctxWith(db), [], KIT_ID);
 
     expect(result).toEqual({ ok: false, error: "empty_batch" });
     expect(from).not.toHaveBeenCalled();
@@ -463,7 +467,7 @@ describe("createDynamicCodesBulkCore", () => {
       destination: "https://example.com",
     }));
 
-    const result = await createDynamicCodesBulkCore(ctxWith(db), items, STYLE);
+    const result = await createDynamicCodesBulkCore(ctxWith(db), items, KIT_ID);
 
     expect(result).toEqual({ ok: false, error: "batch_too_large" });
     expect(from).not.toHaveBeenCalled();
@@ -479,7 +483,7 @@ describe("createDynamicCodesBulkCore", () => {
       destination: "https://example.com",
     }));
 
-    const result = await createDynamicCodesBulkCore(ctxWith(db), items, STYLE);
+    const result = await createDynamicCodesBulkCore(ctxWith(db), items, KIT_ID);
 
     expect(result).toEqual({ ok: false, error: "code_limit" });
     expect(from).toHaveBeenCalledTimes(2);
@@ -490,6 +494,7 @@ describe("createDynamicCodesBulkCore", () => {
     const { db, builders } = createDb([
       { table: "profiles", result: { data: { plan: "pro" }, error: null } },
       { table: "qr_codes", result: { count: 0, error: null } },
+      { table: "brand_kits", result: { data: { id: KIT_ID, style: { v: 1 } }, error: null } },
       { table: "qr_codes", result: { data: { id: "code-2", slug: "GOOD1234" }, error: null } },
     ]);
 
@@ -499,7 +504,7 @@ describe("createDynamicCodesBulkCore", () => {
         { name: "Bad", destination: "not-a-url" },
         { name: "Good", destination: "https://example.com" },
       ],
-      STYLE,
+      KIT_ID,
     );
 
     expect(result.ok).toBe(true);
@@ -516,6 +521,7 @@ describe("createDynamicCodesBulkCore", () => {
     const { db } = createDb([
       { table: "profiles", result: { data: { plan: "pro" }, error: null } },
       { table: "qr_codes", result: { count: 0, error: null } },
+      { table: "brand_kits", result: { data: { id: KIT_ID, style: { v: 1 } }, error: null } },
       { table: "qr_codes", result: { data: null, error: { code: "23505" } } },
       { table: "qr_codes", result: { data: { id: "code-2", slug: "EFGH567" }, error: null } },
     ]);
@@ -526,7 +532,7 @@ describe("createDynamicCodesBulkCore", () => {
         { name: "First", destination: "https://a.example.com", slug: "party26" },
         { name: "Second", destination: "https://b.example.com" },
       ],
-      STYLE,
+      KIT_ID,
     );
 
     expect(result).toEqual({
@@ -542,6 +548,7 @@ describe("createDynamicCodesBulkCore", () => {
     const { db } = createDb([
       { table: "profiles", result: { data: { plan: "pro" }, error: null } },
       { table: "qr_codes", result: { count: 0, error: null } },
+      { table: "brand_kits", result: { data: { id: KIT_ID, style: { v: 1 } }, error: null } },
       { table: "qr_codes", result: { data: { id: "code-3", slug: "OKOK234" }, error: null } },
     ]);
 
@@ -558,7 +565,7 @@ describe("createDynamicCodesBulkCore", () => {
         { name: "  Bad Item  ", destination: "not-a-url" },
         { name: "  Good  ", destination: "https://example.com" },
       ],
-      STYLE,
+      KIT_ID,
     );
 
     expect(result.ok).toBe(true);
@@ -579,6 +586,7 @@ describe("createDynamicCodesBulkCore", () => {
     const { db, builders } = createDb([
       { table: "profiles", result: { data: { plan: "pro" }, error: null } },
       { table: "qr_codes", result: { count: 0, error: null } },
+      { table: "brand_kits", result: { data: { id: KIT_ID, style: { v: 1 } }, error: null } },
       { table: "qr_codes", result: { data: { id: "code-2", slug: "GOOD1234" }, error: null } },
     ]);
 
@@ -588,7 +596,7 @@ describe("createDynamicCodesBulkCore", () => {
         { name: "Bad", destination: "https://malicious.example.com" },
         { name: "Good", destination: "https://good.example.com" },
       ],
-      STYLE,
+      KIT_ID,
     );
 
     expect(result).toEqual({
@@ -1302,5 +1310,122 @@ describe("setCodeAccessCore — plan gate, sparse payload, password hashing", ()
     expect(eqCallsOf(builders[1]!)).toContainEqual(["owner_id", OWNER_ID]);
     expect(eqCallsOf(builders[1]!)).toContainEqual(["id", "code-1"]);
     expect(eqCallsOf(builders[1]!)).toContainEqual(["kind", "dynamic"]);
+  });
+});
+
+describe("createDynamicCodeCore — kit attachment (P9.8-B1, D5 as amended)", () => {
+  const KIT_ID = "8a9f1c2e-4b3d-4e5f-9a0b-1c2d3e4f5a6b";
+
+  it("brandKitId path: reads the kit owner-scoped, mints with its parsed style and the attachment", async () => {
+    const { db, builders } = createDb([
+      { table: "profiles", result: { data: { plan: "pro" }, error: null } },
+      { table: "qr_codes", result: { count: 0, error: null } },
+      { table: "brand_kits", result: { data: { id: KIT_ID, style: { v: 1 } }, error: null } },
+      {
+        table: "qr_codes",
+        result: { data: { id: "code-1", slug: "ABCD234", owner_id: OWNER_ID }, error: null },
+      },
+    ]);
+
+    const result = await createDynamicCodeCore(ctxWith(db), {
+      name: "Menu",
+      destination: "https://example.com/menu",
+      brandKitId: KIT_ID,
+    });
+
+    expect(result.ok).toBe(true);
+    // Owner scoping on the kit read — under the API's admin client this
+    // filter is the only tenant boundary (file-header rule).
+    expect(eqCallsOf(builders[2])).toEqual(
+      expect.arrayContaining([
+        ["id", KIT_ID],
+        ["owner_id", OWNER_ID],
+      ]),
+    );
+    const payload = builders[3].calls.insert?.[0]?.[0] as Record<string, unknown>;
+    expect(payload.brand_kit_id).toBe(KIT_ID);
+    // Server-side parse: the stored { v: 1 } comes back with schema defaults
+    // filled — proof the style came from the kit row, not the client.
+    expect(payload.style).toMatchObject({ v: 1, dots: expect.anything() });
+  });
+
+  it("brandKitId path: a cross-owner or unknown kit is brand_kit_not_found, zero inserts", async () => {
+    const { db, builders } = createDb([
+      { table: "profiles", result: { data: { plan: "pro" }, error: null } },
+      { table: "qr_codes", result: { count: 0, error: null } },
+      { table: "brand_kits", result: { data: null, error: { message: "0 rows" } } },
+    ]);
+
+    const result = await createDynamicCodeCore(ctxWith(db), {
+      name: "Menu",
+      destination: "https://example.com/menu",
+      brandKitId: KIT_ID,
+    });
+
+    expect(result).toEqual({ ok: false, error: "brand_kit_not_found" });
+    expect(builders.every((b) => !b.calls.insert)).toBe(true);
+  });
+
+  it("style AND brandKitId together is style_with_kit before any query", async () => {
+    const { db, from } = createDb([]);
+
+    const result = await createDynamicCodeCore(ctxWith(db), {
+      name: "Menu",
+      destination: "https://example.com/menu",
+      style: { v: 1 },
+      brandKitId: KIT_ID,
+    });
+
+    expect(result).toEqual({ ok: false, error: "style_with_kit" });
+    expect(from).not.toHaveBeenCalled();
+  });
+
+  it("neither style nor kit: resolves the caller's default kit and attaches", async () => {
+    const { db, builders } = createDb([
+      { table: "profiles", result: { data: { plan: "pro" }, error: null } },
+      { table: "qr_codes", result: { count: 0, error: null } },
+      { table: "brand_kits", result: { data: { id: KIT_ID, style: { v: 1 } }, error: null } },
+      {
+        table: "qr_codes",
+        result: { data: { id: "code-1", slug: "ABCD234", owner_id: OWNER_ID }, error: null },
+      },
+    ]);
+
+    const result = await createDynamicCodeCore(ctxWith(db), {
+      name: "Menu",
+      destination: "https://example.com/menu",
+    });
+
+    expect(result.ok).toBe(true);
+    expect(eqCallsOf(builders[2])).toEqual(
+      expect.arrayContaining([
+        ["owner_id", OWNER_ID],
+        ["is_default", true],
+      ]),
+    );
+    const payload = builders[3].calls.insert?.[0]?.[0] as Record<string, unknown>;
+    expect(payload.brand_kit_id).toBe(KIT_ID);
+  });
+
+  it("neither style nor kit, no default kit: generic style, kit-less (the pre-B1 fallback)", async () => {
+    const { db, builders } = createDb([
+      { table: "profiles", result: { data: { plan: "pro" }, error: null } },
+      { table: "qr_codes", result: { count: 0, error: null } },
+      { table: "brand_kits", result: { data: null, error: null } },
+      {
+        table: "qr_codes",
+        result: { data: { id: "code-1", slug: "ABCD234", owner_id: OWNER_ID }, error: null },
+      },
+    ]);
+
+    const result = await createDynamicCodeCore(ctxWith(db), {
+      name: "Menu",
+      destination: "https://example.com/menu",
+    });
+
+    expect(result.ok).toBe(true);
+    const payload = builders[3].calls.insert?.[0]?.[0] as Record<string, unknown>;
+    expect(payload.brand_kit_id).toBeNull();
+    expect(payload.style).toMatchObject({ v: 1 });
   });
 });

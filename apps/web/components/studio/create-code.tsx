@@ -2,7 +2,6 @@
 
 import { useEffect, useRef, useState } from "react";
 import { Check, Copy, Loader2, X } from "lucide-react";
-import type { QrStyle } from "@qrcdn/shared";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -86,12 +85,21 @@ type Phase = "idle" | "naming";
  */
 export function CreateCodeControl({
   payload,
-  style,
+  activeKitId,
+  kitDirty,
   plan,
   onCreated,
 }: {
   payload: string;
-  style: QrStyle;
+  /** The kit the minted code attaches to and mirrors (P9.8-B1, D5 as
+   *  amended). The server reads the kit's SAVED style — the client no
+   *  longer sends one — so creating is disabled until a kit exists and its
+   *  working edits are saved (see `kitDirty`). */
+  activeKitId: string | null;
+  /** True while the working style differs from the saved kit — minting then
+   *  would produce a code that doesn't match what's on stage, so the button
+   *  waits for a save instead. */
+  kitDirty: boolean;
   /** Gates the "Customize link" disclosure's vanity-slug input — Pro-only
    *  (PLAN_LIMITS[plan].vanitySlugs, P7.5-U3). Threaded from studio-shell.tsx
    *  through controls-rail.tsx, mirroring how `plan` already reaches
@@ -148,7 +156,12 @@ export function CreateCodeControl({
       // sitting in state (the input is disabled behind the Pro lock, so
       // this is defense-in-depth, not the primary guard).
       const slug = !vanitySlugsLocked && customSlug.trim().length > 0 ? customSlug.trim() : undefined;
-      const result = await createDynamicCode({ name, destination: payload, style, slug });
+      const result = await createDynamicCode({
+        name,
+        destination: payload,
+        brandKitId: activeKitId,
+        slug,
+      });
       if (!result.ok) {
         if (isSlugError(result.error)) {
           setSlugError(result.error);
@@ -368,15 +381,26 @@ export function CreateCodeControl({
   }
 
   return (
-    <Button
-      type="button"
-      variant="ghost"
-      size="sm"
-      disabled={!destinationValid}
-      onClick={startNaming}
-      className="w-fit gap-1.5 text-primary hover:bg-primary/10 hover:text-primary disabled:text-muted-foreground"
-    >
-      Create dynamic code
-    </Button>
+    <div className="flex flex-col gap-1.5">
+      <Button
+        type="button"
+        variant="ghost"
+        size="sm"
+        disabled={!destinationValid || activeKitId === null || kitDirty}
+        onClick={startNaming}
+        className="w-fit gap-1.5 text-primary hover:bg-primary/10 hover:text-primary disabled:text-muted-foreground"
+      >
+        Create dynamic code
+      </Button>
+      {/* Hard sync mints from the SAVED kit (server-side read) — say why the
+          button is waiting instead of leaving it mutely disabled. */}
+      {destinationValid && (kitDirty || activeKitId === null) && (
+        <p className="text-xs text-muted-foreground">
+          {activeKitId === null
+            ? "Create a brand kit first: every code attaches to one."
+            : "Save your kit to mint with the style on stage."}
+        </p>
+      )}
+    </div>
   );
 }

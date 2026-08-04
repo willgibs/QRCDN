@@ -111,7 +111,11 @@ async function studioMutateAllowed(userId: string): Promise<boolean> {
 export async function createDynamicCode(input: {
   name: unknown;
   destination: unknown;
-  style: unknown;
+  /** The kit this code attaches to and mirrors (P9.8-B1, D5 as amended).
+   *  The style is read server-side from the kit row — the studio client
+   *  never sends a style, which kills the dirty-working-copy hazard by
+   *  construction. */
+  brandKitId: unknown;
   /** Caller-chosen vanity slug (P7.5-U3, Pro-gated) — optional, omitted
    *  entirely by existing callers that haven't been updated to offer it.
    *  Validated/plan-gated inside createDynamicCodeCore, not here. */
@@ -234,7 +238,7 @@ export async function setCodeAccess(
  */
 export async function createDynamicCodesBulk(
   items: { name: unknown; destination: unknown; slug?: unknown }[],
-  style: unknown,
+  brandKitId: unknown,
 ): Promise<ActionResult<BulkItemOutcome[]>> {
   const ctx = await requireUserContext();
   if (!ctx) {
@@ -244,5 +248,5 @@ export async function createDynamicCodesBulk(
     return { ok: false, error: "rate_limited" };
   }
 
-  return createDynamicCodesBulkCore(ctxFrom(ctx), items, style);
+  return createDynamicCodesBulkCore(ctxFrom(ctx), items, brandKitId);
 }

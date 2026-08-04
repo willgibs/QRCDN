@@ -2,7 +2,6 @@
 
 import { useState, useRef, useMemo } from "react";
 import { Check, Copy, Download, Loader2 } from "lucide-react";
-import type { QrStyle } from "@qrcdn/shared";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import {
@@ -137,12 +136,17 @@ function parseBulkDraft(raw: string): BulkDraftItem[] {
  */
 export function BulkCreateDialog({
   plan,
-  style,
+  activeKitId,
+  kitDirty,
   codeCount,
   onCodesRefreshed,
 }: {
   plan: Plan;
-  style: QrStyle;
+  /** P9.8-B1: every code in the batch attaches to this kit and mirrors its
+   *  SAVED style (read server-side). Submit waits while the working style
+   *  is dirty, same reasoning as CreateCodeControl. */
+  activeKitId: string | null;
+  kitDirty: boolean;
   /** studio-shell's `codes.length` — current dynamic-code count, for the
    *  live "N of M remaining" counter. UI-only; the actual cap is enforced
    *  server-side by `createDynamicCodesBulkCore`. */
@@ -164,7 +168,10 @@ export function BulkCreateDialog({
 
   const items = useMemo(() => parseBulkDraft(draft), [draft]);
   const overCap = items.length > BULK_MAX || items.length > remaining;
-  const canSubmit = items.length > 0 && !overCap && !busy;
+  // P9.8-B1: the whole batch mints from the SAVED kit server-side, so
+  // submit waits for a kit to exist and its working edits to be saved.
+  const kitBlocked = activeKitId === null || kitDirty;
+  const canSubmit = items.length > 0 && !overCap && !busy && !kitBlocked;
 
   function resetDraftState() {
     setDraft("");
@@ -194,7 +201,7 @@ export function BulkCreateDialog({
     setBusy(true);
     setError(null);
     try {
-      const result = await createDynamicCodesBulk(items, style);
+      const result = await createDynamicCodesBulk(items, activeKitId);
       if (!result.ok) {
         setError(BATCH_ERROR_MESSAGES[result.error] ?? GENERIC_BATCH_ERROR);
         return;
@@ -342,6 +349,13 @@ export function BulkCreateDialog({
             <p className={cn("text-xs", overCap ? "text-destructive" : "text-muted-foreground")}>
               {items.length} to create · {remaining} of {limit} remaining
             </p>
+            {kitBlocked && (
+              <p className="text-xs text-muted-foreground">
+                {activeKitId === null
+                  ? "Create a brand kit first: every code in the batch attaches to one."
+                  : "Save your kit first: the batch mints with its saved style."}
+              </p>
+            )}
             {error && (
               <p role="alert" className="text-xs text-destructive">
                 {error}

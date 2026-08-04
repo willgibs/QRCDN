@@ -36,6 +36,7 @@ const CODE = {
   status: "active",
   scan_count: 7,
   created_at: "2026-01-01T00:00:00.000Z",
+  brandKitId: null,
   expiresAt: null,
   passwordProtected: false,
 };
@@ -89,6 +90,7 @@ describe("GET /api/v1/codes/[slug]", () => {
       destination: "https://example.com/old",
       status: "active",
       scanCount: 7,
+      brandKitId: null,
       expiresAt: null,
       passwordProtected: false,
       url: "https://qrcdn.com/ABCD234",

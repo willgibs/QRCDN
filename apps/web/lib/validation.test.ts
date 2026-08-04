@@ -502,3 +502,17 @@ describe("validateApiKeyId", () => {
     expect(validateApiKeyId("not-a-uuid")).toEqual({ ok: false, error: "invalid_id" });
   });
 });
+
+describe("validateDynamicCodeInput — optional style (P9.8-B1)", () => {
+  it("accepts an omitted style and returns no style key (kit-attached creation resolves it server-side)", () => {
+    const result = validateDynamicCodeInput({
+      name: "Menu",
+      destination: "https://example.com/menu",
+    });
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.data.style).toBeUndefined();
+      expect(result.data.name).toBe("Menu");
+    }
+  });
+});

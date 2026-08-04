@@ -10,6 +10,8 @@ import type { Tables } from "@qrcdn/shared";
 // Mirrors the pattern lib/codes-core.ts already sets: the domain module owns
 // the domain's types; the "use server" file is a thin, function-only wrapper.
 
-/** A brand-kit row exactly as stored (style is the editable, non-frozen JSON —
- *  contrast qr_codes.style, which is a frozen snapshot per D5). */
+/** A brand-kit row exactly as stored. `style` is the SOURCE OF TRUTH for
+ *  every attached code under hard sync (P9.8-B1, D5 as amended): kit edits
+ *  propagate to attached qr_codes rows via sync_kit_codes(); only kit-less
+ *  codes (brand_kit_id null) still hold frozen snapshots. */
 export type BrandKit = Tables<"brand_kits">;

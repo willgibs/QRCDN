@@ -162,6 +162,19 @@ test.describe.serial("money path", () => {
     await expect(page.getByLabel("Destination")).toBeVisible();
   });
 
+  test("creates a brand kit (P9.8-B1: every code attaches to one at mint)", async () => {
+    // Hard sync made kits load-bearing for creation: the create control is
+    // disabled until a kit exists, because the minted code attaches to the
+    // active kit and mirrors its SAVED style (server-side read). The fixture
+    // user is freshly created and kitless, so this is now the first step of
+    // the money path, not optional studio dressing.
+    await page.getByRole("button", { name: "New kit" }).click();
+    await page.getByLabel("New kit name").fill("E2E Money Path Kit");
+    await page.getByRole("button", { name: "Create kit" }).click();
+    // The kit pill replaces the dashed button once the row exists.
+    await expect(page.getByRole("button", { name: /E2E Money Path Kit/ })).toBeVisible();
+  });
+
   test("mints a dynamic code with a unique name", async () => {
     await page.getByLabel("Destination").fill(ORIGINAL_DESTINATION);
     await page.getByRole("button", { name: "Create dynamic code" }).click();
@@ -537,6 +550,42 @@ test.describe.serial("money path", () => {
     await page.getByRole("button", { name: "Revoke" }).click();
     await page.getByRole("button", { name: "Confirm revoke" }).click();
     await expect(page.getByText("Revoked")).toBeVisible();
+  });
+
+  test("hard sync: saving a kit edit restyles its attached codes (P9.8-B1, D5 as amended)", async () => {
+    // The code minted earlier in this suite attached to the kit created at
+    // the top of the money path. Change the kit's paper via a preset swatch,
+    // save, and the propagation must be observable at BOTH ends: the row
+    // (style_version bump + new style, via the admin client — the same
+    // direct-DB assertion pattern the scan_daily seed below uses) and the
+    // server-rendered artifact on /codes/[slug], whose wrapper paints
+    // paperHex from the persisted style. The kit-less-stays-frozen half of
+    // the contract is pinned at the SQL layer (supabase/tests/
+    // kit_sync.test.sql), where a kit-less fixture row is byte-asserted
+    // untouched — this test covers the user-facing sync path.
+    await page.goto(`${E2E_BASE_URL}/studio`);
+    await page.getByRole("button", { name: "Paper #f4f4f5" }).click();
+    await page.getByRole("button", { name: "Save changes" }).click();
+    await expect(page.getByText(/Style applied to \d+ attached codes?\./)).toBeVisible();
+
+    const admin = createAdminClient();
+    const { data: row, error } = await admin
+      .from("qr_codes")
+      .select("style, style_version, brand_kit_id")
+      .eq("slug", slug)
+      .single();
+    if (error || !row) {
+      throw new Error(`[e2e] kit-sync row read failed: ${error?.message ?? "no row"}`);
+    }
+    expect(row.brand_kit_id).not.toBeNull();
+    expect(row.style_version).toBeGreaterThanOrEqual(2);
+    expect((row.style as { background?: { color?: string } }).background?.color).toBe("#f4f4f5");
+
+    await page.goto(`${E2E_BASE_URL}/codes/${slug}`);
+    await expect(page.locator('[role="img"][aria-label^="QR code for"]')).toHaveCSS(
+      "background-color",
+      "rgb(244, 244, 245)",
+    );
   });
 
   test("no server action returned a 5xx to a next-action request", () => {

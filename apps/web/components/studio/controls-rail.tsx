@@ -62,6 +62,8 @@ export function ControlsRail({
   effectiveEcc,
   codes,
   plan,
+  activeKitId,
+  kitDirty,
   onPayloadChange,
   onCodeCreated,
   onCodeLoad,
@@ -100,6 +102,12 @@ export function ControlsRail({
    *  Pro-lock affordance. P7.5-U3 additionally threads it to
    *  CreateCodeControl, which needs it for the vanity-slug Pro lock. */
   plan: Plan;
+  /** P9.8-B1 (hard sync): the kit a minted code attaches to, and whether
+   *  the working style has unsaved edits — both threaded to the create/bulk
+   *  controls, which mint from the SAVED kit server-side and therefore wait
+   *  for a save while dirty. */
+  activeKitId: string | null;
+  kitDirty: boolean;
   onPayloadChange: (value: string) => void;
   /** Bubbles a freshly-minted code up alongside its printed short URL —
    *  studio-shell both appends it to `codes` and swaps the working payload
@@ -427,10 +435,17 @@ export function ControlsRail({
               className="font-mono text-xs"
             />
           </div>
-          <CreateCodeControl payload={payload} style={style} plan={plan} onCreated={onCodeCreated} />
+          <CreateCodeControl
+            payload={payload}
+            activeKitId={activeKitId}
+            kitDirty={kitDirty}
+            plan={plan}
+            onCreated={onCodeCreated}
+          />
           <BulkCreateDialog
             plan={plan}
-            style={style}
+            activeKitId={activeKitId}
+            kitDirty={kitDirty}
             codeCount={codes.length}
             onCodesRefreshed={onCodesRefreshed}
           />

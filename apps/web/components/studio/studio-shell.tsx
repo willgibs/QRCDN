@@ -19,6 +19,7 @@ import {
 } from "@/lib/logo";
 import { PREVIEW_PAYLOAD_DEFAULT, renderPreview } from "@/lib/preview";
 import { inkHexFromStyle } from "@/lib/qr-style-derive";
+import { stylesEqual } from "@/lib/style-compare";
 import { printedShortUrl } from "@/lib/short-url";
 import { TopBar } from "./top-bar";
 import { ControlsRail } from "./controls-rail";
@@ -137,6 +138,7 @@ export function StudioShell({
         status: code.status,
         scan_count: code.scan_count,
         created_at: code.created_at,
+        brandKitId: code.brand_kit_id,
         expiresAt: code.expires_at,
         passwordProtected: code.password_hash !== null,
       },
@@ -150,9 +152,12 @@ export function StudioShell({
 
   const handleCodeLoad = useCallback((code: DynamicCodeSummary, loadedStyle: QrStyle) => {
     setPayload(printedShortUrl(code.slug));
-    // A COPY into the working editor, never a live binding back to the
-    // frozen row (D5) — editing further and saving to a brand kit (or
-    // minting a new code) never touches this code's own `style` column.
+    // Loads the code's CURRENT style into the working editor. Under hard
+    // sync (P9.8-B1, D5 as amended) that is its kit's style for an attached
+    // code — and saving further edits back to that kit DOES restyle the
+    // code, along with every sibling attached to the same kit; that is the
+    // product. Only a kit-less code (brand_kit_id null) still holds a
+    // frozen snapshot this copy can never write back to.
     setStyle(loadedStyle);
   }, []);
 
@@ -300,6 +305,21 @@ export function StudioShell({
     }
   }, [style]);
 
+  // P9.8-B1: whether the working style has drifted from the active kit's
+  // SAVED style — the same computation KitBar makes for its Save button,
+  // recomputed here (cheap deep-compare) to gate the create/bulk controls:
+  // minting reads the saved kit server-side, so creating while dirty would
+  // mint a code that doesn't match what's on stage.
+  const kitDirty = useMemo(() => {
+    const activeKit = kits.find((k) => k.id === activeKitId) ?? null;
+    if (!activeKit) return false;
+    try {
+      return !stylesEqual(validStyle, parseQrStyle(activeKit.style));
+    } catch {
+      return true;
+    }
+  }, [kits, activeKitId, validStyle]);
+
   const previewData = payload.trim().length > 0 ? payload : PREVIEW_PAYLOAD_DEFAULT;
 
   // Defense in depth (qr-engine.md): re-validate the persisted assetId shape
@@ -384,6 +404,8 @@ export function StudioShell({
           effectiveEcc={report.effectiveEcc}
           codes={codes}
           plan={plan}
+          activeKitId={activeKitId}
+          kitDirty={kitDirty}
           onPayloadChange={setPayload}
           onCodeCreated={handleCodeCreated}
           onCodeLoad={handleCodeLoad}

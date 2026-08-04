@@ -13,15 +13,15 @@ const REPO_URL = "https://github.com/willgibs/QRCDN";
 // (lib/guardrails-excerpt.ts reads the file off disk and slices it by
 // content anchor) — never a hand-typed copy that could drift from the
 // actual source.
-export function OpenSourceSection() {
+export function OpenSourceSection({ index }: { index: string }) {
   const excerpt = readGuardrailsExcerpt();
 
   return (
     <Section id="open-source" variant="split" surface="floor" divider="none">
       <SectionHeading
-        eyebrow="Built in the open"
-        index="09"
-        title="Read the source."
+        eyebrow="Open source"
+        index={index}
+        title="Verify our platform yourself."
         lede="The engine, the redirect worker, this site: MIT-licensed and public. Audit the privacy claims yourself. If we ever disappear, the path off is public. That's the point."
         className="mb-10"
       />

@@ -40,31 +40,51 @@ export const metadata: Metadata = {
 // Section/SectionHeading/SectionBody primitives, carrying the copy deck
 // v3 eyebrow ordinals the deck itself uses.
 //
-// P9.5-T3c: the ordinal sequence is now complete, 01-11 in order —
-// GuardrailsSection (05), ComparisonSection (08), OpenSourceSection (09),
-// and ManifestoSection (10) fill the gaps T3a/T3b intentionally left open.
-// Surface alternation: 01 tint, 02 floor, 03 default, 04 tint, 05 default
-// (the same neutral-pause role 03 already plays, between two colored
-// neighbors), 06 floor, 07 default, 08 tint, 09 floor, 10 tint (centered),
-// 11 default, closing default. Every section's own `divider` is set per
-// the Section system's rule: a hairline only between two same-surface
-// neighbors, "none" everywhere a surface change is already the seam.
+// P9.7-V1: THIS FILE OWNS SECTION ORDER *AND* NUMBERING.
+//
+// Ordinals used to be hardcoded string literals inside each section file
+// (`index="05"` living in guardrails-section.tsx, and so on). That meant the
+// eyebrow numbering and the actual DOM order were two independent facts that
+// nothing kept in sync: reordering two sections here left both of them
+// displaying their old numbers, and neither the type system nor any test
+// would have said a word. Since this round reorders sections and inserts two
+// more, the page that decides the order now also supplies the numbers.
+//
+// Practical effect: inserting a section is one line here plus a renumber of
+// the lines below it, all visible together in one file, instead of a literal
+// bump in every downstream component.
+//
+// Surface alternation, per the Section system's rule (a hairline only between
+// two same-surface neighbors; everywhere else the surface change is itself the
+// seam): tint, floor, default, tint, floor, default, tint, default, floor,
+// tint, default, closing default. The single same-surface adjacency is
+// PricingTeaser -> ClosingSection, which is why ClosingSection is the one
+// section on the page still carrying a hairline.
+//
+// Still to land in later units of this round: 01 Highlights (a bento, which
+// takes over the hero pillar strip's job) and Access controls, between Dynamic
+// links and Analytics. Both slot in here and everything below them renumbers
+// in this file alone.
 export default function HomePage() {
   return (
     <>
       <Hero />
-      <HowItWorksSection />
-      <Playground />
-      <BrandSystemSection />
-      <DynamicCodesSection />
-      <GuardrailsSection />
-      <AnalyticsSection />
-      <ApiSection />
-      <ComparisonSection />
-      <OpenSourceSection />
-      <ManifestoSection />
-      <PricingTeaser />
-      <ClosingSection />
+      <HowItWorksSection index="01" />
+      <Playground index="02" />
+      <BrandSystemSection index="03" />
+      <DynamicCodesSection index="04" />
+      <AnalyticsSection index="05" />
+      <GuardrailsSection index="06" />
+      <ApiSection index="07" />
+      <ComparisonSection index="08" />
+      <OpenSourceSection index="09" />
+      <ManifestoSection index="10" />
+      <PricingTeaser index="11" />
+      {/* Explicit title, even though it matches the component default: that
+          default is also what /features/dynamic-codes renders with zero props,
+          so leaving this implicit means a landing copy change silently rewrites
+          a feature page's closing heading too. */}
+      <ClosingSection title="Create your first code in minutes." />
     </>
   );
 }

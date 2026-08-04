@@ -192,14 +192,14 @@ function ComparisonTable({ columnOrder }: { columnOrder: readonly number[] }) {
   );
 }
 
-export function ComparisonSection() {
+export function ComparisonSection({ index }: { index: string }) {
   return (
-    <Section variant="stack" surface="tint" divider="none">
+    <Section variant="stack" divider="none">
       <SectionHeading
         eyebrow="Comparison"
-        index="08"
-        title="Not another QR generator."
-        lede="The category has habits: free codes that die, scans that get tracked, prices behind a quote form. We built the opposite, in the open."
+        index={index}
+        title="Industry-leading features."
+        lede="The whole feature set, including what everyone offers. Where we lead is marked, and every row is something you can go and check."
         className="mb-10"
       />
 

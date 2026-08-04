@@ -42,10 +42,10 @@ import { Filmstrip } from "@/components/marketing/filmstrip";
  * `e2e/marketing.spec.ts` asserts on this section's copy (grep-checked
  * before each change, not assumed).
  */
-export function HowItWorksSection() {
+export function HowItWorksSection({ index }: { index: string }) {
   return (
     <Section variant="band" surface="tint">
-      <SectionHeading eyebrow="How it works" index="01" title="Set it up once. Change it whenever." />
+      <SectionHeading eyebrow="How it works" index={index} title="Make codes that last forever." />
 
       <SectionBody>
         <Filmstrip />

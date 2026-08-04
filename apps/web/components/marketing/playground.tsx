@@ -256,7 +256,7 @@ function ContrastMeter({ worstContrast }: { worstContrast: number }) {
   );
 }
 
-export function Playground({ embedded = false }: { embedded?: boolean } = {}) {
+export function Playground({ embedded = false, index }: { embedded?: boolean; index?: string } = {}) {
   const [payload, setPayload] = useState(PREVIEW_PAYLOAD_DEFAULT);
   const [dotStyle, setDotStyle] = useState<(typeof DOT_STYLES)[number]>(DEFAULT_STYLE.dots.style);
   const [eyeFrame, setEyeFrame] = useState<(typeof EYE_FRAMES)[number]>(DEFAULT_STYLE.eyes.frame);
@@ -589,9 +589,9 @@ export function Playground({ embedded = false }: { embedded?: boolean } = {}) {
   return (
     <Section id="studio" variant="showcase" surface="floor" divider="none">
       <SectionHeading
-        eyebrow="The studio"
-        index="02"
-        title="Try the studio right here."
+        eyebrow="Design studio"
+        index={index}
+        title="Customize your brand design."
         lede="No account, no watermark: the real engine and the same scannability instrument the studio uses."
         className="mb-10"
       />

@@ -32,13 +32,13 @@ const PRO_FEATURES = [
   "API access, bulk generation & vanity links",
 ];
 
-export function PricingTeaser() {
+export function PricingTeaser({ index }: { index: string }) {
   return (
     <Section divider="none">
       <SectionHeading
         eyebrow="Pricing"
-        index="11"
-        title="Free codes never stop redirecting."
+        index={index}
+        title="Free to start, upgrade for more."
         lede={
           <>
             $0 gets {PLAN_LIMITS.free.dynamicCodes} dynamic codes that never stop redirecting. $

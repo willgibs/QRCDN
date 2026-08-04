@@ -204,11 +204,13 @@ export default function DynamicCodesFeaturePage() {
         </div>
       </Section>
 
-      {/* Closing CTA — the deck's own head ("Print something that can
-          change its mind.") is verbatim identical to the landing's
-          existing ClosingSection copy, so this reuses it with zero
-          props: true reuse, not a rebuild. */}
-      <ClosingSection />
+      {/* Closing CTA. This used to render with zero props, relying on
+          ClosingSection's default head being verbatim identical to the
+          landing's. P9.7-V1 broke that coincidence: the landing now closes
+          with "Create your first code in minutes." Passing this page's own
+          head explicitly means the two surfaces can never again move each
+          other by accident, which is what a shared default quietly does. */}
+      <ClosingSection title="Print something that can change its mind." />
     </>
   );
 }

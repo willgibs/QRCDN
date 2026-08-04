@@ -248,7 +248,7 @@ test.describe("marketing site", () => {
     // "Design one right now." (pre-T3a).
     const playgroundSection = page
       .locator("section")
-      .filter({ has: page.getByRole("heading", { name: "Try the studio right here." }) });
+      .filter({ has: page.getByRole("heading", { name: "Customize your brand design." }) });
     await expect(playgroundSection.getByRole("status")).toContainText(/scannable/i);
   });
 
@@ -256,7 +256,7 @@ test.describe("marketing site", () => {
     await page.goto("/");
     const playgroundSection = page
       .locator("section")
-      .filter({ has: page.getByRole("heading", { name: "Try the studio right here." }) });
+      .filter({ has: page.getByRole("heading", { name: "Customize your brand design." }) });
 
     // All 3 named presets render (text-based, not role-based — avoids
     // coupling the test to Radix ToggleGroup's exact internal role choice).
@@ -324,7 +324,7 @@ test.describe("marketing site", () => {
     await page.goto("/");
     const section = page
       .locator("section")
-      .filter({ has: page.getByRole("heading", { name: "We measured what actually scans." }) });
+      .filter({ has: page.getByRole("heading", { name: "Know it scans before you print it." }) });
 
     // Scoped to its own accessible name, not just "svg" — the section also
     // carries two decorative ModuleMark svgs (the Eyebrow glyph and the
@@ -382,7 +382,7 @@ test.describe("marketing site", () => {
     await page.goto("/");
     const section = page
       .locator("section")
-      .filter({ has: page.getByRole("heading", { name: "Not another QR generator." }) });
+      .filter({ has: page.getByRole("heading", { name: "Industry-leading features." }) });
 
     // Review round 1 split the table into two DOM variants (mobile QRCDN-
     // first, desktop QRCDN-last), toggled via md:hidden / hidden md:block —
@@ -420,7 +420,7 @@ test.describe("marketing site", () => {
     await page.goto("/");
     const section = page
       .locator("section")
-      .filter({ has: page.getByRole("heading", { name: "Not another QR generator." }) });
+      .filter({ has: page.getByRole("heading", { name: "Industry-leading features." }) });
 
     const table = section.locator("table:visible");
     // Header index 0 is the blank corner cell above the row labels; index 1
@@ -433,7 +433,7 @@ test.describe("marketing site", () => {
     await page.goto("/");
     await expect(page.locator("#open-source")).toBeVisible();
     await expect(
-      page.locator("#open-source").getByRole("heading", { name: "Read the source." }),
+      page.locator("#open-source").getByRole("heading", { name: "Verify our platform yourself." }),
     ).toBeVisible();
 
     const strip = page.locator('nav[aria-label="Jump to a section"]');
@@ -443,11 +443,11 @@ test.describe("marketing site", () => {
     );
   });
 
-  test("manifesto: three commitments present", async ({ page }) => {
+  test("trust and privacy: three commitments present", async ({ page }) => {
     await page.goto("/");
     const section = page
       .locator("section")
-      .filter({ has: page.getByRole("heading", { name: "Your code never dies." }) });
+      .filter({ has: page.getByRole("heading", { name: "Our lifetime guarantee." }) });
 
     await expect(section.getByText("Free codes are never deactivated.")).toBeVisible();
     await expect(section.getByText("A downgrade makes codes read-only, never dead.")).toBeVisible();
@@ -456,15 +456,15 @@ test.describe("marketing site", () => {
     ).toBeVisible();
   });
 
-  test("heads v4: the four amended section heads are live", async ({ page }) => {
+  test("heads: the amended section heads are live (P9.7-V1 IA rewrite)", async ({ page }) => {
     await page.goto("/");
-    await expect(page.getByRole("heading", { name: "Try the studio right here." })).toBeVisible();
-    await expect(page.getByRole("heading", { name: "Every code inherits your kit." })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Customize your brand design." })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Every code starts from your kit." })).toBeVisible();
     await expect(
-      page.getByRole("heading", { name: "Change the destination after printing." }),
+      page.getByRole("heading", { name: "Update a destination anytime." }),
     ).toBeVisible();
     await expect(
-      page.getByRole("heading", { name: "Free codes never stop redirecting." }),
+      page.getByRole("heading", { name: "Free to start, upgrade for more." }),
     ).toBeVisible();
   });
 

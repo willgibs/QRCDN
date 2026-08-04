@@ -22,10 +22,10 @@ const COMMITMENTS = [
   },
 ] as const;
 
-export function ManifestoSection() {
+export function ManifestoSection({ index }: { index: string }) {
   return (
     <Section variant="centered" surface="tint" divider="none" rhythm="air">
-      <SectionHeading eyebrow="Manifesto" index="10" title="Your code never dies." />
+      <SectionHeading eyebrow="Trust & privacy" index={index} title="Our lifetime guarantee." />
 
       <SectionBody delay={0.15} className="mt-10 flex flex-col items-center gap-8">
         <div className="flex flex-col items-center gap-6">

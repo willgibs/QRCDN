@@ -21,14 +21,14 @@ import { KitContactSheet } from "./kit-contact-sheet";
 // SECOND of its two call sites, alongside playground.tsx's #studio) —
 // gives e2e (and any future in-page link) a stable anchor to scope to,
 // same as every sibling section.
-export function BrandSystemSection() {
+export function BrandSystemSection({ index }: { index: string }) {
   return (
     <Section id="brand-system" variant="split" divider="none">
       <SectionHeading
         eyebrow="Brand system"
-        index="03"
-        title="Every code inherits your kit."
-        lede="Ink, paper, shapes, logo: set once as a kit. Every code you mint inherits it, from menu tents to ticket stubs."
+        index={index}
+        title="Every code starts from your kit."
+        lede="Ink, paper, shapes, logo: set once as a kit. Every code you make starts from it, from menu tents to ticket stubs."
         className="mb-10"
       />
 

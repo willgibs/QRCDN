@@ -13,14 +13,14 @@ import { DashboardWindow } from "./dashboard-window";
 // body now carries only the privacy strip, which "stays as shipped" per
 // the spec. Entitlement numbers for it still come from entitlements.ts
 // only (CLAUDE.md hard rule), just read inside dashboard-window.tsx now.
-export function AnalyticsSection() {
+export function AnalyticsSection({ index }: { index: string }) {
   return (
     <Section id="analytics" variant="showcase" surface="floor" divider="none">
       <SectionHeading
         eyebrow="Analytics"
-        index="06"
-        title="Know every scan."
-        lede="By day, country, city, device, and referrer: rolled up daily, honest about bots."
+        index={index}
+        title="Track every scan globally."
+        lede="Every scan is a place and a moment. By day, country, city, device and referrer, rolled up daily and honest about bots."
         className="mb-10"
       />
 

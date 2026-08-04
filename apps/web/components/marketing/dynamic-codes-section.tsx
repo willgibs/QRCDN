@@ -22,13 +22,13 @@ import { DYNAMIC_CODES_DOORWAY_ENABLED, ACCESS_CONTROLS_DOORWAY_ENABLED } from "
 // depict the password gate and the expired-code row this new page expands
 // on, and the existing doorway-link convention (a LearnMoreLink beside the
 // mono strips) accepts a second entry with zero layout change.
-export function DynamicCodesSection() {
+export function DynamicCodesSection({ index }: { index: string }) {
   return (
     <Section id="dynamic-codes" variant="showcase" surface="tint" divider="none">
       <SectionHeading
-        eyebrow="Dynamic codes"
-        index="04"
-        title="Change the destination after printing."
+        eyebrow="Dynamic links"
+        index={index}
+        title="Update a destination anytime."
         lede="A QRCDN code is a permanent address. Retarget it in seconds and the printed code never changes. Pause it, protect it, expire it."
       />
 

@@ -14,13 +14,13 @@ import { PLAN_LIMITS } from "@/lib/entitlements";
 // Retarget · Analytics), each pane's request/response read straight from
 // `lib/api-reference.ts` (the same data /developers renders), server-
 // highlighted at build. Nothing here is invented.
-export function ApiSection() {
+export function ApiSection({ index }: { index: string }) {
   return (
-    <Section id="api" variant="split" divider="none">
+    <Section id="api" variant="split" surface="tint" divider="none">
       <SectionHeading
         eyebrow="API"
-        index="07"
-        title="Every code, over HTTP."
+        index={index}
+        title="Automate with our API."
         lede="Create, retarget, pause, measure: the whole surface, owner-scoped to a key."
         className="mb-10"
       />

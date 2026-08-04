@@ -53,6 +53,13 @@ const MOJIBAKE: ReadonlyArray<{ seq: string; note: string }> = [
   { seq: "Ã", note: "ÃƒÂ — doubly double-encoded Latin-1" },
   { seq: "ï¿½", note: "ï¿½ — replacement character, itself double-encoded" },
   { seq: "�", note: "� — Unicode replacement character, a decode already failed" },
+  // The cp1253 (Greek codepage) family, added at P9.7 close-out review: the
+  // original list caught only the Latin-1 double-encodings, so eleven
+  // `β€”` em dashes (E2 80 94 read as cp1253) shipped in filmstrip.tsx with
+  // this suite green. `β€` covers every E2 80 xx punctuation glyph (em/en
+  // dash, smart quotes, ellipsis) through that codepage in one sequence.
+  { seq: "β€", note: "β€x — E2 80 xx punctuation (em/en dash, smart quotes) read as cp1253" },
+  { seq: "Γ—", note: "Γ— — multiplication sign (U+00D7) read as cp1253" },
 ];
 
 function walk(dir: string, out: string[] = []): string[] {

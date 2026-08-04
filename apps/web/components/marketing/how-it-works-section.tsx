@@ -10,11 +10,10 @@ import { Filmstrip } from "@/components/marketing/filmstrip";
  * the hero, the only one with no id anchor and no feature page reusing it,
  * so it is the safest place to judge the new register on production.
  *
- * `variant="band"` (still forces `divider="none"` — its own surface change
- * against the hero above and the playground/floor section below is the
- * seam) + `surface="tint"` (unchanged) + `frame="bleed"` (no gutter at all,
- * so the filmstrip's baseline rule can span the full viewport width) +
- * `rhythm="standard"`.
+ * The call today is `variant="band"` alone (band forces `divider="none"` —
+ * its own full-bleed plate against the neighbors is the seam). Round 1 also
+ * carried `frame="bleed"` and a raised `titleSize`; round 2 reverted both,
+ * as recorded below.
  *
  * BOARD REVIEW, two rounds. Round 1: the stations bled to the viewport edge
  * while the heading sat on the page measure (two left edges in one section),

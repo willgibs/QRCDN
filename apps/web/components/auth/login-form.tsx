@@ -339,17 +339,19 @@ export function LoginForm({ initialError }: { initialError?: string }) {
         )}
       </AnimatePresence>
 
+      {/* Plain element with a CSS mount entrance, not motion: `initialError`
+          arrives via search params, so this can render in the SERVER html —
+          a motion `initial={{opacity:0}}` would ship the auth error
+          invisible with JS off. The CSS class replays on every remount, so
+          later errors still get their entrance. */}
       {error && (
-        <motion.p
+        <p
           role="alert"
           aria-live="polite"
-          initial={{ opacity: 0, transform: from }}
-          animate={{ opacity: 1, transform: "translateY(0px)" }}
-          transition={transition}
-          className="text-center text-sm text-destructive"
+          className="mount-rise text-center text-sm text-destructive"
         >
           {error}
-        </motion.p>
+        </p>
       )}
     </div>
   );

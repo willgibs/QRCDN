@@ -95,36 +95,39 @@ function buildField() {
 const FIELD = buildField();
 
 function Field() {
+  // The peak flag is real HTML in the TOP_PAD headroom, not SVG <text>: the
+  // field below stretches horizontally (`preserveAspectRatio="none"`), and
+  // type inside a non-uniformly scaled viewBox distorts at every width except
+  // exactly 1000px — crushed to ~1/3 width at 390. Rects survive stretching;
+  // words do not. Same lesson as dashboard-window's own preserveAspectRatio
+  // fix (P9.7-V5b), applied to the half of this figure that carries text.
+  const peakLeft = `${((FIELD.peakX / VB_W) * 100).toFixed(2)}%`;
   return (
     <div className="border-y border-border py-5">
-      <svg
-        viewBox={`0 0 ${VB_W} ${VB_H}`}
-        preserveAspectRatio="none"
-        className="block h-[168px] w-full"
-        role="img"
-        aria-label={`Thirty days of scans, each mark one scan, peaking at ${MAX} on the day a poster campaign went up.`}
-      >
-        <path d={FIELD.field} className="fill-foreground" opacity={0.32} />
-        <path d={FIELD.hot} className="fill-primary" opacity={0.95} />
-        <text
-          x={FIELD.peakX}
-          y={12}
-          textAnchor="middle"
-          className="fill-foreground font-mono"
-          style={{ fontSize: 12 }}
+      <div className="relative">
+        <div
+          aria-hidden
+          className="pointer-events-none absolute top-0 z-10 -translate-x-1/2 text-center"
+          style={{ left: peakLeft }}
         >
-          {MAX} scans
-        </text>
-        <text
-          x={FIELD.peakX}
-          y={24}
-          textAnchor="middle"
-          className="fill-muted-foreground font-mono"
-          style={{ fontSize: 10 }}
+          <span className="block font-mono text-[12px] leading-none whitespace-nowrap text-foreground">
+            {MAX} scans
+          </span>
+          <span className="mt-[3px] block font-mono text-[10px] leading-none whitespace-nowrap text-muted-foreground">
+            posters went up
+          </span>
+        </div>
+        <svg
+          viewBox={`0 0 ${VB_W} ${VB_H}`}
+          preserveAspectRatio="none"
+          className="block h-[168px] w-full"
+          role="img"
+          aria-label={`Thirty days of scans, each mark one scan, peaking at ${MAX} on the day a poster campaign went up.`}
         >
-          posters went up
-        </text>
-      </svg>
+          <path d={FIELD.field} className="fill-foreground" opacity={0.32} />
+          <path d={FIELD.hot} className="fill-primary" opacity={0.95} />
+        </svg>
+      </div>
     </div>
   );
 }

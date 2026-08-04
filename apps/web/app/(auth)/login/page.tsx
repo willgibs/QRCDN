@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { Check } from "lucide-react";
 import { HeroBackdrop } from "@/components/brand/backdrop";
-import { ModuleMark, Reveal } from "@/components/brand/magic";
+import { ModuleMark } from "@/components/brand/magic";
 import { LoginForm } from "@/components/auth/login-form";
 import { QrTile } from "@/components/marketing/qr-tile";
 import { createClient } from "@/lib/supabase/server";
@@ -61,7 +61,11 @@ export default async function LoginPage(props: PageProps<"/login">) {
           QRCDN
         </span>
 
-        <Reveal className="w-full">
+        {/* CSS mount entrance, not the motion `Reveal` it replaced: Reveal
+            SSRs `opacity:0` inline, so the whole sign-in card was invisible
+            pre-hydration and with JS off. `.mount-enter` (globals.css) keeps
+            the same entrance with keyframes-only hiding. */}
+        <div className="mount-enter w-full">
           <div className="rounded-3xl bg-gradient-to-b from-primary/40 via-border/70 to-border/30 p-px shadow-2xl shadow-primary/15">
             <div className="rounded-[calc(1.5rem-1px)] bg-card/90 p-8 backdrop-blur-xl sm:p-9">
               <div className="mb-6 flex flex-col gap-1.5 text-center">
@@ -75,7 +79,7 @@ export default async function LoginPage(props: PageProps<"/login">) {
               <LoginForm initialError={initialError} />
             </div>
           </div>
-        </Reveal>
+        </div>
 
         {/* P9.5-T5 rider: hidden at lg+, where the value panel's own
             sign-off (below) already renders this same line, so showing

@@ -44,92 +44,111 @@ const CAMPAIGN_FAIL_MIN = 0.418;
 
 const DOMAIN_MIN = 0.375;
 const DOMAIN_MAX = 0.435;
-const W = 1000;
-const H = 104;
-const x = (v: number) => ((v - DOMAIN_MIN) / (DOMAIN_MAX - DOMAIN_MIN)) * W;
+const pct = (v: number) => ((v - DOMAIN_MIN) / (DOMAIN_MAX - DOMAIN_MIN)) * 100;
 
+/**
+ * The gauge is HTML positioned by percentage, not one scaled SVG. The first
+ * build drew everything (labels included) in a 1000-unit viewBox scaled to
+ * the container, which rendered its 11-13-unit type at ~4-5px on a 390px
+ * viewport: illegible. Geometry that should stretch (the band, the track,
+ * the ticks) is absolutely-positioned divs; type stays type, at real pixel
+ * sizes, at every width. The two alpha fills use inline srgb color-mix
+ * rather than Tailwind opacity utilities per the T3b iOS-Safari finding
+ * (design-system.md: oklab color-mix mis-painting).
+ */
 function Gauge() {
-  const warnX = x(LOGO_EFFECTIVE_WARN);
-  const failX = x(LOGO_EFFECTIVE_ERROR);
-  const passX = x(CAMPAIGN_PASS_MAX);
-  const brokeX = x(CAMPAIGN_FAIL_MIN);
+  const warnPct = pct(LOGO_EFFECTIVE_WARN);
+  const failPct = pct(LOGO_EFFECTIVE_ERROR);
+  const passPct = pct(CAMPAIGN_PASS_MAX);
+  const brokePct = pct(CAMPAIGN_FAIL_MIN);
 
   return (
     <figure className="m-0">
-      <svg
-        viewBox={`0 0 ${W} ${H}`}
-        className="block h-auto w-full"
+      <div
         role="img"
         aria-label={`Effective knockout ratio from ${DOMAIN_MIN} to ${DOMAIN_MAX}. Our warn threshold sits at ${LOGO_EFFECTIVE_WARN}, below ${CAMPAIGN_PASS_MAX}, the highest ratio that still decoded. Our fail threshold sits at ${LOGO_EFFECTIVE_ERROR}, inside the gap between that and ${CAMPAIGN_FAIL_MIN}, the lowest ratio that failed. Nothing was ever observed inside that gap.`}
       >
-        {/* the band nothing was ever observed in: between the best pass and
-            the worst fail. Our two thresholds live inside it. */}
-        <rect
-          x={passX}
-          y={20}
-          width={brokeX - passX}
-          height={34}
-          className="fill-muted-foreground"
-          opacity={0.13}
-        />
-        {/* the track */}
-        <rect x={0} y={36} width={W} height={2} className="fill-border" />
-        <rect x={0} y={36} width={warnX} height={2} className="fill-primary" opacity={0.55} />
-
-        {/* our thresholds, imported from the engine */}
-        {[
-          { at: warnX, label: `warn ${LOGO_EFFECTIVE_WARN}` },
-          { at: failX, label: `fail ${LOGO_EFFECTIVE_ERROR}` },
-        ].map((t) => (
-          <g key={t.label}>
-            <rect x={t.at - 1} y={20} width={2} height={34} className="fill-primary" />
-            <text
-              x={t.at}
-              y={14}
-              textAnchor="middle"
-              className="fill-foreground font-mono"
-              style={{ fontSize: 13 }}
+        {/* our thresholds, imported from the engine — labels above the track */}
+        <div aria-hidden className="relative h-5 font-mono text-[12px] text-foreground">
+          {[
+            { at: warnPct, label: `warn ${LOGO_EFFECTIVE_WARN}` },
+            { at: failPct, label: `fail ${LOGO_EFFECTIVE_ERROR}` },
+          ].map((t) => (
+            <span
+              key={t.label}
+              className="absolute bottom-0 -translate-x-1/2 whitespace-nowrap"
+              style={{ left: `${t.at}%` }}
             >
               {t.label}
-            </text>
-          </g>
-        ))}
+            </span>
+          ))}
+        </div>
 
-        {/* what the campaign actually observed */}
-        {[
-          { at: passX, label: `last pass ~${CAMPAIGN_PASS_MAX}`, y: 74, anchor: "end" as const, dx: -6 },
-          { at: brokeX, label: `first fail ~${CAMPAIGN_FAIL_MIN}`, y: 92, anchor: "start" as const, dx: 6 },
-        ].map((t) => (
-          <g key={t.label}>
-            <rect x={t.at - 0.5} y={30} width={1} height={t.y - 38} className="fill-muted-foreground" />
-            <text
-              x={t.at + t.dx}
-              y={t.y}
-              textAnchor={t.anchor}
-              className="fill-muted-foreground font-mono"
-              style={{ fontSize: 12 }}
-            >
-              {t.label}
-            </text>
-          </g>
-        ))}
+        <div aria-hidden className="relative mt-1.5 h-9">
+          {/* the band nothing was ever observed in: between the best pass and
+              the worst fail. Our two thresholds live inside it. */}
+          <div
+            className="absolute inset-y-0"
+            style={{
+              left: `${passPct}%`,
+              width: `${brokePct - passPct}%`,
+              backgroundColor: "color-mix(in srgb, var(--muted-foreground) 13%, transparent)",
+            }}
+          />
+          {/* the track */}
+          <div className="absolute top-1/2 right-0 left-0 h-[2px] -translate-y-1/2 bg-border" />
+          <div
+            className="absolute top-1/2 left-0 h-[2px] -translate-y-1/2"
+            style={{
+              width: `${warnPct}%`,
+              backgroundColor: "color-mix(in srgb, var(--primary) 55%, transparent)",
+            }}
+          />
+          {/* threshold ticks */}
+          <div
+            className="absolute inset-y-0 w-[2px] -translate-x-1/2 bg-primary"
+            style={{ left: `${warnPct}%` }}
+          />
+          <div
+            className="absolute inset-y-0 w-[2px] -translate-x-1/2 bg-primary"
+            style={{ left: `${failPct}%` }}
+          />
+          {/* leader stubs down toward the campaign labels below */}
+          <div
+            className="absolute top-1/2 -bottom-2 w-px bg-muted-foreground"
+            style={{ left: `${passPct}%` }}
+          />
+          <div
+            className="absolute top-1/2 -bottom-2 w-px bg-muted-foreground"
+            style={{ left: `${brokePct}%` }}
+          />
+        </div>
+
+        {/* what the campaign actually observed. The min() clamps keep each
+            label inside the container at narrow widths instead of clipping
+            (ch units: the labels are 16 and 17 characters of mono). */}
+        <div aria-hidden className="relative mt-3 h-10 font-mono text-[12px] text-muted-foreground">
+          <span
+            className="absolute top-0 whitespace-nowrap"
+            style={{ right: `min(calc(${(100 - passPct).toFixed(3)}% + 6px), calc(100% - 17ch))` }}
+          >
+            {`last pass ~${CAMPAIGN_PASS_MAX}`}
+          </span>
+          <span
+            className="absolute top-5 whitespace-nowrap"
+            style={{ left: `min(calc(${brokePct.toFixed(3)}% + 6px), calc(100% - 18ch))` }}
+          >
+            {`first fail ~${CAMPAIGN_FAIL_MIN}`}
+          </span>
+        </div>
 
         {/* Axis ends, because this scale does not start at zero and a reader
             should not have to assume where it starts. */}
-        <text x={0} y={92} className="fill-muted-foreground font-mono" style={{ fontSize: 11 }} opacity={0.7}>
-          {DOMAIN_MIN}
-        </text>
-        <text
-          x={W}
-          y={92}
-          textAnchor="end"
-          className="fill-muted-foreground font-mono"
-          style={{ fontSize: 11 }}
-          opacity={0.7}
-        >
-          {DOMAIN_MAX}
-        </text>
-      </svg>
+        <div aria-hidden className="mt-1 flex justify-between font-mono text-[11px] text-muted-foreground/70">
+          <span>{DOMAIN_MIN}</span>
+          <span>{DOMAIN_MAX}</span>
+        </div>
+      </div>
       <figcaption className="mt-5 max-w-[62ch] text-sm leading-relaxed text-muted-foreground">
         Effective knockout ratio: how much of the code a logo covers once its padding is counted,
         at the symbol version the renderer actually uses. We start warning below anything that ever

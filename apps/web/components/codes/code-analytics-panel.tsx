@@ -109,8 +109,8 @@ function locationLabel(
  * Reduced motion keeps the opacity fade and drops only the movement
  * (`translateY(4px)` collapses to `translateY(0px)`) — "gentler, not zero"
  * (emil-design-eng skill / review-animations standard 8), the same
- * opacity-stays/movement-drops split `useRevealVariants` already uses in
- * components/brand/magic.tsx.
+ * opacity-stays/movement-drops split this codebase's motion entrances use
+ * under reduced motion.
  */
 function PoppingStat({ value }: { value: string }) {
   const mounted = useMounted();

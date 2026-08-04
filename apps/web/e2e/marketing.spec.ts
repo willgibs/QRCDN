@@ -397,7 +397,7 @@ test.describe("marketing site", () => {
 
     await expect(
       section.getByText(
-        "160+ style combinations · 2 adversarial decode campaigns · warn 0.395 · fail 0.412",
+        `160+ style combinations · 2 adversarial decode campaigns · warn ${LOGO_EFFECTIVE_WARN} · fail ${LOGO_EFFECTIVE_ERROR}`,
       ),
     ).toBeVisible();
   });
@@ -666,6 +666,22 @@ test.describe("marketing site", () => {
     expect(html).not.toMatch(/opacity\s*:\s*0(?!\.)/);
   });
 
+  test("/login never SSRs opacity:0 anywhere in the document (P9.7 close-out)", async ({
+    request,
+  }) => {
+    // The close-out audit found /login was the one page still shipping the
+    // pattern: the motion `Reveal` around the sign-in card SSR'd it at
+    // opacity:0, so the card was invisible pre-hydration and with JS off —
+    // while the round's own claim said "every page ships zero opacity:0".
+    // The card now uses the CSS `.mount-enter` pattern; this sweep keeps it
+    // that way. (Also exercises the auth_error branch, which renders a
+    // server-visible error line that used to be a motion element too.)
+    const response = await request.get("/login?auth_error=link_invalid");
+    const html = await response.text();
+    expect(html).not.toMatch(/opacity\s*:\s*0(?!\.)/);
+    expect(html).toContain("Sign in or sign up");
+  });
+
   // P9.5-T-F1: the two feature pages (/features/dynamic-codes,
   // /features/analytics) and the landing doorways that now point at them.
 
@@ -765,6 +781,12 @@ test.describe("marketing site", () => {
     ).toBeVisible();
     // Section-body marker: StateCards' password card (S1, `only="password"`).
     await expect(page.getByText("This code is password-protected.")).toBeVisible();
+    // The expired card, whose status pill imports `statusMeta` from the real
+    // dashboard so it can never drift from what /codes renders. This
+    // assertion moved here when the card left the landing at P9.7-V4 — the
+    // close-out audit found it had been dropped rather than moved, leaving
+    // the statusMeta coupling untested on every surface.
+    await expect(page.getByText("Expired", { exact: true })).toBeVisible();
   });
 
   test("features/access-controls: truth-gate mono lines, honest plan table, and FAQ render", async ({

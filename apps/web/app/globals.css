@@ -568,10 +568,27 @@
   animation-timing-function: var(--motion-ease-out);
   animation-fill-mode: backwards;
 }
+/* Mount entrances for auth surfaces (P9.7 close-out review) — the /login
+   card was the last consumer of the motion `Reveal` component, whose SSR
+   markup ships a static inline `opacity:0` (invisible pre-hydration and
+   with JS off — exactly what the whole-document e2e sweeps forbid). Same
+   CSS mechanism as the hero blocks above: hiding exists only inside the
+   keyframes, so served markup always carries full opacity. `mount-enter`
+   reuses hero-enter's frames at Reveal's own values (18px rise,
+   --duration-slow); `mount-rise` reuses hero-rise's 8px at the 300ms
+   in-app budget (login-form's error line). */
+.mount-enter {
+  animation: hero-enter var(--duration-slow) var(--motion-ease-out) backwards;
+}
+.mount-rise {
+  animation: hero-rise 300ms var(--motion-ease-out) backwards;
+}
 @media (prefers-reduced-motion: reduce) {
   .hero-enter,
   .hero-art-chip,
-  .hero-art-tile {
+  .hero-art-tile,
+  .mount-enter,
+  .mount-rise {
     animation: none;
     opacity: 1;
     transform: none;

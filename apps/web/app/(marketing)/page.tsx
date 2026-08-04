@@ -56,16 +56,16 @@ export const metadata: Metadata = {
 // the lines below it, all visible together in one file, instead of a literal
 // bump in every downstream component.
 //
-// Surface alternation, per the Section system's rule (a hairline only between
+// Surface alternation, per the Section system's rule: a hairline only between
 // two same-surface neighbors; everywhere else the surface change is itself the
-// seam): tint, floor, default, tint, floor, default, tint, default, floor,
-// tint, default, closing default. The single same-surface adjacency is
-// PricingTeaser -> ClosingSection, which is why ClosingSection is the one
-// section on the page still carrying a hairline.
+// seam. Each section declares its own surface in its own file — no enumerated
+// list here, it drifted every time the order changed. The single same-surface
+// adjacency today is PricingTeaser -> ClosingSection, which is why
+// ClosingSection is the one section on the page still carrying a hairline.
 //
-// P9.7-V2 proved that out: inserting the Highlights bento at 01 renumbered
-// eleven sections, and the entire change was the block below. Still to land:
-// Access controls, between Dynamic links and Analytics.
+// P9.7-V2 proved the ownership model out: inserting the Highlights bento at 01
+// renumbered eleven sections, and the entire change was the block below.
+// Access controls (06) landed the same way at P9.7-V4.
 //
 // Highlights takes `tint` directly under the hero, so How it works moves to
 // `default` to keep the alternation legal.
@@ -86,10 +86,10 @@ export default function HomePage() {
       <OpenSourceSection index="11" />
       <ManifestoSection index="12" />
       <PricingTeaser index="13" />
-      {/* Explicit title, even though it matches the component default: that
-          default is also what /features/dynamic-codes renders with zero props,
-          so leaving this implicit means a landing copy change silently rewrites
-          a feature page's closing heading too. */}
+      {/* Explicit title at every ClosingSection call site (this one and all
+          four feature pages), so a landing copy change can never silently
+          rewrite a feature page's closing heading through the shared
+          component default. */}
       <ClosingSection title="Create your first code in minutes." />
     </>
   );

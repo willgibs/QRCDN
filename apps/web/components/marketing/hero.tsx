@@ -19,8 +19,10 @@ import { ScanNetwork } from "./scan-network";
  * now render at the fluid `text-display`/`text-lede` scale (globals.css's
  * type-bump amendment) instead of static Tailwind breakpoint classes, so
  * `text-display`'s own paired line-height/letter-spacing supersede the
- * old hand-tuned `leading-[1.05] tracking-tighter`. The pillar strip
- * (`./pillar-strip.tsx`) closes the hero as a fourth staggered element.
+ * old hand-tuned `leading-[1.05] tracking-tighter`. (The pillar strip that
+ * once closed the hero as a fourth staggered element was removed at
+ * P9.7-V2 — the Highlights bento directly below took over its
+ * table-of-contents job.)
  *
  * P9.5-T1a: the h1/sub/CTA row entrance moved off `Reveal` (motion/react
  * `whileInView`) onto the plain-CSS `hero-enter` utility (globals.css,

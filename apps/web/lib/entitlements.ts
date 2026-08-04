@@ -16,7 +16,7 @@ export interface PlanLimits {
   cityGeo: boolean;
   /** API access + monthly request fair-use cap; null = no API access. */
   apiMonthlyRequests: number | null;
-  /** Expiry, scheduling, and password protection per code. */
+  /** Expiry and password protection per code. */
   accessControls: boolean;
   /** Custom vanity slugs (4-30 chars). */
   vanitySlugs: boolean;

@@ -14,7 +14,7 @@ import { cn } from "@/lib/utils";
  * `md` there is no shared baseline to hold (the rule and ticks would just
  * reserve dead space on the two stations with nothing below the line), so
  * the absolute geometry is dropped entirely and the stations stack as
- * hairline-separated flow rows instead β€” translated from the reference
+ * hairline-separated flow rows instead — translated from the reference
  * artifact's `@container` breakpoint to a plain viewport breakpoint. P9.7-V3
  * moved that breakpoint from `md` to `lg`: a fourth station arrived, and four
  * across at 768px forces the station art down to a size where the codes stop
@@ -32,7 +32,7 @@ import { cn } from "@/lib/utils";
  *
  * ---- Why a `<symbol>`/`<use>` pair instead of six inlined engine renders ----
  * The product claim this section makes is "the same code, unchanged, at
- * every station" β€” `renderQr` is called exactly ONCE per theme (light/dark),
+ * every station" — `renderQr` is called exactly ONCE per theme (light/dark),
  * and every one of the five on-page instances (station 1, three station-2
  * artifacts, station 3) references that single definition via `<use>`,
  * which is also literally "the same DOM node," reinforcing the claim in the
@@ -41,12 +41,12 @@ import { cn } from "@/lib/utils";
  * `renderQr` returns a complete standalone `<svg xmlns=... viewBox=...>...
  * </svg>` string (two `<path>` fills for dots/eyes; no `<defs>` since
  * `brandQrStyles` is a solid fill, no background `<path>` since its
- * background is transparent β€” verified by reading `packages/qr-engine/src/
+ * background is transparent — verified by reading `packages/qr-engine/src/
  * render.ts` and by actually calling `renderQr` with this exact style/data
  * pair). `extractSymbol` below pulls the `viewBox` and inner content out of
  * that string with a single guarded regex (matched and measured against the
  * real output before this shipped) so the symbol content is byte-identical
- * to what `renderQr` produced β€” never hand-copied or re-derived. If the
+ * to what `renderQr` produced — never hand-copied or re-derived. If the
  * engine's output shape ever changes underneath this, the regex fails to
  * match and this throws at module load (a loud build/request-time failure)
  * rather than silently rendering broken markup.
@@ -55,15 +55,15 @@ import { cn } from "@/lib/utils";
  * index.html`) is 861,279 bytes with this symbol/use approach. Temporarily
  * swapping `FilmstripQr`/`QrDefs` for ten repeated `dangerouslySetInnerHTML`
  * copies (one full engine SVG per instance, no shared definition) and
- * rebuilding produced 970,768 bytes β€” 109,489 bytes (~107 KB) heavier, about
+ * rebuilding produced 970,768 bytes — 109,489 bytes (~107 KB) heavier, about
  * 12.7% of the whole page's raw HTML, for markup that is otherwise pixel-
  * identical. Gzipped the gap narrows (65,917 vs 69,267 bytes, a 3,350-byte
  * / 4.8% difference) since ten byte-identical ~6.3 KB chunks compress well,
  * but the symbol approach still wins under compression too, at a fraction
  * of the raw-byte cost. (The RSC flight payload Next embeds alongside the
  * rendered HTML means each id/string appears twice in the served bytes,
- * which is why the deltas above are roughly double a naive "5 instances Γ—
- * 6,374-byte SVG" estimate β€” a Next.js characteristic of every static page,
+ * which is why the deltas above are roughly double a naive "5 instances ×
+ * 6,374-byte SVG" estimate — a Next.js characteristic of every static page,
  * not specific to this section.)
  */
 
@@ -77,7 +77,7 @@ const QR_A = "HTTPS://QRCDN.COM/CAFE";
 const QR_B = "HTTPS://QRCDN.COM/MENU";
 const QR_C = "HTTPS://QRCDN.COM/TOUR";
 
-/** The D13-locked precision ink hex, derived rather than re-hardcoded β€” same
+/** The D13-locked precision ink hex, derived rather than re-hardcoded — same
  *  helper `kit-contact-sheet.tsx`'s own ink legend already uses. Always the
  *  LIGHT variant: the kit swatch below shows ink-on-paper (what actually
  *  prints), which never swaps with the site's own theme. */
@@ -90,7 +90,7 @@ function extractSymbol(svg: string, id: string): { id: string; viewBox: string; 
   if (!match) {
     throw new Error(
       `filmstrip.tsx: renderQr's output no longer matches the expected ` +
-        `<svg viewBox="...">...</svg> shape (symbol id "${id}") β€” the ` +
+        `<svg viewBox="...">...</svg> shape (symbol id "${id}"): the ` +
         `extraction regex needs updating to match the new format.`,
     );
   }
@@ -114,7 +114,7 @@ const CODES = {
 type CodeKey = keyof typeof CODES;
 
 /** Rendered once, referenced by every `FilmstripQr` below via `<use>`. Zero
- *  visual footprint (`size-0`, `absolute`) β€” matches the reference
+ *  visual footprint (`size-0`, `absolute`) — matches the reference
  *  artifact's own hidden symbol holder. */
 function QrDefs() {
   return (
@@ -134,7 +134,7 @@ function QrDefs() {
 }
 
 /** One station's QR (or artifact's QR): a light instance and a dark
- *  instance, CSS-toggled by theme β€” the same `dark:hidden`/`hidden
+ *  instance, CSS-toggled by theme — the same `dark:hidden`/`hidden
  *  dark:block` swap `qr-tile.tsx` uses, just against a `<use>` reference
  *  instead of a second inlined copy. */
 function FilmstripQr({ code = "a", className }: { code?: CodeKey; className?: string }) {
@@ -202,7 +202,7 @@ function StationMeta({ label, title, note }: { label: string; title: string; not
 }
 
 /** The 1px tick that crosses the rule at each station's centre. Absolute
- *  positioning drops entirely below `md` (see the file header) rather than
+ *  positioning drops entirely below `lg` (see the file header) rather than
  *  just hiding visually, so it never reserves layout space on mobile. */
 function StationTick() {
   return (
@@ -214,21 +214,22 @@ function StationTick() {
 }
 
 /** Shared station shell: the mobile hairline-row border collapses to
- *  nothing at `md`, where the shared `rule` (rendered once by `Filmstrip`)
+ *  nothing at `lg`, where the shared `rule` (rendered once by `Filmstrip`)
  *  takes over as the separator between stations instead. */
 function Station({ children }: { children: ReactNode }) {
   return <div className="border-t border-border pt-[18px] lg:border-t-0 lg:pt-0">{children}</div>;
 }
 
-/** Station art area: 180px tall with a relative-positioning context for the
- *  tick/stage/under children at `md`, plain document flow below it. */
+/** Station art area: 248px tall (`lg:h-[248px]`) with a relative-positioning
+ *  context for the tick/stage/under children at `lg`, plain document flow
+ *  below it. */
 function StationArt({ children }: { children: ReactNode }) {
   return <div className="relative lg:h-[248px]">{children}</div>;
 }
 
-/** The row that sits ON the rule (`bottom: 72px` of the 180px art area =
- *  exactly the rule's own 108px line). Flow row on mobile, absolute at
- *  `md`. */
+/** The row that sits ON the rule (`bottom: 96px` of the 248px art area puts
+ *  its bottom edge exactly on the rule's own 152px line). Flow row on
+ *  mobile, absolute at `lg`. */
 function StationStage({ children }: { children: ReactNode }) {
   return (
     <div className="flex items-end justify-center gap-4 pt-2 pb-1 lg:absolute lg:inset-x-0 lg:bottom-[96px] lg:p-0">
@@ -388,9 +389,10 @@ export function Filmstrip() {
   return (
     <div className="relative mt-block">
       <QrDefs />
-      {/* The baseline every station's primary object sits on β€” full bleed
-          width (spans the section's own frame="bleed" area, not the
-          gutter-padded stations grid below it). */}
+      {/* The baseline every station's primary object sits on — spans the
+          section's content measure. (The frame="bleed" experiment was
+          reverted at U2 round 2: a full-viewport hairline read as a line
+          ACROSS the section, not a baseline under it.) */}
       <span
         aria-hidden
         className="hidden lg:absolute lg:inset-x-0 lg:top-[152px] lg:block lg:h-px lg:bg-border"

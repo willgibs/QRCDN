@@ -2,13 +2,15 @@ import type { ReactNode } from "react";
 
 /**
  * Directive-free home for the two brand marks (P9.7-U1 rider). `ModuleMark`
- * and `Eyebrow` used to live in `magic.tsx` purely because that file carries
- * `"use client"` for its motion exports (`Reveal`, `useRevealVariants`) —
- * neither mark uses a hook or any client-only API. Moved here so a
- * server-only consumer (e.g. `components/marketing/section.tsx`, post
- * P9.7-U1's reveal fix) can render an eyebrow without pulling a client
- * boundary in behind it. Re-exported from `magic.tsx` so every pre-existing
- * `@/components/brand/magic` import site is unaffected.
+ * and `Eyebrow` used to live in `magic.tsx` purely because that file once
+ * carried `"use client"` for its motion exports — neither mark uses a hook
+ * or any client-only API. Moved here so a server-only consumer (e.g.
+ * `components/marketing/section.tsx`, post P9.7-U1's reveal fix) can render
+ * an eyebrow without pulling a client boundary in behind it. Re-exported
+ * from `magic.tsx` so every pre-existing `@/components/brand/magic` import
+ * site is unaffected. (The motion exports are since gone entirely — the
+ * P9.7 close-out review retired `Reveal` after its last consumer, /login,
+ * moved to the CSS mount-entrance pattern.)
  */
 
 /** 2×2 QR-module glyph used before eyebrow labels — the brand mark detail. */

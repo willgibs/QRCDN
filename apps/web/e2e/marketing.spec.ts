@@ -236,6 +236,18 @@ test.describe("marketing site", () => {
     // (PricingPlans defaults to annual, `$${ANNUAL_MONTHLY_EQUIV_USD}`).
     await page.getByRole("tab", { name: "Monthly" }).click();
     await expect(page.getByText(`$${PRICING.monthlyUsd}`)).toBeVisible();
+
+    // P9.8-B0: the free-plan summary's kit line, asserted with count-driven
+    // noun agreement. The deferred ledger's entry 10 predicted exactly this
+    // drift ("2 brand kit") when the limit moved off 1; the copy and this
+    // assertion both derive the noun from the same value, so a future limit
+    // change cannot re-open the gap in either direction.
+    const kitNoun = PLAN_LIMITS.free.brandKits === 1 ? "kit" : "kits";
+    await expect(
+      page.getByText(
+        `${PLAN_LIMITS.free.brandKits} brand ${kitNoun} · ${PLAN_LIMITS.free.analyticsRetentionDays}-day analytics`,
+      ),
+    ).toBeVisible();
   });
 
   test("landing playground opens scannable (print-truth default, d2af287)", async ({ page }) => {

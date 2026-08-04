@@ -248,6 +248,16 @@ in that Turnstile/Safe Browsing still await credentials.
 The abuse controls in the last line above remain unimplemented and are P10's
 scope — they gate launch, not this phase.
 
+*Amended at P9.8-B0 (2026-08-04, board-approved at the P9.8 plan approval):*
+free tier moves from 1 brand kit to **2**. The board's two reasons, verbatim in
+substance: free users can genuinely try the kit feature and get "a very limited
+versioning system to explore," and exercising the multi-kit UI on the free plan
+is less work than building locked single-kit special cases everywhere. Every
+rendered count follows `entitlements.ts` by the standing hard rule; the copy
+sites interpolating the count gained count-driven noun agreement in the same
+commit (the pluralization gap the internal deferred-verification ledger's entry
+10 had flagged for "whenever entitlements next change" — this was that change).
+
 *Implementation note (P9, 2026-07-30):* `/pricing` ships rendered entirely from
 `entitlements.ts` derivations, no vaporware and no retyped numbers.
 `apps/web/lib/pricing.ts` turns `PLAN_LIMITS`/`PRICING` into the full comparison

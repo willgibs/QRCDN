@@ -27,7 +27,11 @@ export interface PlanLimits {
 export const PLAN_LIMITS: Record<Plan, PlanLimits> = {
   free: {
     dynamicCodes: 3,
-    brandKits: 1,
+    // 2, not 1 (board, 2026-08-04 at the P9.8 plan approval): free users can
+    // genuinely try the kit feature and get a minimal versioning system, and
+    // exercising the multi-kit UI on free beats building locked single-kit
+    // special cases. D14 amendment records the sign-off.
+    brandKits: 2,
     analyticsRetentionDays: 30,
     cityGeo: false,
     apiMonthlyRequests: null,

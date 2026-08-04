@@ -473,8 +473,11 @@ export function KitBar({
           {/* P9.5-T8 item 5: was a hardcoded "1" duplicating
               PLAN_LIMITS.free.brandKits (CLAUDE.md's entitlements-live-in-
               one-place hard rule) — this file didn't import entitlements.ts
-              at all before this fix. */}
-          Free includes {PLAN_LIMITS.free.brandKits} brand kit. Pro removes the wait.
+              at all before this fix. Noun agreement is count-driven (P9.8-B0:
+              the limit moved to 2 and "2 brand kit" was the exact drift the
+              deferred ledger's entry 10 predicted). */}
+          Free includes {PLAN_LIMITS.free.brandKits} brand{" "}
+          {PLAN_LIMITS.free.brandKits === 1 ? "kit" : "kits"}. Pro removes the wait.
         </div>
       )}
       {actionError && (

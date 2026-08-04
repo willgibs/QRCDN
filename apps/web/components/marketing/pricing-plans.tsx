@@ -44,7 +44,7 @@ function rowValue(key: PricingRow["key"], plan: "free" | "pro"): string {
 const FREE_FEATURES = [
   "Unlimited static codes, full studio access",
   `${PLAN_LIMITS.free.dynamicCodes} dynamic codes: free forever, always redirecting`,
-  `${PLAN_LIMITS.free.brandKits} brand kit · ${PLAN_LIMITS.free.analyticsRetentionDays}-day analytics`,
+  `${PLAN_LIMITS.free.brandKits} brand ${PLAN_LIMITS.free.brandKits === 1 ? "kit" : "kits"} · ${PLAN_LIMITS.free.analyticsRetentionDays}-day analytics`,
   "Unlimited scans, retargeting always allowed",
 ];
 

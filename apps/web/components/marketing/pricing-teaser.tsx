@@ -23,7 +23,7 @@ import { LearnMoreLink } from "./learn-more-link";
 const FREE_FEATURES = [
   "Unlimited static codes",
   `${PLAN_LIMITS.free.dynamicCodes} dynamic codes, free forever`,
-  `${PLAN_LIMITS.free.brandKits} brand kit · ${PLAN_LIMITS.free.analyticsRetentionDays}-day analytics`,
+  `${PLAN_LIMITS.free.brandKits} brand ${PLAN_LIMITS.free.brandKits === 1 ? "kit" : "kits"} · ${PLAN_LIMITS.free.analyticsRetentionDays}-day analytics`,
 ];
 
 const PRO_FEATURES = [

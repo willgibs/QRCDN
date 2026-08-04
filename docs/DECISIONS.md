@@ -260,7 +260,7 @@ fails e2e rather than merely looking plausible.
 
 ## D15 — Cost posture
 
-Building: $0 (Vercel Hobby + Supabase Free `yklhpbhfowuvxlwlalhf` + CF Free).
+Building: $0 (Vercel Hobby + Supabase Free + CF Free).
 Launch: $25/mo — Vercel Pro $20 + **Workers Paid $5 (mandatory: free tier's 100k
 req/day cap would dead-end every printed code on one viral day)**. Supabase Pro $25
 at first real customers (free tier has no backups — nightly pg_dump cron until then).
@@ -282,6 +282,6 @@ would clobber the real production value on push, breaking every magic-link and O
 redirect for every real user; and the Supabase CLI has **no dry-run** for `config
 push` and **no `config pull`** for `[auth]` in the version this repo runs, so there is
 no safe way to preview the change or reverse the damage before it lands. Established
-during the P9.5-T0 live auth-outage diagnosis (2026-07-31) — see `docs/guides/
-p9.5-ascent.md`'s T0 section and `supabase/config.toml`'s own header comment above
+during the P9.5-T0 live auth-outage diagnosis (2026-07-31) — see the P9.5
+phase record (private ops repo) and `supabase/config.toml`'s own header comment above
 `[auth]`.

@@ -177,7 +177,7 @@ The P2 exploration fonts (Fraunces, Hanken Grotesk, Bricolage Grotesque, Space G
 Vendored shadcn primitives already under `apps/web/components/ui/` (style `radix-nova`, see `apps/web/components.json`) — adopt these rather than hand-rolling: `badge`, `button`, `card`, `chart` (Recharts wrapper), `dialog`, `dropdown-menu`, `input`, `label`, `select`, `separator`, `slider`, `sonner`, `switch`, `table`, `tabs`, `toggle-group`, `toggle`, `tooltip`.
 
 **`apps/web/components/explore/` no longer exists** (deleted at P9-U5, 2026-07-30 —
-`docs/guides/p9-marketing.md`'s U5 migration table). The custom, domain-specific
+the P9 phase record's U5 migration table, private ops repo). The custom, domain-specific
 components P2 built there (commit `5a74f86`) didn't vanish; each had its own heir,
 split across three homes by what kind of thing it turned out to be:
 
@@ -320,8 +320,8 @@ default new-kit style (also opaque, never the transparent-background path). The
 `ScanNetwork` hero tile is exempt and unchanged: it carries no instrument and no
 download, so its decorative dark-mode inversion (`brandQrStyles.precision.dark`) was
 never the bug and stays exactly as designed — this is the "atmosphere, hero-only"
-half of the rule. Full incident + fix detail: `docs/guides/p9-marketing.md`'s
-as-built amendments; verification: `apps/web/e2e/marketing.spec.ts`'s landing
+half of the rule. Full incident + fix detail: the P9 phase record's as-built
+amendments (private ops repo); verification: `apps/web/e2e/marketing.spec.ts`'s landing
 playground test (P9-U6) is a standing regression guard against this recurring.
 
 ## Chart approach
@@ -349,53 +349,6 @@ Why not `useState` + `useEffect`:
 - **Space Grotesk — resolved (removed at lock).** During P2 it was loaded but referenced by no theme file (almost certainly precision's pre-v2 display font, orphaned after the Inter refinement — `docs/STATUS.md` notes precision was "refined toward" Inter display). The D13 lock deleted it from `fonts.ts` along with the other exploration fonts; nothing loads it today.
 - **Chart placement rule — resolved.** "Charts only in dashboard routes, never marketing" is a *bundle-size* rule from the design-system research (recharts ≈150–200 KB min) that applies to the **real P9 marketing site**: the production homepage must show analytics as a static screenshot/pre-rendered visual, not a live Recharts import. The `/explore/[brand]` pages are throwaway exploration surfaces (kept post-lock as the P9 seed, precision-only) and are exempt — their live chart exists to judge chart theming per direction.
 - **"Geo table" doesn't exist yet.** The only table in the current codebase (`DashboardCard`'s `topCodes`) is a top-codes-by-volume list (name, slug, scan count), not a geography breakdown. A geo table is plausible future P6 (dashboard + analytics rollups) scope but isn't present to document as-built.
-
-## Testing note: browser-pane screenshots vs motion
-
-The Claude browser pane reports `document.visibilityState === "hidden"`, so Chrome
-freezes rAF-driven `motion/react` animations at their initial frame (opacity 0) and
-throttles intervals. Pages look "invisible/broken" in screenshots but are fine in real
-visible tabs. Before screenshotting, neutralize frozen states via JS:
-`document.querySelectorAll('[style]').forEach(el => { const o = el.style.opacity; if (o !== "" && parseFloat(o) < 1) { el.style.opacity = "1"; el.style.transform = "none"; } })`
-— and expect to re-run it right before the capture (motion can re-apply styles).
-Programmatic scrolling doesn't repaint in the hidden pane; use a tall viewport
-(`resize_window` to e.g. 1280×2900) to capture full pages instead.
-
-**Stronger fix when that still isn't enough (P9.5-T3c).** The inline-opacity
-reset above assumes `motion/react` has already written `style.opacity` to the
-DOM and just needs overwriting. On a page with several `whileInView` reveals,
-a `resize_window` call can make the browser re-run its (frozen-`rAF`, so
-stuck-at-partial-progress) entrance animation on elements the resize just
-brought into a new layout position — `document.getAnimations({subtree:
-true})` still reports dozens of running `Animation` objects after the inline-
-opacity trick, and `.finish()`-ing them empirically did not stick (they kept
-reappearing on the next read, apparently restarted by `motion/react`'s own
-reactive state rather than by the paused rAF loop). What actually holds still
-for a screenshot: inject a scoped `<style>` element with `!important`
-overrides (`* { transition: none !important; animation: none !important; }`
-plus `[style*="opacity"] { opacity: 1 !important; }`) — CSS `!important`
-author rules outrank a running Web Animation in the cascade, which a same-
-specificity inline-style rewrite from JS does not. Isolating one section at a
-time (hide every other `body > *`, `appendChild` the target `<section>` to
-`document.body`, resize the viewport to that section's own measured height)
-also keeps each screenshot at a legible, close-to-native scale instead of a
-heavily downscaled full-page capture, and sidesteps the scroll-doesn't-
-repaint issue entirely (the isolated section always starts at page-top, so
-no scroll is ever needed).
-
-**Verifying 3D transform direction (e.g. `rotateX`/`rotateY` sign) in this pane**
-(round 3, `TiltStage`): the frozen-rAF issue above means you can't just hover and
-screenshot to see which way a spring-driven tilt turns. Two techniques that work
-around it instead of fighting it: (1) direct DOM style mutation still paints even
-while `document.hidden` is `true` — `javascript_tool`-set
-`element.style.transform = "rotateY(20deg)"` renders immediately, no rAF needed;
-(2) `getComputedStyle(el).transform` on a rotated element returns the raw
-`matrix3d(...)` — read it as **column-major** (each group of 4 numbers is one
-column) and multiply by the unit vector for the axis you care about (e.g. `(1,0,0,0)`
-for +X) to get that axis's exact `(x', y', z')` mapping; `z' > 0` means "moved toward
-the viewer" (CSS's Z+ points out of the screen). This is exact and spec-guaranteed —
-reasoning about rotation direction from memory is not (an earlier pass of `TiltStage`
-had both axes backwards and looked *almost* plausible on paper).
 
 ## Motion & the taste toolchain (checkpoint A v4)
 

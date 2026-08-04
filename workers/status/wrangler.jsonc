@@ -41,8 +41,8 @@
   "observability": { "enabled": true },
   // Pinned to the SAME Cloudflare account as workers/redirect
   // (docs/guides/infra.md's account registry; this task's own CRITICAL
-  // SAFETY instruction). The founder's login also spans a second, unrelated
-  // account ("Partyreel Team"), and an unpinned wrangler deploy has landed
+  // SAFETY instruction). The deploying login also spans a second, unrelated
+  // account, and an unpinned wrangler deploy has landed
   // there once before by accident (P5-U3 incident, docs/STATUS.md) — this
   // value is intentionally identical to workers/redirect/wrangler.jsonc's
   // own account_id, never inferred from whichever account happens to be
@@ -56,6 +56,6 @@
   // Custom Domain: it shares only the Cloudflare account with
   // workers/redirect (above) — no KV, no routes, no config keys in common —
   // so a deploy here can never touch workers/redirect's Worker, route, or
-  // DNS record, or any partyreel worker.
+  // DNS record, or any worker belonging to the other account.
   "routes": [{ "pattern": "status.qrcdn.com", "custom_domain": true }],
 }

@@ -40,8 +40,8 @@ const REQUIRED_V_LINES: Record<string, readonly string[]> = {
     // scannable, it means their camera and your printer, not just our math."
     // It was retired because it is not supported. The campaigns rendered
     // styles to images and decoded them with zxing; no phone and no printed
-    // sheet has ever been tested, and docs/deferred-verification.md entry 8
-    // has said so the whole time. Changing a locked V-line is deliberate here
+    // sheet has ever been tested, and the deferred-verification ledger
+    // (private ops repo) entry 8 has said so the whole time. Changing a locked V-line is deliberate here
     // rather than a test being bent to fit a change: the claim was wrong, so
     // the deck moved and this fixture follows it.
     "When our instrument says scannable, it means a decoder read it, at a ratio stricter than anything we ever saw fail.",

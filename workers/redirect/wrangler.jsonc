@@ -20,10 +20,9 @@
   // route = the Worker owns every qrcdn.com path; www is grey-cloud CNAME
   // to Vercel per D1).
   "routes": [{ "pattern": "qrcdn.com/*", "zone_name": "qrcdn.com" }],
-  // Pinned to the account that owns the qrcdn.com zone ("Will Gibson") —
-  // the founder's login also spans a second account (Partyreel Team), and
-  // without this pin wrangler deployed there once, where the zone route
-  // can't attach.
+  // Pinned to the account that owns the qrcdn.com zone — the deploying
+  // login also spans a second, unrelated account, and without this pin
+  // wrangler deployed there once, where the zone route can't attach.
   "account_id": "7982310e22cd9430e06c34942acf3b9a",
   "kv_namespaces": [
     { "binding": "KV", "id": "1bad31228c81471a912e764aebabbbbe" },

@@ -32,3 +32,15 @@ supabase/.temp
 coverage/
 test-results/
 playwright-report/
+
+# local agent state (belt-and-braces: often in a contributor's global ignore,
+# enforced here so a collaborator clone is protected too)
+.claude/settings.local.json
+
+# stray root-level build output (apps/web/.next/ is covered above)
+.next/
+
+# scratch
+scratch/
+tmp/
+temp/

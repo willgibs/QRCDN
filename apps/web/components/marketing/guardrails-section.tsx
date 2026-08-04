@@ -13,8 +13,8 @@ import { ScannabilityFigure } from "./scannability-figure";
  * their camera and your printer, not just our math." We have never tested a
  * phone or a sheet of paper. The evidence is 160+ style combinations rendered
  * to PNG and decoded by zxing, which is a software round-trip;
- * `docs/deferred-verification.md` entry 8 has recorded physical print-and-scan
- * as unproven the whole time. The same sentence closed the blog post and is
+ * the deferred-verification ledger (private ops repo) entry 8 has recorded
+ * physical print-and-scan as unproven the whole time. The same sentence closed the blog post and is
  * retired there in the same commit.
  *
  * What replaces it is stronger anyway, and true — stated precisely, because

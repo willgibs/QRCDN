@@ -2,7 +2,7 @@
 
 Design-forward QR platform: brand style system → generator → dynamic codes on persistent short URLs → scan analytics → single scoped API endpoint. Free tier + Pro ($12/mo · $96/yr). Core positioning: "your code never dies."
 
-**Start here every session:** `docs/STATUS.md` — current phase, in-flight work, next actions.
+**Start here every session:** `../qrcdn-internal/STATUS.md` — the private ops repo's working ledger (current phase, in-flight work, next actions, environment refs). If the sibling clone is missing: `gh repo clone willgibs/qrcdn-internal ../qrcdn-internal`. The public `docs/STATUS.md` is the outward-facing summary only.
 
 ## Repo map (pnpm workspaces)
 
@@ -15,11 +15,10 @@ Design-forward QR platform: brand style system → generator → dynamic codes o
 ## Knowledge modules — read the one your task touches
 
 - `docs/DECISIONS.md` — architecture decision log (D1–D16) with rationale. Read before changing infrastructure, schema, or redirect behavior.
-- `docs/deferred-verification.md` — the standing ledger of what is **not proven yet** and who can prove it. Add an entry whenever a check is deferred rather than skipped silently; remove one only when it actually passes.
-- `docs/guides/agent-playbook.md` — **every sub-agent reads this**: delegation tiers, mandatory guardrails, verification before "done", commit conventions.
 - `docs/guides/qr-engine.md` — engine contract, empirical scannability limits, how to extend styles safely.
 - `docs/guides/design-system.md` — token architecture, lock protocol, brand direction, fonts, component inventory.
-- `docs/guides/infra.md` — accounts/refs, env conventions, DNS topology, cost posture.
+- `docs/guides/infra.md` — DNS topology, redirect data path, env conventions, CI, cost posture.
+- **Private ops repo `../qrcdn-internal`** — the agent playbook (**every sub-agent reads it**: delegation tiers, guardrails, verification bar, commit conventions), the deferred-verification ledger (what is not proven yet; add an entry whenever a check is deferred rather than skipped silently), per-phase specs and records, and the full session ledger. Historical phase entries cited in older code comments live there too.
 
 ## Hard rules (non-negotiable)
 

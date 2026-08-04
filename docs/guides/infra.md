@@ -4,14 +4,14 @@ Read this when touching accounts/services, DNS, the redirect Worker, CI, env var
 
 ## Account / service registry
 
-Verified live against the connected Supabase, Cloudflare, and Vercel MCPs at time of writing (in addition to `docs/STATUS.md` / `docs/DECISIONS.md`):
-
-| Service | Identifier | Notes |
-|---|---|---|
-| Supabase project | `qrcdn`, ref `yklhpbhfowuvxlwlalhf` | Org `mmfclcuvgwdmpwtnzgvw`, region `us-east-1`, free tier, status `ACTIVE_HEALTHY`. The same org also holds unrelated projects (`squurl`, `hopper`, `kitpacker`) — scope every Supabase MCP call to the `qrcdn` ref, don't operate org-wide. |
-| Vercel | Team `willgibs` (id `team_DLm5Sv9cov0Cg60zrXAZjUi2`) | **No `qrcdn` project exists yet** — the team's current projects are `hopper`, `partyreel`, `arkh`, `v0-spline-scene-adjuster`, `portfolio-v0`, `portfolio`, `v0-squurl-bookmark-tool`, `kitpacker`; none is QRCDN. Project creation is future work, not yet done. |
-| Cloudflare | Account holds DNS for `qrcdn.com` | Same account also runs two **unrelated** Workers, `partyreel-export` and `partyreel-backup` — confirmed live. **Do not touch, deploy over, or reference these** when working on `qrcdn-redirect`. |
-| GitHub | `willgibs/QRCDN` | — |
+Concrete identifiers (project refs, account ids, team ids, and which other
+tenants share those accounts) live in the private ops repo's `STATUS.md`,
+with the operational ledger they belong to — not in a public file. What is
+publicly relevant: the app deploys to **Vercel**; DNS, the redirect Worker,
+and KV run on **Cloudflare**; database and auth are **Supabase**; source is
+`github.com/willgibs/QRCDN`. The Supabase *publishable* ref/key pair ships in
+`apps/web/.env.example` deliberately — publishable keys are
+client-bundle-safe by design (D9).
 
 ## DNS / domain topology (D1)
 
@@ -19,7 +19,7 @@ Verified live against the connected Supabase, Cloudflare, and Vercel MCPs at tim
 - `www.qrcdn.com` is **grey-clouded** (DNS-only, not proxied through Cloudflare) and points at Vercel — Vercel explicitly warns against proxying Cloudflare in front of it. `www` is the canonical app + marketing host.
 - Zone SSL mode: **Full (strict)**.
 - Printed/QR-encoded URLs are uppercase (`HTTPS://QRCDN.COM/K7M2X9A`) — fully QR-alphanumeric-mode encodable, producing version 2–3 symbols, materially denser than byte mode would.
-- As of this doc, the Worker route + KV binding are **not yet live** — `workers/redirect/wrangler.jsonc` has both commented out with the note that they're configured in P5 once the KV namespace exists and DNS cuts over; until then the redirect Worker is dev-only (`wrangler dev`).
+- The Worker route (`qrcdn.com/*`) and KV binding are **live** (P5-U3 cutover, 2026-07-22), configured in `workers/redirect/wrangler.jsonc`.
 
 ## Redirect data path (D2, D3)
 
@@ -42,7 +42,7 @@ Convention per D9 (new Supabase API key scheme — `sb_publishable_`/`sb_secret_
 | `KV_SYNC_SECRET` | **server-only** | shared with the Worker's `SYNC_SECRET`; authenticates the retarget write-through (`apps/web/lib/kv-sync.ts`) |
 | `CRON_SECRET` | **server-only** | guards `/api/cron/purge`; Vercel Cron sends it as `Authorization: Bearer <value>` automatically once set |
 
-Worker secrets (e.g. the Supabase secret key used by the redirect Worker's scan-ingest POST) are set via `wrangler secret put`, not committed config. **Never commit any of these values** — no `.env` files exist in this repo yet (auth/schema work is P3, not yet started as of this doc; there is no live Supabase client code anywhere in `apps/web` yet). When P3 lands, follow `@supabase/ssr`'s standard client/server split: `getClaims()` for page guards, `getUser()` before destructive/billing actions, never trust `getSession()` server-side (hard rule, `CLAUDE.md`).
+Worker secrets (e.g. the Supabase secret key used by the redirect Worker's scan-ingest POST) are set via `wrangler secret put`, not committed config. **Never commit any of these values.** The live client/server split follows `@supabase/ssr`: `getClaims()` for page guards, `getUser()` before destructive/billing actions, never trust `getSession()` server-side (hard rule, `CLAUDE.md`).
 
 ## Scheduled jobs (P6)
 
@@ -86,8 +86,8 @@ operational default, not because the budget currently requires it.
 ## Repo visibility + fork-PR posture (P7.5-A, 2026-07-23; superseded at P9.5-T6, 2026-08-01)
 
 The repo is **public, permanently** — MIT-licensed open source, board-approved at
-P9.5 (`docs/guides/p9.5-ascent.md`; canon line: *"if we ever disappear, the path off
-is public"*). This reverses what this section originally said: the P10 checklist used
+P9.5 (phase record in the private ops repo; canon line: *"if we ever disappear, the
+path off is public"*). This reverses what this section originally said: the P10 checklist used
 to carry a "flip back private before launch" line, with a re-audit of every
 visibility-dependent assumption at that point. That item is gone — there is no future
 private flip to re-audit against. Standing posture, unchanged and now load-bearing
@@ -101,7 +101,7 @@ downloadable by any logged-in GitHub user. Never add a secret-consuming job to a
 
 ## Cost posture and upgrade triggers (D15, reproduced)
 
-> Building: $0 (Vercel Hobby + Supabase Free `yklhpbhfowuvxlwlalhf` + CF Free).
+> Building: $0 (Vercel Hobby + Supabase Free + CF Free).
 > Launch: $25/mo — Vercel Pro $20 + **Workers Paid $5 (mandatory: free tier's 100k req/day cap would dead-end every printed code on one viral day)**. Supabase Pro $25 at first real customers (free tier has no backups — nightly pg_dump cron until then).
 
 Operationally: don't upgrade anything preemptively while still building. Workers Paid is a hard launch-blocker, not optional, because of the request-cap dead-end risk. Supabase Pro's trigger is "first real customers," not a fixed date — until then, the nightly `pg_dump` protection is **implemented**: `.github/workflows/backup.yml` (see Scheduled jobs above).
@@ -121,6 +121,3 @@ Operationally: don't upgrade anything preemptively while still building. Workers
 - The redirect Worker has its own dev loop: `cd workers/redirect && pnpm dev` (→ `wrangler dev`); it is not wired into the root `pnpm dev` script.
 - The Supabase CLI is vendored as a **root-level devDependency** (`supabase: ^2.109.1` in the repo-root `package.json`, not `apps/web`'s), invoked as `pnpm supabase <cmd>` per `CLAUDE.md`'s command list.
 
-## Outline discrepancies
-
-- The task outline's account-registry facts (Supabase org `mmfclcuvgwdmpwtnzgvw`, region `us-east-1`, and the Cloudflare Workers being named `partyreel-export`/`partyreel-backup`) are **not written down anywhere in this repo's docs** (`STATUS.md`/`DECISIONS.md` only say "org holds 2 unrelated Workers" without naming them, and don't mention the Supabase org id or region at all). They were confirmed instead by querying the connected Supabase and Cloudflare MCPs live — included above as verified fact, but be aware future readers without live MCP access won't be able to re-derive them from the repo alone. Worth adding the org id/region to `STATUS.md`'s environment quick-refs line for future agents who don't have MCP access.

@@ -15,8 +15,12 @@ import { cn } from "@/lib/utils";
  * reserve dead space on the two stations with nothing below the line), so
  * the absolute geometry is dropped entirely and the stations stack as
  * hairline-separated flow rows instead β€” translated from the reference
- * artifact's `@container` breakpoint to a plain `md:` viewport breakpoint
- * (768px, 8px off the artifact's demo-only 760px container-query number,
+ * artifact's `@container` breakpoint to a plain viewport breakpoint. P9.7-V3
+ * moved that breakpoint from `md` to `lg`: a fourth station arrived, and four
+ * across at 768px forces the station art down to a size where the codes stop
+ * reading. Below `lg` the stations stack as hairline-separated flow rows, the
+ * same fallback that already ran below `md`.
+ * (the artifact's own number was a demo-only 760px container query,
  * which existed only to simulate a mobile width inside the artifact's own
  * full-width review page; the real section has no such wrapper, so the
  * project's standard breakpoint is the more correct translation here, not
@@ -204,7 +208,7 @@ function StationTick() {
   return (
     <span
       aria-hidden
-      className="hidden md:absolute md:top-[146px] md:left-1/2 md:block md:h-[13px] md:w-px md:-translate-x-1/2 md:bg-muted-foreground md:opacity-45"
+      className="hidden lg:absolute lg:top-[146px] lg:left-1/2 lg:block lg:h-[13px] lg:w-px lg:-translate-x-1/2 lg:bg-muted-foreground lg:opacity-45"
     />
   );
 }
@@ -213,13 +217,13 @@ function StationTick() {
  *  nothing at `md`, where the shared `rule` (rendered once by `Filmstrip`)
  *  takes over as the separator between stations instead. */
 function Station({ children }: { children: ReactNode }) {
-  return <div className="border-t border-border pt-[18px] md:border-t-0 md:pt-0">{children}</div>;
+  return <div className="border-t border-border pt-[18px] lg:border-t-0 lg:pt-0">{children}</div>;
 }
 
 /** Station art area: 180px tall with a relative-positioning context for the
  *  tick/stage/under children at `md`, plain document flow below it. */
 function StationArt({ children }: { children: ReactNode }) {
-  return <div className="relative md:h-[248px]">{children}</div>;
+  return <div className="relative lg:h-[248px]">{children}</div>;
 }
 
 /** The row that sits ON the rule (`bottom: 72px` of the 180px art area =
@@ -227,7 +231,7 @@ function StationArt({ children }: { children: ReactNode }) {
  *  `md`. */
 function StationStage({ children }: { children: ReactNode }) {
   return (
-    <div className="flex items-end justify-center gap-4 pt-2 pb-1 md:absolute md:inset-x-0 md:bottom-[96px] md:p-0">
+    <div className="flex items-end justify-center gap-4 pt-2 pb-1 lg:absolute lg:inset-x-0 lg:bottom-[96px] lg:p-0">
       {children}
     </div>
   );
@@ -239,34 +243,27 @@ function SetStation() {
       <StationArt>
         <StationTick />
         <StationStage>
-          <div className="flex flex-col gap-4 pb-1">
-            <span className="flex items-center gap-2.5 font-mono text-[11px] whitespace-nowrap text-muted-foreground">
-              <span aria-hidden className="relative size-[18px] shrink-0 rounded-[4px] border border-border bg-white">
-                <span aria-hidden className="absolute inset-[4px] rounded-[1px]" style={{ backgroundColor: KIT_INK }} />
+          <QrNode code="a" />
+        </StationStage>
+        <div className="mt-4 flex justify-center lg:absolute lg:inset-x-0 lg:top-[170px] lg:mt-0">
+          <span className="flex flex-wrap items-center justify-center gap-x-3.5 gap-y-1 font-mono text-[12px] text-muted-foreground">
+            <span className="flex items-center gap-1.5">
+              <span
+                aria-hidden
+                className="relative size-[13px] shrink-0 rounded-[3px] border border-border bg-white"
+              >
+                <span
+                  aria-hidden
+                  className="absolute inset-[2.5px] rounded-[1px]"
+                  style={{ backgroundColor: KIT_INK }}
+                />
               </span>
               {KIT_INK}
             </span>
-            <span className="flex items-center gap-2.5 font-mono text-[11px] whitespace-nowrap text-muted-foreground">
-              <span aria-hidden className="size-[18px] shrink-0 rounded-[5px] border border-border bg-muted" />
-              rounded
-            </span>
-            <span className="flex items-center gap-2.5 font-mono text-[11px] whitespace-nowrap text-muted-foreground">
-              <span aria-hidden className="size-[18px] shrink-0 rounded-full border border-border bg-muted" />
-              circle eye
-            </span>
-          </div>
-          <svg
-            aria-hidden
-            width="34"
-            height="96"
-            viewBox="0 0 34 96"
-            fill="none"
-            className="shrink-0 self-end pb-2 text-muted-foreground opacity-50"
-          >
-            <path d="M0 9h13M0 48h13M0 87h13M13 9v78M13 48h21" stroke="currentColor" strokeWidth="1" />
-          </svg>
-          <QrNode />
-        </StationStage>
+            <span>rounded</span>
+            <span>circle eye</span>
+          </span>
+        </div>
       </StationArt>
       <StationMeta
         label="Design"
@@ -291,10 +288,16 @@ function PrintStation() {
               the ink, corner radius and eye shape do not. Code A is the same
               code styled at station 1 and repointed at station 3, so the
               thread through the filmstrip survives. */}
-          <div className="flex items-end gap-3.5">
-            <QrNode code="a" size={92} tone="plain" />
-            <QrNode code="b" size={92} tone="plain" />
-            <QrNode code="c" size={92} tone="plain" />
+          <div className="flex items-end -space-x-6">
+            <span className="relative z-0 rotate-[-4deg]">
+              <QrNode code="c" size={84} tone="plain" />
+            </span>
+            <span className="relative z-10 rotate-[2deg]">
+              <QrNode code="b" size={84} tone="plain" />
+            </span>
+            <span className="relative z-20">
+              <QrNode code="a" size={92} tone="plain" />
+            </span>
           </div>
         </StationStage>
       </StationArt>
@@ -302,6 +305,51 @@ function PrintStation() {
         label="Create"
         title="Create new codes."
         note="Every code you make inherits the kit. Export SVG or PNG, no watermark, no limits on static codes."
+      />
+    </Station>
+  );
+}
+
+/**
+ * Track. The one station where the code is not the subject: it has been
+ * printed and is out in the world, and what there is to look at is the scans
+ * coming back. So the code stays (the thread through the filmstrip is that it
+ * is always the same code) and the density field rises off the same baseline
+ * everything else stands on, which is what makes a scan read as an event
+ * rather than a number.
+ */
+const SCAN_BARS = [4, 5, 4, 6, 5, 7, 6, 9, 8, 12, 17, 24, 19, 13, 9, 7, 6, 5];
+
+function TrackStation() {
+  return (
+    <Station>
+      <StationArt>
+        <StationTick />
+        <StationStage>
+          <div className="flex h-[92px] items-end gap-[3px]" aria-hidden>
+            {SCAN_BARS.map((h, i) => (
+              <span
+                key={i}
+                className={cn(
+                  "w-[4px] rounded-[1px]",
+                  i >= 9 && i <= 13 ? "bg-primary" : "bg-foreground/25",
+                )}
+                style={{ height: `${(h / 24) * 100}%` }}
+              />
+            ))}
+          </div>
+          <QrNode code="a" size={92} tone="plain" />
+        </StationStage>
+        <div className="mt-4 flex justify-center lg:absolute lg:inset-x-0 lg:top-[170px] lg:mt-0">
+          <span className="font-mono text-[12px] text-muted-foreground">
+            1,284 scans · 30 days
+          </span>
+        </div>
+      </StationArt>
+      <StationMeta
+        label="Track"
+        title="Track scan analytics."
+        note="Every scan by day, country, city, device and referrer. Rolled up daily, honest about bots."
       />
     </Station>
   );
@@ -315,7 +363,7 @@ function RepointStation() {
         <StationStage>
           <QrNode />
         </StationStage>
-        <div className="mt-4 flex justify-center md:absolute md:inset-x-0 md:top-[170px] md:mt-0">
+        <div className="mt-4 flex justify-center lg:absolute lg:inset-x-0 lg:top-[170px] lg:mt-0">
           <div className="flex flex-col items-center gap-2 font-mono text-[12px]">
             <span className="text-muted-foreground opacity-65 line-through decoration-1">
               yourcafe.com/menu
@@ -345,18 +393,19 @@ export function Filmstrip() {
           gutter-padded stations grid below it). */}
       <span
         aria-hidden
-        className="hidden md:absolute md:inset-x-0 md:top-[152px] md:block md:h-px md:bg-border"
+        className="hidden lg:absolute lg:inset-x-0 lg:top-[152px] lg:block lg:h-px lg:bg-border"
       />
-      <div className="relative grid grid-cols-1 gap-y-12 md:grid-cols-3 md:gap-x-[clamp(1.5rem,2.6vw,3rem)] md:gap-y-0">
+      <div className="relative grid grid-cols-1 gap-y-12 lg:grid-cols-4 lg:gap-x-[clamp(1.5rem,2.6vw,3rem)] lg:gap-y-0">
         <SetStation />
         <PrintStation />
+        <TrackStation />
         <RepointStation />
       </div>
       <div>
-        <div className="relative mt-7 md:mt-10">
-          <span aria-hidden className="hidden md:absolute md:inset-x-0 md:top-1/2 md:block md:h-px md:bg-border" />
-          <p className="relative mx-auto w-fit bg-transparent px-0 font-mono text-[11px] text-muted-foreground md:bg-background md:px-3.5">
-            one kit, every code · no reprints, ever
+        <div className="relative mt-7 lg:mt-10">
+          <span aria-hidden className="hidden lg:absolute lg:inset-x-0 lg:top-1/2 lg:block lg:h-px lg:bg-border" />
+          <p className="relative mx-auto w-fit bg-transparent px-0 font-mono text-[11px] text-muted-foreground lg:bg-background lg:px-3.5">
+            one code, design to scan · no reprints, ever
           </p>
         </div>
       </div>

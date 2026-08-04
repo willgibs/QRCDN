@@ -328,9 +328,14 @@ test.describe("marketing site", () => {
   test("analytics window: breakdown rows and retention row render from entitlements", async ({ page }) => {
     await page.goto("/");
     const section = page.locator("#analytics");
-    await expect(section.getByText("Top countries")).toBeVisible();
-    await expect(section.getByText("Devices")).toBeVisible();
-    await expect(section.getByText("Today so far")).toBeVisible();
+    await expect(section.getByText("Top countries", { exact: true })).toBeVisible();
+    // exact: the headline's "1,669 unique devices" is a substring match for a
+    // non-exact "Devices" locator, so this strict-mode-violates without it.
+    await expect(section.getByText("Devices", { exact: true })).toBeVisible();
+    // "Today so far" was a DashboardWindow stat tile and went with it at
+    // P9.7-V5: it held a full tile on the landing and read 0 for most of any
+    // day. DashboardWindow still renders it on /features/analytics.
+    await expect(section.getByText(/scans · 30 days ·/)).toBeVisible();
     await expect(
       section.getByText(
         `${PLAN_LIMITS.free.analyticsRetentionDays}-day history free · ${PLAN_LIMITS.pro.analyticsRetentionDays}-day + city-level on Pro`,

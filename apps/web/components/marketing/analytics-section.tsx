@@ -2,7 +2,7 @@ import { Section, SectionHeading, SectionBody } from "@/components/marketing/sec
 import { MonoStrip } from "@/components/marketing/mono-strip";
 import { LearnMoreLink } from "@/components/marketing/learn-more-link";
 import { ANALYTICS_DOORWAY_ENABLED } from "@/lib/marketing-flags";
-import { DashboardWindow } from "./dashboard-window";
+import { ScanField } from "./scan-field";
 
 // 06 — Analytics (P9.5-T3a: migrated onto Section/SectionHeading, copy
 // deck v3 head/lede/mono strips applied). surface="floor" is new here (the
@@ -24,8 +24,13 @@ export function AnalyticsSection({ index }: { index: string }) {
         className="mb-10"
       />
 
-      <SectionBody className="max-w-5xl">
-        <DashboardWindow />
+      {/* P9.7-V5: DashboardWindow's fake browser chrome went. It read as a
+          screenshot of software rather than a fact about the world, and
+          nothing in it was QR-native. ScanField draws the events themselves.
+          DashboardWindow is untouched and still serves /features/analytics,
+          where a product shot is the right thing to show. */}
+      <SectionBody>
+        <ScanField />
       </SectionBody>
 
       <SectionBody delay={0.15} className="mt-8 flex flex-col items-start gap-3">

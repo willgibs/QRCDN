@@ -261,7 +261,10 @@ export function DashboardWindow() {
         <div className="h-40 w-full">
           <svg
             viewBox={`0 0 ${CHART_W} ${CHART_H}`}
-            preserveAspectRatio="none"
+            /* P9.7-V5: was preserveAspectRatio="none", which stretched this 760x160
+             viewBox to ~1024px wide and flattened every slope in it by roughly
+             35%. The curve drawn was not the shape of its own data. */
+            preserveAspectRatio="xMidYMid meet"
             className="h-full w-full"
             aria-hidden
           >

@@ -355,7 +355,7 @@ export function Filmstrip() {
       <div>
         <div className="relative mt-7 md:mt-10">
           <span aria-hidden className="hidden md:absolute md:inset-x-0 md:top-1/2 md:block md:h-px md:bg-border" />
-          <p className="relative mx-auto w-fit bg-transparent px-0 font-mono text-[11px] text-muted-foreground md:bg-surface-tint md:px-3.5">
+          <p className="relative mx-auto w-fit bg-transparent px-0 font-mono text-[11px] text-muted-foreground md:bg-background md:px-3.5">
             one kit, every code · no reprints, ever
           </p>
         </div>

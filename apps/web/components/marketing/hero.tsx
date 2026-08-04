@@ -4,7 +4,6 @@ import { Button } from "@/components/ui/button";
 import { HeroBackdrop } from "@/components/brand/backdrop";
 import { AccentText } from "@/components/brand/accent-text";
 import { ScanNetwork } from "./scan-network";
-import { PillarStrip } from "./pillar-strip";
 
 /**
  * Landing hero (P9-U2, rebuilt v4 at P9.5-T3a) — the v4.2 hero bones
@@ -91,7 +90,6 @@ export function Hero() {
             mobile. Unchanged at md and up (own stagger step, same as
             before). */}
         <div className="hero-enter hero-enter-4 hidden w-full max-w-lg md:block">
-          <PillarStrip />
         </div>
       </div>
 

@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Hero } from "@/components/marketing/hero";
+import { HighlightsSection } from "@/components/marketing/highlights-section";
 import { HowItWorksSection } from "@/components/marketing/how-it-works-section";
 import { Playground } from "@/components/marketing/playground";
 import { BrandSystemSection } from "@/components/marketing/brand-system-section";
@@ -61,25 +62,28 @@ export const metadata: Metadata = {
 // PricingTeaser -> ClosingSection, which is why ClosingSection is the one
 // section on the page still carrying a hairline.
 //
-// Still to land in later units of this round: 01 Highlights (a bento, which
-// takes over the hero pillar strip's job) and Access controls, between Dynamic
-// links and Analytics. Both slot in here and everything below them renumbers
-// in this file alone.
+// P9.7-V2 proved that out: inserting the Highlights bento at 01 renumbered
+// eleven sections, and the entire change was the block below. Still to land:
+// Access controls, between Dynamic links and Analytics.
+//
+// Highlights takes `tint` directly under the hero, so How it works moves to
+// `default` to keep the alternation legal.
 export default function HomePage() {
   return (
     <>
       <Hero />
-      <HowItWorksSection index="01" />
-      <Playground index="02" />
-      <BrandSystemSection index="03" />
-      <DynamicCodesSection index="04" />
-      <AnalyticsSection index="05" />
-      <GuardrailsSection index="06" />
-      <ApiSection index="07" />
-      <ComparisonSection index="08" />
-      <OpenSourceSection index="09" />
-      <ManifestoSection index="10" />
-      <PricingTeaser index="11" />
+      <HighlightsSection index="01" />
+      <HowItWorksSection index="02" />
+      <Playground index="03" />
+      <BrandSystemSection index="04" />
+      <DynamicCodesSection index="05" />
+      <AnalyticsSection index="06" />
+      <GuardrailsSection index="07" />
+      <ApiSection index="08" />
+      <ComparisonSection index="09" />
+      <OpenSourceSection index="10" />
+      <ManifestoSection index="11" />
+      <PricingTeaser index="12" />
       {/* Explicit title, even though it matches the component default: that
           default is also what /features/dynamic-codes renders with zero props,
           so leaving this implicit means a landing copy change silently rewrites

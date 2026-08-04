@@ -429,18 +429,12 @@ test.describe("marketing site", () => {
     await expect(table.locator("thead th").nth(1)).toHaveText(/^QRCDN$/);
   });
 
-  test("open-source: #open-source anchor exists and the pillar strip chip points to it", async ({ page }) => {
+  test("open-source: #open-source anchor exists (cross-linked from /features/brand-studio)", async ({ page }) => {
     await page.goto("/");
     await expect(page.locator("#open-source")).toBeVisible();
     await expect(
       page.locator("#open-source").getByRole("heading", { name: "Verify our platform yourself." }),
     ).toBeVisible();
-
-    const strip = page.locator('nav[aria-label="Jump to a section"]');
-    await expect(strip.getByRole("link", { name: "open source" })).toHaveAttribute(
-      "href",
-      "#open-source",
-    );
   });
 
   test("trust and privacy: three commitments present", async ({ page }) => {
@@ -494,19 +488,34 @@ test.describe("marketing site", () => {
     expect(h1Text?.replace(/\s+/g, " ").trim()).toMatch(/The modern\s*QR platform\.?/);
   });
 
-  test("pillar strip: renders 5 doorway links on desktop, hidden on mobile", async ({ page }) => {
+  test("highlights bento: five cards, each anchored to its deep section (P9.7-V2)", async ({
+    page,
+  }) => {
     await page.goto("/");
-    // Plain CSS locator, not getByRole — the mobile half of this test needs
-    // to find the element even while `display:none` hides it from the
-    // accessibility tree, which getByRole's matching can't guarantee.
-    const strip = page.locator('nav[aria-label="Jump to a section"]');
-    await expect(strip.getByRole("link")).toHaveCount(5);
+    const bento = page
+      .locator("section")
+      .filter({ has: page.getByRole("heading", { name: "Everything you need in one place." }) });
 
-    // Board round 5: hidden below md — it was pushing ScanNetwork/OrbitStage
-    // down, and the board wants the orbit stage higher above the fold on
-    // mobile. Unchanged (still 5 links) at the desktop viewport above.
-    await page.setViewportSize({ width: 390, height: 844 });
-    await expect(strip).toBeHidden();
+    // The bento replaced the hero's pillar strip, so it inherits the strip's
+    // navigation contract: five links, each resolving to a real section id.
+    const links = bento.getByRole("link");
+    await expect(links).toHaveCount(5);
+    for (const [label, href] of [
+      ["Design studio", "#studio"],
+      ["Brand system", "#brand-system"],
+      ["Dynamic links", "#dynamic-codes"],
+      ["Scan analytics", "#analytics"],
+      ["Developer API", "#api"],
+    ] as const) {
+      const card = bento.getByRole("link").filter({ hasText: label });
+      await expect(card).toHaveAttribute("href", href);
+      // A dead fragment is not an href="#", so the no-empty-anchor sweep
+      // would not catch a renamed section. Assert the target really exists.
+      await expect(page.locator(href)).toHaveCount(1);
+    }
+
+    // The strip it replaced is gone from every breakpoint.
+    await expect(page.locator('nav[aria-label="Jump to a section"]')).toHaveCount(0);
   });
 
   test("hero tagline is removed", async ({ page }) => {

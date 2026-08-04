@@ -44,7 +44,7 @@ import { Filmstrip } from "@/components/marketing/filmstrip";
  */
 export function HowItWorksSection({ index }: { index: string }) {
   return (
-    <Section variant="band" surface="tint">
+    <Section variant="band">
       <SectionHeading eyebrow="How it works" index={index} title="Make codes that last forever." />
 
       <SectionBody>

@@ -5,6 +5,7 @@ import { PLAN_LIMITS, PRICING } from "../lib/entitlements";
 import { CHANGELOG_ENTRIES } from "../lib/changelog";
 import { BLOG_POSTS } from "../lib/blog";
 import { HELP_ARTICLES, HELP_CATEGORIES } from "../lib/help";
+import { LOGO_EFFECTIVE_ERROR, LOGO_EFFECTIVE_WARN } from "@qrcdn/qr-engine";
 
 // Relative imports only in e2e/ (no "@/" — see env.ts's header note).
 
@@ -339,35 +340,55 @@ test.describe("marketing site", () => {
 
   // P9.5-T3c: the four sections that complete the 01-11 ordinal sequence.
 
-  test("guardrails: the threshold plot renders with two threshold lines", async ({ page }) => {
+  test("scannability: the gauge draws the engine's own thresholds inside the campaign gap", async ({
+    page,
+  }) => {
     await page.goto("/");
     const section = page
       .locator("section")
       .filter({ has: page.getByRole("heading", { name: "Know it scans before you print it." }) });
 
-    // Scoped to its own accessible name, not just "svg" — the section also
-    // carries two decorative ModuleMark svgs (the Eyebrow glyph and the
-    // MonoStrip icon below), so an unscoped `section.locator("svg")` over-
-    // matches at 3 elements instead of the one real plot.
-    const plot = section.getByRole("img", { name: /Threshold plot of the real decode campaign/ });
-    await expect(plot).toHaveCount(1);
-    // The two dashed warn/fail threshold lines are the only <line> elements
-    // carrying a stroke-dasharray (axis baseline + tick marks are solid).
-    await expect(plot.locator("line[stroke-dasharray]")).toHaveCount(2);
+    // P9.7-V5 replaced GuardrailsPlot here. Its scatter was authored rather
+    // than measured (the source record keeps only the campaign's aggregate
+    // boundary), so the most eye-catching thing in the section was the part
+    // carrying no information. The gauge draws the two real endpoints instead.
+    //
+    // Scoped by accessible name, not "svg": the section also carries
+    // decorative ModuleMark glyphs in the eyebrow and the mono strip.
+    const gauge = section.getByRole("img", { name: /Effective knockout ratio/ });
+    await expect(gauge).toHaveCount(1);
 
-    // The pass/fail dot-legend sits in the figure's first <div> (a sibling
-    // BEFORE the plot-frame div that wraps the svg), so scoping there keeps
-    // this off the svg's own "fail" threshold-line label entirely — an
-    // unscoped `section.getByText("fail", { exact: true })` strict-mode-
-    // violates at 2 elements (the legend's "fail" span AND the svg's <text>
-    // label both have "fail" as their exact trimmed content). "pass" has no
-    // svg-internal counterpart (only "warn"/"fail" label the threshold
-    // lines), so it happened to resolve to 1 match either way — scoped here
-    // too anyway, for the same reason and so the two assertions read as a
-    // matched pair rather than one accidentally-safe and one not.
-    const legend = section.locator("figure > div").first();
-    await expect(legend.getByText("pass", { exact: true })).toBeVisible();
-    await expect(legend.getByText("fail", { exact: true })).toBeVisible();
+    // The drawn thresholds must be the ones the engine actually enforces,
+    // read from the engine here rather than retyped, so this fails if the
+    // figure ever hardcodes a number that drifts from guardrails.ts.
+    await expect(gauge).toHaveAccessibleName(
+      new RegExp(`warn threshold sits at ${LOGO_EFFECTIVE_WARN}`),
+    );
+    await expect(gauge).toHaveAccessibleName(
+      new RegExp(`fail threshold sits at ${LOGO_EFFECTIVE_ERROR}`),
+    );
+    // Scoped to the gauge: these strings now also appear in the instrument
+    // panel beside it and in the mono strip below, so an unscoped locator
+    // strict-mode-violates at 3 matches. That is three places reading one
+    // pair of engine constants, which is the point.
+    await expect(gauge.getByText(`warn ${LOGO_EFFECTIVE_WARN}`)).toBeVisible();
+    await expect(gauge.getByText(`fail ${LOGO_EFFECTIVE_ERROR}`)).toBeVisible();
+
+    // The argument of the section, stated precisely, because the two
+    // thresholds do NOT sit in the same relationship to the campaign and an
+    // earlier draft of the figcaption flattened them into one claim that was
+    // false for the fail line. Warn is below the best observed pass; fail is
+    // inside the gap between the best pass and the worst fail, where nothing
+    // was ever observed. Both are conservative, differently.
+    expect(LOGO_EFFECTIVE_WARN).toBeLessThan(0.407);
+    expect(LOGO_EFFECTIVE_ERROR).toBeGreaterThan(0.407);
+    expect(LOGO_EFFECTIVE_ERROR).toBeLessThan(0.418);
+    await expect(gauge.getByText(/last pass ~0\.407/)).toBeVisible();
+    await expect(gauge.getByText(/first fail ~0\.418/)).toBeVisible();
+
+    // The honest limit is on the page, not only in a code comment: these
+    // campaigns were software decodes, never a phone reading a printed sheet.
+    await expect(section.getByText("Measured by a decoder, not by a camera.")).toBeVisible();
 
     await expect(
       section.getByText(

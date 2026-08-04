@@ -36,7 +36,15 @@ const REQUIRED_V_LINES: Record<string, readonly string[]> = {
   "what-actually-scans": [
     "A QR code that scans on your monitor and dies on a menu is worse than an ugly one.",
     "The thresholds are not where things break. They sit in the last stretch of ground where nothing ever broke.",
-    "When our instrument says scannable, it means their camera and your printer, not just our math.",
+    // P9.7-V5: the deck line this replaces was "When our instrument says
+    // scannable, it means their camera and your printer, not just our math."
+    // It was retired because it is not supported. The campaigns rendered
+    // styles to images and decoded them with zxing; no phone and no printed
+    // sheet has ever been tested, and docs/deferred-verification.md entry 8
+    // has said so the whole time. Changing a locked V-line is deliberate here
+    // rather than a test being bent to fit a change: the claim was wrong, so
+    // the deck moved and this fixture follows it.
+    "When our instrument says scannable, it means a decoder read it, at a ratio stricter than anything we ever saw fail.",
   ],
   "redirects-that-outlive-us": [
     "Every scan answers 302 with Cache-Control: no-store. Never 301: a printed code must stay repointable, and a cached permanent redirect is a small death.",

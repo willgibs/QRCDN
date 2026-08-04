@@ -140,8 +140,8 @@ export const LOGO_EFFECTIVE_ERROR = 0.412;`}
         pass against a style we have not tried, the decode test suite is right there to extend.
       </P>
       <Pull>
-        When our instrument says scannable, it means their camera and your printer, not just our
-        math.
+        When our instrument says scannable, it means a decoder read it, at a ratio stricter than
+        anything we ever saw fail.
       </Pull>
     </>
   );

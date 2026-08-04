@@ -2,8 +2,7 @@ import { Section, SectionHeading, SectionBody } from "@/components/marketing/sec
 import { MonoStrip } from "@/components/marketing/mono-strip";
 import { LearnMoreLink } from "@/components/marketing/learn-more-link";
 import { RetargetTheatre } from "@/components/marketing/retarget-theatre";
-import { StateCards } from "@/components/marketing/state-cards";
-import { DYNAMIC_CODES_DOORWAY_ENABLED, ACCESS_CONTROLS_DOORWAY_ENABLED } from "@/lib/marketing-flags";
+import { DYNAMIC_CODES_DOORWAY_ENABLED } from "@/lib/marketing-flags";
 
 // 04 — Dynamic codes (P9.5-T3a: migrated onto Section/SectionHeading, copy
 // deck v3 head/lede/mono strips applied; the guarantee strip's text also
@@ -29,12 +28,16 @@ export function DynamicCodesSection({ index }: { index: string }) {
         eyebrow="Dynamic links"
         index={index}
         title="Update a destination anytime."
-        lede="A QRCDN code is a permanent address. Retarget it in seconds and the printed code never changes. Pause it, protect it, expire it."
+        lede="A QRCDN code is a permanent address. Retarget it in seconds and the printed code never changes."
       />
 
-      <SectionBody className="mt-10 grid gap-8 lg:grid-cols-[1fr_280px]">
+      {/* P9.7-V4: the state cards moved to section 06, where they were always
+          the story. They had been sharing this row as a 280px sidebar, which
+          left the page's one visitor-driven moment rendering narrower than a
+          static dashboard mock two sections later. The theatre now has the
+          whole frame. */}
+      <SectionBody className="mt-10">
         <RetargetTheatre />
-        <StateCards />
       </SectionBody>
 
       <SectionBody delay={0.15} className="mt-10 flex flex-col items-start gap-3">
@@ -45,9 +48,6 @@ export function DynamicCodesSection({ index }: { index: string }) {
         <MonoStrip icon={false}>302 + no-store · retarget live in seconds · ≤ 5 min worst case</MonoStrip>
         {DYNAMIC_CODES_DOORWAY_ENABLED && (
           <LearnMoreLink href="/features/dynamic-codes">Explore dynamic codes</LearnMoreLink>
-        )}
-        {ACCESS_CONTROLS_DOORWAY_ENABLED && (
-          <LearnMoreLink href="/features/access-controls">Explore access controls</LearnMoreLink>
         )}
       </SectionBody>
     </Section>

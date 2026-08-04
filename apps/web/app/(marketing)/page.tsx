@@ -5,6 +5,7 @@ import { HowItWorksSection } from "@/components/marketing/how-it-works-section";
 import { Playground } from "@/components/marketing/playground";
 import { BrandSystemSection } from "@/components/marketing/brand-system-section";
 import { DynamicCodesSection } from "@/components/marketing/dynamic-codes-section";
+import { AccessControlsSection } from "@/components/marketing/access-controls-section";
 import { GuardrailsSection } from "@/components/marketing/guardrails-section";
 import { AnalyticsSection } from "@/components/marketing/analytics-section";
 import { ApiSection } from "@/components/marketing/api-section";
@@ -77,13 +78,14 @@ export default function HomePage() {
       <Playground index="03" />
       <BrandSystemSection index="04" />
       <DynamicCodesSection index="05" />
-      <AnalyticsSection index="06" />
-      <GuardrailsSection index="07" />
-      <ApiSection index="08" />
-      <ComparisonSection index="09" />
-      <OpenSourceSection index="10" />
-      <ManifestoSection index="11" />
-      <PricingTeaser index="12" />
+      <AccessControlsSection index="06" />
+      <AnalyticsSection index="07" />
+      <GuardrailsSection index="08" />
+      <ApiSection index="09" />
+      <ComparisonSection index="10" />
+      <OpenSourceSection index="11" />
+      <ManifestoSection index="12" />
+      <PricingTeaser index="13" />
       {/* Explicit title, even though it matches the component default: that
           default is also what /features/dynamic-codes renders with zero props,
           so leaving this implicit means a landing copy change silently rewrites

@@ -271,7 +271,7 @@ test.describe("marketing site", () => {
     await expect(playgroundSection.getByText("88%", { exact: true })).toBeVisible();
   });
 
-  test("dynamic codes: RetargetTheatre responds to a tap and state-cards render", async ({ page }) => {
+  test("dynamic codes: RetargetTheatre responds to a tap", async ({ page }) => {
     await page.goto("/");
     const section = page.locator("#dynamic-codes");
 
@@ -299,10 +299,29 @@ test.describe("marketing site", () => {
     // matches — a real strict-mode violation caught by CI, not a feature bug.
     await expect(section.getByText("the printed code never changes", { exact: true })).toBeVisible();
 
-    // Truthful state-cards: /u fallback, /p gate, dashboard "Expired" pill.
-    await expect(section.getByText(/^\/u\//)).toBeVisible();
+  });
+
+  test("access controls: three controls and the states a visitor meets (P9.7-V4)", async ({
+    page,
+  }) => {
+    await page.goto("/");
+    const section = page
+      .locator("section")
+      .filter({ has: page.getByRole("heading", { name: "Control who can visit." }) });
+
+    // Password and expiry are Pro; pause deliberately is not, because
+    // setCodePausedCore has no plan gate at all.
+    for (const name of ["Password", "Expiry", "Pause"]) {
+      await expect(section.getByRole("heading", { name, exact: true })).toBeVisible();
+    }
+
+    // The two scan-facing states moved here from #dynamic-codes with the
+    // cards themselves: the /p gate and the /u neutral page.
     await expect(section.getByText(/^\/p\//)).toBeVisible();
-    await expect(section.getByText("Expired")).toBeVisible();
+    await expect(section.getByText(/^\/u\//)).toBeVisible();
+
+    // The honest limit is on the page, not just in a code comment.
+    await expect(section.getByText("A gate, not a vault.")).toBeVisible();
   });
 
   test("analytics window: breakdown rows and retention row render from entitlements", async ({ page }) => {
@@ -751,18 +770,23 @@ test.describe("marketing site", () => {
 
   test("landing doorways: all four /features/* doorways are live", async ({ page }) => {
     await page.goto("/");
-    // Section 04 (dynamic codes) now carries two doorways side by side.
     await expect(
       page.locator("#dynamic-codes").getByRole("link", { name: "Explore dynamic codes" }),
     ).toHaveAttribute("href", "/features/dynamic-codes");
+    // P9.7-V4: the access-controls doorway used to sit in #dynamic-codes as a
+    // second link. Access controls has its own section now, so the doorway
+    // went with it. That section carries no id, so it is located by heading.
     await expect(
-      page.locator("#dynamic-codes").getByRole("link", { name: "Explore access controls" }),
+      page
+        .locator("section")
+        .filter({ has: page.getByRole("heading", { name: "Control who can visit." }) })
+        .getByRole("link", { name: "Explore access controls" }),
     ).toHaveAttribute("href", "/features/access-controls");
-    // Section 06 (analytics).
+    // Analytics.
     await expect(
       page.locator("#analytics").getByRole("link", { name: "Explore analytics" }),
     ).toHaveAttribute("href", "/features/analytics");
-    // Sections 02 (studio/playground) and 03 (brand system) both link to
+    // The studio and brand-system sections both link to
     // the SAME /features/brand-studio page with identical link text
     // (BRAND_STUDIO_DOORWAY_ENABLED flips true for both call sites this
     // unit) — scoped per-section (#studio / #brand-system) since an

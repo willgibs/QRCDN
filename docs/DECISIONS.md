@@ -304,6 +304,26 @@ Launch: $25/mo — Vercel Pro $20 + **Workers Paid $5 (mandatory: free tier's 10
 req/day cap would dead-end every printed code on one viral day)**. Supabase Pro $25
 at first real customers (free tier has no backups — nightly pg_dump cron until then).
 
+## D17 — /studio is public: the anonymous static-code studio (product, board-approved 2026-08-04)
+
+Signed-out visitors get the real studio in static mode: the full design
+controls, the live scannability instrument, and SVG/PNG export, all client-side
+against the same engine (the export chain is auth-free by construction and
+persists nothing). An account adds brand kits, dynamic codes, analytics, and
+the API. /studio is indexable and titled for the "free QR code generator"
+search intent — the board's brief: the working tool reachable directly from the
+homepage or a search, no account, with account creation incentivized by what it
+unlocks rather than gated by a wall. Exactly two incentives (the kit-save line
+where the kit bar renders for accounts, and the make-it-dynamic line where the
+codes pointer renders), both honest about what an account adds.
+
+Auth boundary: /studio lives OUTSIDE the `(app)` route group; that group's
+redirect guard is unchanged for /codes and /api-keys, every kit/code server
+action keeps its own `getClaims()`/`getUser()` guard regardless of entry path,
+and the anonymous page can trigger nothing that needs one. The no-watermark
+promise moved here from the landing playground (P9.8-B4) — the claim lives on
+the surface it is true of.
+
 ## D16 — Supabase `[auth]` config: dashboard is authoritative, `config push` banned
 
 `supabase/config.toml`'s `[auth]` block (`site_url = "http://127.0.0.1:3000"`,

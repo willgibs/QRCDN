@@ -34,6 +34,8 @@ const PUBLIC_PAGES = [
   "/terms",
   "/privacy",
   "/developers",
+  // P9.8-B4: /studio is public — anonymous static-code studio.
+  "/studio",
   "/features/dynamic-codes",
   "/features/analytics",
   "/features/brand-studio",
@@ -78,6 +80,33 @@ test.describe("marketing site", () => {
       await expect(page.locator('a[href="#"]')).toHaveCount(0);
     });
   }
+
+  test("/studio anonymous: the working studio, its two incentives, and no app shell (P9.8-B4)", async ({
+    page,
+  }) => {
+    // No auth fixtures in this file (see the header) — the standard context
+    // IS the anonymous visitor. The full authed studio stays covered by
+    // money-path.spec.ts.
+    await page.goto("/studio");
+
+    // The real tool renders: a design control, the payload input, and a
+    // working export affordance (the whole chain is client-side).
+    await expect(page.getByLabel("Destination")).toBeVisible();
+    await expect(page.getByRole("button", { name: "Download SVG" })).toBeVisible();
+    await expect(page.getByText("Module size")).toBeVisible();
+
+    // The two account incentives, both routing to /login: the bar's Start
+    // free and the rail's make-it-dynamic line. Scoped queries: the public
+    // nav also carries a "Start free".
+    await expect(
+      page.getByRole("link", { name: "Make it dynamic: change where it points after printing. Start free →" }),
+    ).toHaveAttribute("href", "/login");
+    await expect(page.getByText("no account, no watermark", { exact: false })).toBeVisible();
+
+    // No authenticated chrome leaks into the anonymous state.
+    await expect(page.getByRole("button", { name: "Sign out" })).toHaveCount(0);
+    await expect(page.getByText("Save changes")).toHaveCount(0);
+  });
 
   test("nav CTA: Start free lands on /login", async ({ page }) => {
     await page.goto("/");

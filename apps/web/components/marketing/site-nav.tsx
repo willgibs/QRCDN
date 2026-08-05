@@ -30,6 +30,9 @@ const FEATURE_LINKS = [
 // like a nav label a visitor recognizes on sight. "Blog" is new
 // (P9.5-T-R); "Pricing" is unchanged.
 const NAV_LINKS = [
+  // P9.8-B4: the studio is public (anonymous static codes) — the tool
+  // itself joins the nav, first, because it is the product's best pitch.
+  { href: "/studio", label: "Studio" },
   { href: "/developers", label: "Docs" },
   { href: "/pricing", label: "Pricing" },
   { href: "/blog", label: "Blog" },

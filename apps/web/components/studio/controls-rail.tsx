@@ -20,6 +20,7 @@ import { Eyebrow } from "@/components/brand/magic";
 import { glowTileOn } from "@/components/brand/glow-tile";
 import { DOT_STYLES, EYE_FRAMES, DotSwatch, EyeSwatch } from "@/components/qr/shape-swatches";
 import { ColorChipRow, ColorField, TransparentPaperChip } from "@/components/studio/color-controls";
+import { ContrastMeter } from "@/components/studio/contrast-meter";
 import { radiansToDegrees } from "@/lib/angle";
 import {
   LOGO_SIZE_RATIO_MAX,
@@ -56,7 +57,11 @@ export function ControlsRail({
   style,
   payload,
   effectiveEcc,
+  anonymous = false,
+  inkHex,
+  paperHex,
   onPayloadChange,
+  onDotSizeChange,
   onInkChange,
   onPaperChange,
   onFillTypeChange,
@@ -81,7 +86,17 @@ export function ControlsRail({
    *  `effectiveEcc`) — may differ from `style.ecc` when a logo forces it
    *  higher; the Export section's helper text reflects that honestly. */
   effectiveEcc: QrStyle["ecc"];
+  /** P9.8-B4: the signed-out static studio — swaps the /codes pointer for
+   *  the make-it-dynamic account incentive. Design controls are identical
+   *  in both states. */
+  anonymous?: boolean;
+  /** The stage's derived ink/paper pair (studio-shell), feeding the
+   *  ContrastMeter — same values PreviewStage paints with. */
+  inkHex: string;
+  paperHex: string;
   onPayloadChange: (value: string) => void;
+  /** P9.8-B4 rider: dots.sizeRatio, as a 0.4-1.0 ratio (slider shows %). */
+  onDotSizeChange: (ratio: number) => void;
   onInkChange: (hex: string) => void;
   onPaperChange: (hex: string) => void;
   onFillTypeChange: (mode: "solid" | "gradient") => void;
@@ -110,6 +125,7 @@ export function ControlsRail({
   const sizeId = useId();
   const logoSizeId = useId();
   const gradientAngleId = useId();
+  const dotSizeId = useId();
   const [exportSize, setExportSize] = useState<string>("1024");
   const [logoError, setLogoError] = useState<string | null>(null);
   const [exporting, setExporting] = useState<"svg" | "png" | null>(null);
@@ -251,6 +267,11 @@ export function ControlsRail({
               />
             }
           />
+          {/* P9.8-B4 rider: glanceable ink-vs-paper feedback while dragging
+              a color, thresholds imported from the engine. The scannability
+              chip stays the authority (it also grades gradients' worst stop
+              and transparent paper); see contrast-meter.tsx's own header. */}
+          <ContrastMeter inkHex={inkHex} paperHex={paperHex} />
         </section>
 
         <section className="flex flex-col gap-4">
@@ -269,6 +290,26 @@ export function ControlsRail({
                 </ToggleGroupItem>
               ))}
             </ToggleGroup>
+          </div>
+          <div className="flex flex-col gap-2">
+            <div className="flex items-center justify-between">
+              <Label htmlFor={dotSizeId}>Module size</Label>
+              <span className="font-mono text-xs tabular-nums text-muted-foreground">
+                {Math.round(style.dots.sizeRatio * 100)}%
+              </span>
+            </div>
+            {/* P9.8-B4 rider: dots.sizeRatio finally gets a studio control
+                (the playground has had one since P9.5-T3b). Min 40 IS the
+                D6 schema floor — sparser dots stop decoding reliably; the
+                zod schema re-enforces the same floor on save. */}
+            <Slider
+              id={dotSizeId}
+              min={40}
+              max={100}
+              step={5}
+              value={[Math.round(style.dots.sizeRatio * 100)]}
+              onValueChange={([v]) => v !== undefined && onDotSizeChange(v / 100)}
+            />
           </div>
           <div className="flex flex-col gap-2">
             <Label>Eye</Label>
@@ -395,16 +436,27 @@ export function ControlsRail({
               className="font-mono text-xs"
             />
           </div>
-          {/* P9.8-B2: creation moved to /codes (board: "bulk codes may get
-              annoying to handle under a kit in the studio") — this is the
-              one pointer left where CreateCodeControl/BulkCreateDialog used
-              to live, so the flow change stays discoverable from here. */}
-          <Link
-            href="/codes"
-            className="w-fit font-mono text-xs text-muted-foreground transition-colors duration-(--duration-fast) ease-(--motion-ease-out) hover:text-foreground"
-          >
-            Create codes on the Codes page →
-          </Link>
+          {/* P9.8-B2: creation moved to /codes — this is the one pointer
+              left where CreateCodeControl/BulkCreateDialog used to live, so
+              the flow change stays discoverable from here. P9.8-B4: for a
+              signed-out visitor the same slot is the page's second account
+              incentive (the AnonymousBar above is the first) — the dynamic
+              pitch, which is the one thing a static code can't do. */}
+          {anonymous ? (
+            <Link
+              href="/login"
+              className="w-fit font-mono text-xs text-muted-foreground transition-colors duration-(--duration-fast) ease-(--motion-ease-out) hover:text-foreground"
+            >
+              Make it dynamic: change where it points after printing. Start free →
+            </Link>
+          ) : (
+            <Link
+              href="/codes"
+              className="w-fit font-mono text-xs text-muted-foreground transition-colors duration-(--duration-fast) ease-(--motion-ease-out) hover:text-foreground"
+            >
+              Create codes on the Codes page →
+            </Link>
+          )}
         </section>
 
         <section className="flex flex-col gap-3 pb-2">

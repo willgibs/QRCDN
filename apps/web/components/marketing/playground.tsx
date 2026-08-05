@@ -592,7 +592,7 @@ export function Playground({ embedded = false, index }: { embedded?: boolean; in
         eyebrow="Design studio"
         index={index}
         title="Customize your brand design."
-        lede="No account, no watermark: the real engine and the same scannability instrument the studio uses."
+        lede="The real engine and the same scannability instrument the full studio runs on. Take it further at /studio, free."
         className="mb-10"
       />
       {body}

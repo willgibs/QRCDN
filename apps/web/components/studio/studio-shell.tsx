@@ -19,6 +19,7 @@ import {
 import { PREVIEW_PAYLOAD_WORST_CASE, renderPreview } from "@/lib/preview";
 import { inkHexFromStyle } from "@/lib/qr-style-derive";
 import { TopBar } from "./top-bar";
+import { AnonymousBar } from "./anonymous-bar";
 import { ControlsRail } from "./controls-rail";
 import { PreviewStage } from "./preview-stage";
 
@@ -55,6 +56,7 @@ export function StudioShell({
   initialKits,
   plan,
   userId,
+  anonymous = false,
 }: {
   initialKits: BrandKit[];
   /** P9.8-B2: creation (and its Pro-locks) left the studio for /codes — the
@@ -62,7 +64,15 @@ export function StudioShell({
    *  TopBar), which must not show a free-tier message to a Pro caller
    *  (agent-found latent bug, kit-bar.tsx's own doc comment). */
   plan: Plan;
-  userId: string;
+  /** `null` only in anonymous mode (P9.8-B4), where nothing that needs an
+   *  owner ever mounts: KitBar (the sole `userId` consumer, for its logo
+   *  upload path) is replaced by the AnonymousBar incentive. */
+  userId: string | null;
+  /** P9.8-B4: the signed-out static-code studio. Same shell, same engine,
+   *  same export chain (all client-side, auth-free by construction) — the
+   *  kit bar and the rail's /codes link become the page's two account
+   *  incentives instead. */
+  anonymous?: boolean;
 }) {
   const [kits, setKits] = useState<BrandKit[]>(initialKits);
   const [activeKitId, setActiveKitId] = useState<string | null>(initialKits[0]?.id ?? null);
@@ -124,6 +134,13 @@ export function StudioShell({
   }, []);
   const setDotStyle = useCallback((value: QrStyle["dots"]["style"]) => {
     setStyle((s) => ({ ...s, dots: { ...s.dots, style: value } }));
+  }, []);
+  // P9.8-B4 rider: dots.sizeRatio finally gets a studio control (the
+  // marketing playground has had one since P9.5-T3b; the real tool never
+  // did). The schema floor is 0.4 (D6) — the slider's own min enforces it
+  // client-side and the zod schema re-enforces on save.
+  const setDotSize = useCallback((ratio: number) => {
+    setStyle((s) => ({ ...s, dots: { ...s.dots, sizeRatio: ratio } }));
   }, []);
   const setEyeFrame = useCallback((value: QrStyle["eyes"]["frame"]) => {
     setStyle((s) => ({ ...s, eyes: { ...s.eyes, frame: value } }));
@@ -303,25 +320,32 @@ export function StudioShell({
 
   return (
     <>
-      <TopBar
-        kits={kits}
-        activeKitId={activeKitId}
-        currentStyle={validStyle}
-        userId={userId}
-        plan={plan}
-        pendingLogoFile={pendingLogoFile}
-        onSwitch={handleSwitch}
-        onCreated={handleCreated}
-        onSaved={handleSaved}
-        onDeleted={handleDeleted}
-        onDefaultChanged={handleDefaultChanged}
-      />
+      {anonymous || userId === null ? (
+        <AnonymousBar />
+      ) : (
+        <TopBar
+          kits={kits}
+          activeKitId={activeKitId}
+          currentStyle={validStyle}
+          userId={userId}
+          plan={plan}
+          pendingLogoFile={pendingLogoFile}
+          onSwitch={handleSwitch}
+          onCreated={handleCreated}
+          onSaved={handleSaved}
+          onDeleted={handleDeleted}
+          onDefaultChanged={handleDefaultChanged}
+        />
+      )}
       <main className="mx-auto flex w-full max-w-[1600px] flex-1 flex-col gap-6 px-4 py-6 lg:flex-row lg:items-start lg:gap-8 lg:px-8 lg:py-8">
         <ControlsRail
           className="order-2 lg:order-1 lg:w-[300px] lg:shrink-0"
           style={validStyle}
           payload={payload}
           effectiveEcc={report.effectiveEcc}
+          anonymous={anonymous}
+          inkHex={inkHex}
+          paperHex={paperHex}
           onPayloadChange={setPayload}
           onInkChange={setInk}
           onPaperChange={setPaper}
@@ -330,6 +354,7 @@ export function StudioShell({
           onGradientEndChange={setGradientEnd}
           onGradientRotationChange={setGradientRotationDegrees}
           onDotStyleChange={setDotStyle}
+          onDotSizeChange={setDotSize}
           onEyeFrameChange={setEyeFrame}
           onEyeColorChange={setEyeColor}
           onPaperTransparentChange={setPaperTransparent}

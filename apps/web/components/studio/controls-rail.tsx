@@ -1,6 +1,7 @@
 "use client";
 
 import { useId, useState, type ChangeEvent, type ReactNode } from "react";
+import Link from "next/link";
 import { Loader2, Upload, X } from "lucide-react";
 import type { QrStyle } from "@qrcdn/shared";
 import { Button } from "@/components/ui/button";
@@ -19,11 +20,6 @@ import { Eyebrow } from "@/components/brand/magic";
 import { glowTileOn } from "@/components/brand/glow-tile";
 import { DOT_STYLES, EYE_FRAMES, DotSwatch, EyeSwatch } from "@/components/qr/shape-swatches";
 import { ColorChipRow, ColorField, TransparentPaperChip } from "@/components/studio/color-controls";
-import { CreateCodeControl } from "@/components/studio/create-code";
-import { BulkCreateDialog } from "@/components/studio/bulk-create-dialog";
-import { CodesList } from "@/components/studio/codes-list";
-import type { DynamicCodeSummary, QrCode } from "@/lib/codes-core";
-import type { Plan } from "@/lib/entitlements";
 import { radiansToDegrees } from "@/lib/angle";
 import {
   LOGO_SIZE_RATIO_MAX,
@@ -60,17 +56,7 @@ export function ControlsRail({
   style,
   payload,
   effectiveEcc,
-  codes,
-  plan,
-  activeKitId,
-  kitDirty,
   onPayloadChange,
-  onCodeCreated,
-  onCodeLoad,
-  onCodeRetargeted,
-  onCodePauseToggled,
-  onCodeAccessUpdated,
-  onCodesRefreshed,
   onInkChange,
   onPaperChange,
   onFillTypeChange,
@@ -95,36 +81,7 @@ export function ControlsRail({
    *  `effectiveEcc`) — may differ from `style.ecc` when a logo forces it
    *  higher; the Export section's helper text reflects that honestly. */
   effectiveEcc: QrStyle["ecc"];
-  /** The caller's dynamic codes (server-fetched in page.tsx, threaded down
-   *  the same way brand kits are — see studio-shell.tsx). */
-  codes: DynamicCodeSummary[];
-  /** P7.5-U2: threaded to CodesList's access-controls dialog for its
-   *  Pro-lock affordance. P7.5-U3 additionally threads it to
-   *  CreateCodeControl, which needs it for the vanity-slug Pro lock. */
-  plan: Plan;
-  /** P9.8-B1 (hard sync): the kit a minted code attaches to, and whether
-   *  the working style has unsaved edits — both threaded to the create/bulk
-   *  controls, which mint from the SAVED kit server-side and therefore wait
-   *  for a save while dirty. */
-  activeKitId: string | null;
-  kitDirty: boolean;
   onPayloadChange: (value: string) => void;
-  /** Bubbles a freshly-minted code up alongside its printed short URL —
-   *  studio-shell both appends it to `codes` and swaps the working payload
-   *  to the short URL (the product moment: the QR on stage becomes the
-   *  live code). */
-  onCodeCreated: (code: QrCode, shortUrl: string) => void;
-  /** "Load in studio": swaps the working payload to the code's short URL
-   *  and copies its frozen style into the working editor (a copy, never a
-   *  live binding back to the row — D5). */
-  onCodeLoad: (code: DynamicCodeSummary, style: QrStyle) => void;
-  onCodeRetargeted: (id: string, destinationUrl: string) => void;
-  onCodePauseToggled: (id: string, status: string) => void;
-  onCodeAccessUpdated: (id: string, patch: { expiresAt: string | null; passwordProtected: boolean }) => void;
-  /** P7.5-U4: bulk create's dialog-close list sync — see bulk-create-
-   *  dialog.tsx's own doc comment for why a refetch (not an append) is the
-   *  correct mechanism for a `BulkItemOutcome[]` result. */
-  onCodesRefreshed: (codes: DynamicCodeSummary[]) => void;
   onInkChange: (hex: string) => void;
   onPaperChange: (hex: string) => void;
   onFillTypeChange: (mode: "solid" | "gradient") => void;
@@ -415,12 +372,15 @@ export function ControlsRail({
         </section>
       </div>
 
-      {/* "Content & output" cluster (P9.5-T7) — destination, size/format,
-          export. Export stays the rail's last section (bottom placement
-          already satisfied pre-T7 — see this unit's report; not re-done
-          here, just preserved by keeping this cluster second). */}
+      {/* "Preview & export" cluster (P9.5-T7 heading; renamed P9.8-B2 once
+          creation moved to /codes and the studio went kits-only) — the
+          Destination input is a PREVIEW only now (it feeds the live QR on
+          stage; it no longer mints anything), plus Export. Export stays the
+          rail's last section (bottom placement already satisfied pre-T7 —
+          see that unit's report; not re-done here, just preserved by
+          keeping this cluster second). */}
       <div className="flex flex-col gap-8 border-t border-border/60 pt-8">
-        <ClusterHeading>Content & output</ClusterHeading>
+        <ClusterHeading>Preview & export</ClusterHeading>
 
         <section className="flex flex-col gap-3">
           <Eyebrow>Payload</Eyebrow>
@@ -435,32 +395,16 @@ export function ControlsRail({
               className="font-mono text-xs"
             />
           </div>
-          <CreateCodeControl
-            payload={payload}
-            activeKitId={activeKitId}
-            kitDirty={kitDirty}
-            plan={plan}
-            onCreated={onCodeCreated}
-          />
-          <BulkCreateDialog
-            plan={plan}
-            activeKitId={activeKitId}
-            kitDirty={kitDirty}
-            codeCount={codes.length}
-            onCodesRefreshed={onCodesRefreshed}
-          />
-        </section>
-
-        <section className="flex flex-col gap-3">
-          <Eyebrow>Codes</Eyebrow>
-          <CodesList
-            codes={codes}
-            plan={plan}
-            onCodeLoad={onCodeLoad}
-            onRetargeted={onCodeRetargeted}
-            onPauseToggled={onCodePauseToggled}
-            onAccessUpdated={onCodeAccessUpdated}
-          />
+          {/* P9.8-B2: creation moved to /codes (board: "bulk codes may get
+              annoying to handle under a kit in the studio") — this is the
+              one pointer left where CreateCodeControl/BulkCreateDialog used
+              to live, so the flow change stays discoverable from here. */}
+          <Link
+            href="/codes"
+            className="w-fit font-mono text-xs text-muted-foreground transition-colors duration-(--duration-fast) ease-(--motion-ease-out) hover:text-foreground"
+          >
+            Create codes on the Codes page →
+          </Link>
         </section>
 
         <section className="flex flex-col gap-3 pb-2">

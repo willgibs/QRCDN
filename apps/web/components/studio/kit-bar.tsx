@@ -17,7 +17,7 @@ import { createClient } from "@/lib/supabase/client";
 import { inkHexFromStyle } from "@/lib/qr-style-derive";
 import { stylesEqual } from "@/lib/style-compare";
 import { cn } from "@/lib/utils";
-import { PLAN_LIMITS } from "@/lib/entitlements";
+import { PLAN_LIMITS, type Plan } from "@/lib/entitlements";
 import {
   createBrandKit,
   deleteBrandKit,
@@ -125,6 +125,7 @@ export function KitBar({
   activeKitId,
   currentStyle,
   userId,
+  plan,
   pendingLogoFile,
   onSwitch,
   onCreated,
@@ -136,6 +137,12 @@ export function KitBar({
   activeKitId: string | null;
   currentStyle: QrStyle;
   userId: string;
+  /** P9.8-B2 rider (agent-found latent bug): the limit note below used to
+   *  show the FREE plan's kit-limit line to every caller, including Pro —
+   *  whose `brandKits` cap is `null` (unlimited), so a Pro user could hit
+   *  `showLimitError()` only via the check-then-insert race (never the
+   *  actual limit) and see a free-tier upsell that doesn't apply to them. */
+  plan: Plan;
   pendingLogoFile: File | null;
   onSwitch: (kit: BrandKit) => void;
   onCreated: (kit: BrandKit) => void;
@@ -495,14 +502,25 @@ export function KitBar({
           role="alert"
           className="absolute top-full left-0 z-10 mt-2 w-56 rounded-lg border border-border/60 bg-popover px-3 py-2 text-xs text-muted-foreground shadow-md"
         >
-          {/* P9.5-T8 item 5: was a hardcoded "1" duplicating
-              PLAN_LIMITS.free.brandKits (CLAUDE.md's entitlements-live-in-
-              one-place hard rule) — this file didn't import entitlements.ts
-              at all before this fix. Noun agreement is count-driven (P9.8-B0:
-              the limit moved to 2 and "2 brand kit" was the exact drift the
-              deferred ledger's entry 10 predicted). */}
-          Free includes {PLAN_LIMITS.free.brandKits} brand{" "}
-          {PLAN_LIMITS.free.brandKits === 1 ? "kit" : "kits"}. Pro removes the wait.
+          {/* P9.8-B2 rider (agent-found latent bug): this line used to show
+              the FREE plan's message to every caller regardless of `plan` —
+              harmless in practice today (Pro's `brandKits` cap is `null`,
+              unlimited, so this popover can only fire from the real limit on
+              free; a Pro caller could only ever hit it via the check-then-
+              insert race noted in `handleCreate`'s own comment), but still
+              wrong copy to ship. Gated correctly now. P9.5-T8 item 5's
+              earlier fix (hardcoded "1" -> PLAN_LIMITS.free.brandKits,
+              CLAUDE.md's entitlements-live-in-one-place hard rule; noun
+              agreement stays count-driven per P9.8-B0's "2 brand kit" drift)
+              is preserved inside the free branch below. */}
+          {plan === "free" ? (
+            <>
+              Free includes {PLAN_LIMITS.free.brandKits} brand{" "}
+              {PLAN_LIMITS.free.brandKits === 1 ? "kit" : "kits"}. Pro removes the wait.
+            </>
+          ) : (
+            "Kit limit reached."
+          )}
         </div>
       )}
       {actionError && (

@@ -51,17 +51,17 @@ export const HELP_ARTICLES: readonly HelpArticle[] = [
     slug: "create-a-dynamic-code",
     category: "Getting started",
     title: "Create your first dynamic code",
-    summary: "Design a code in the studio and mint it as a live, retargetable link.",
+    summary: "Create a code on the Codes page and mint it as a live, retargetable link.",
     doIt: [
-      "Sign in and open the Studio.",
-      "Shape the code on the left: dot style, eye frame, ink and paper colors, and an optional logo. None of this affects whether it works, only how it looks, and the live scannability reading beside it updates as you go.",
-      "Under Payload, enter the Destination URL you want the code to open when scanned.",
-      `Click "Create dynamic code," confirm a name (or keep the one suggested from your destination), and press Enter.`,
-      "Optionally, expand \"Customize link\" first if you want to pick your own short link instead of a random one (Pro).",
-      "Download the artifact as SVG or PNG from the Export section, lower on the rail.",
+      "Sign in and open Codes.",
+      `Click "Create code."`,
+      "Name it, and enter the Destination URL you want the code to open when scanned.",
+      "Pick a brand kit: the code attaches to it and takes on its exact look, colors, shapes, and any logo. No kit yet? Make one first in the Studio.",
+      "Optionally, expand \"Customize link\" if you want to pick your own short link instead of a random one (Pro).",
+      `Click "Create."`,
     ],
     whatToExpect:
-      "The moment you create the code, the QR artifact on stage becomes the real, live thing: its payload is now a permanent qrcdn.com short link, not your destination URL directly. That indirection is what makes the code retargetable later without reprinting it. A confirmation shows the new short link with a one-click copy, and the code immediately appears in your Codes list below, ready to retarget, pause, or protect whenever you need to. What you print never has to change again, only where it points.",
+      "The moment you create the code, it mints a permanent qrcdn.com short link: that link, not your destination URL directly, is what the QR actually encodes. That indirection is what makes the code retargetable later without reprinting anything. A confirmation shows the new short link with a one-click copy and a link to its analytics, and the code immediately appears in your Codes table, ready to retarget, pause, or protect whenever you need to. Its look follows whichever brand kit you attached it to: edit that kit later and every code attached to it, this one included, updates to match. To download the artifact as SVG or PNG, follow the confirmation's link to the code's own page and use Download there. What you print never has to change again, only where it points.",
     crossLinks: [
       { label: "Retarget a code", href: "/help/retarget-a-code" },
       { label: "Export formats and print quality", href: "/help/export-formats-and-print-quality" },
@@ -73,8 +73,8 @@ export const HELP_ARTICLES: readonly HelpArticle[] = [
     title: "Retarget a code",
     summary: "Change where a printed code sends people, without reprinting anything.",
     doIt: [
-      `In the Studio's Codes list, open the code's actions menu (the "⋯" button).`,
-      `Choose "Retarget…," type the new destination, and confirm.`,
+      `Open the code from your Codes page (click its name in the table).`,
+      `Choose "Retarget" in the code's action row, type the new destination, and confirm.`,
       `Over the API instead: PATCH /api/v1/codes/{slug} with a JSON body of {"destination": "https://..."}.`,
     ],
     whatToExpect:
@@ -90,8 +90,8 @@ export const HELP_ARTICLES: readonly HelpArticle[] = [
     title: "Pause and resume a code",
     summary: "Take a code offline temporarily without deleting it.",
     doIt: [
-      `In the Codes list, open the code's actions menu and choose "Pause."`,
-      `To bring it back later, open the same menu again and choose "Resume."`,
+      `On your Codes page, press the pause control on the code's row (it also lives in the code's own action row).`,
+      `To bring it back later, press the same control again to resume.`,
     ],
     whatToExpect:
       "Neither action needs a confirmation, and both are instantly reversible, on any plan, as many times as you like. While a code is paused, scanners land on a calm, neutral page that says the code isn't live right now, never an error and never a 404, so nobody who scans it thinks something is broken. Scans against a paused code still get counted; pausing changes where a scan goes, not whether it happened. Pause is the right tool for a temporary hold, a sold-out product, an event that hasn't started yet, where you know you'll want the exact same destination back later; if you actually want the code to stop working on a fixed date instead, an expiry is the more precise tool for that.",
@@ -106,7 +106,7 @@ export const HELP_ARTICLES: readonly HelpArticle[] = [
     title: "Password-protect a code",
     summary: "Ask for a password before a scan reaches its destination.",
     doIt: [
-      `In the Codes list, open the code's actions menu and choose "Access…."`,
+      `Open the code from your Codes page, then choose "Access" in its action row.`,
       `Enter a password (4 to 128 characters) and press Save.`,
       `To change it later, open Access… again and enter a new one.`,
       `To remove it, open Access…, choose "Remove password," and Save.`,
@@ -123,7 +123,7 @@ export const HELP_ARTICLES: readonly HelpArticle[] = [
     title: "Set or clear an expiry",
     summary: "Give a code a date it stops resolving to its destination, or bring one back.",
     doIt: [
-      `In the Codes list, open the code's actions menu and choose "Access…."`,
+      `Open the code from your Codes page, then choose "Access" in its action row.`,
       "Pick a date and time in the Expires field (entered in your own local time) and Save.",
       `To revive an expired code, open Access… again, clear the Expires field (or push it into the future), and Save.`,
       `Over the API instead: PATCH /api/v1/codes/{slug} with {"expiresAt": "2026-12-31T23:59:00Z"}, or {"expiresAt": null} to clear it.`,
@@ -153,12 +153,13 @@ export const HELP_ARTICLES: readonly HelpArticle[] = [
     title: "Bulk-create codes",
     summary: "Mint a batch of dynamic codes from a pasted list of destinations.",
     doIt: [
-      `In the Studio rail, choose "Bulk create," beside "Create dynamic code."`,
+      `On the Codes page, choose "Bulk create," beside "Create code."`,
+      `Pick a brand kit: every code in the batch attaches to it and takes on its exact look.`,
       `Paste one destination per line, optionally as Name | https://example.com to set your own names.`,
       `Press Create. Up to 50 codes per batch, capped by however many codes your plan has left.`,
     ],
     whatToExpect:
-      "Bulk creation is a Pro feature, and it succeeds partially rather than all-or-nothing: one bad line, a malformed URL or a vanity slug someone else already has, fails on its own without stopping the rest of the batch. Every line shares whatever style is currently on stage in the studio, so set the look you want before pasting. The results list shows exactly what was created and what wasn't, with a reason for each failure, and can be exported afterward as a CSV with the new short link beside every successful row, ready to paste into a spreadsheet or hand off to whoever is doing the printing.",
+      "Bulk creation is a Pro feature, and it succeeds partially rather than all-or-nothing: one bad line, a malformed URL or a vanity slug someone else already has, fails on its own without stopping the rest of the batch. Every code in the batch attaches to the kit you chose and mirrors its style: edit that kit later and the whole batch updates to match, along with any other code attached to it. The results list shows exactly what was created and what wasn't, with a reason for each failure, and can be exported afterward as a CSV with the new short link beside every successful row, ready to paste into a spreadsheet or hand off to whoever is doing the printing.",
     crossLinks: [{ label: "Create your first dynamic code", href: "/help/create-a-dynamic-code" }],
   },
   {

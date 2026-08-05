@@ -15,3 +15,9 @@ import type { Tables } from "@qrcdn/shared";
  *  propagate to attached qr_codes rows via sync_kit_codes(); only kit-less
  *  codes (brand_kit_id null) still hold frozen snapshots. */
 export type BrandKit = Tables<"brand_kits">;
+
+/** The columns a kit-picker needs (P9.8-B2: /codes' create/bulk-create
+ *  dialogs) — narrower than the full `BrandKit` row (no logo bytes, no
+ *  timestamps), same "one canonical narrow read shape" precedent
+ *  `lib/codes-core.ts`'s `DynamicCodeSummary` already sets for codes. */
+export type KitPickerKit = Pick<BrandKit, "id" | "name" | "style" | "is_default">;

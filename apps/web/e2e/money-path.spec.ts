@@ -10,11 +10,13 @@ import { createAdminClient } from "../lib/supabase/admin";
 // Relative imports only in e2e/ (no "@/" — see env.ts's header note).
 
 /**
- * The money path (P8-U1). Walks the Studio like a real Pro user in one
- * continuous, authenticated browser session — sign in, mint a dynamic code,
- * confirm the live redirect Worker actually serves it, retarget/pause/
- * resume it, lock it down with an expiry + password, bulk-create a batch,
- * check the dashboards, mint and revoke an API key — then asserts that NOT
+ * The money path (P8-U1). Walks the app like a real Pro user in one
+ * continuous, authenticated browser session — sign in, make a brand kit,
+ * mint a dynamic code (creation moved from the Studio rail to /codes at
+ * P9.8-B2; the studio itself is kits-only from that unit on), confirm the
+ * live redirect Worker actually serves it, retarget/pause/resume it, lock it
+ * down with an expiry + password, bulk-create a batch, check the
+ * dashboards, mint and revoke an API key — then asserts that NOT
  * ONE of those UI actions produced a >=500 response to a `next-action`
  * request (fixtures.ts's outage detector). That final assertion is the
  * whole point of this file: it's the one check that would have caught the
@@ -74,34 +76,6 @@ function futureLocalDateTimeValue(yearsFromNow: number): string {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
 const FUTURE_EXPIRY = futureLocalDateTimeValue(1);
-
-/**
- * Opens the codes-list row's "Actions for {name}" dropdown.
- *
- * This used to need a defensive `Escape` first, because closing the Access
- * dialog left the dropdown it was opened from still open. That was a real
- * product bug — this suite found it — and it is now FIXED at the source
- * (codes-list.tsx closes the menu explicitly via controlled state). The
- * workaround is deliberately gone so this suite keeps proving the fix: if
- * the bug ever returns, these tests hang again rather than quietly papering
- * over it. Original diagnosis, kept because it explains the failure mode:
- * the Access dialog's own save-and-close assertion passes, well before the
- * next step even starts: the "Actions for…" menu is visibly open in that
- * screenshot despite nothing in this spec clicking it again. Root cause
- * appears to be Radix's dialog-close focus-return landing back on the
- * dropdown trigger and re-triggering it — cosmetic in a human session (an
- * extra click closes it) but fatal to automation: clicking an
- * already-showing trigger while its own popover/backdrop occupies the same
- * screen coordinates leaves Playwright's actionability check waiting for an
- * element to "receive pointer events" that never will while the popover's
- * click-outside layer sits on top, hanging for the full action timeout with
- * no error — until the test timeout force-closes the page. Escape is a safe
- * no-op when nothing is already open, so this guard costs nothing on the
- * steps that don't hit the dialog-reopen quirk.
- */
-async function openCodeActionsMenu(page: Page, codeName: string): Promise<void> {
-  await page.getByRole("button", { name: `Actions for ${codeName}` }).click();
-}
 
 test.describe.serial("money path", () => {
   let context: BrowserContext;
@@ -176,15 +150,18 @@ test.describe.serial("money path", () => {
   });
 
   test("mints a dynamic code with a unique name", async () => {
+    // P9.8-B2: creation moved from the Studio rail to a dialog on /codes —
+    // the kit made in the previous test is the caller's only kit, so
+    // CreateCodeDialog's picker preselects it with no interaction needed.
+    await page.goto(`${E2E_BASE_URL}/codes`);
+    await page.getByRole("button", { name: "Create code" }).click();
+    await page.getByLabel("Name").fill(CODE_NAME);
     await page.getByLabel("Destination").fill(ORIGINAL_DESTINATION);
-    await page.getByRole("button", { name: "Create dynamic code" }).click();
-    await page.getByLabel("New dynamic code name").fill(CODE_NAME);
-    await page.getByRole("button", { name: "Create dynamic code" }).click();
+    await page.getByRole("button", { name: "Create" }).click();
 
-    // role="status" + aria-label added to create-code.tsx's confirmation
-    // card (P8-U1) — the raw text alone collides with PreviewStage's own
-    // "Live preview" region, which renders the same short URL once it
-    // becomes the working payload (studio-shell.tsx's handleCodeCreated).
+    // role="status" + aria-label on CreateCodeDialog's confirmation card
+    // (ported from the old studio control at P8-U1) — an accessible name a
+    // screen reader actually announces, not just a bare string.
     const shortUrlLocator = page.getByRole("status", { name: "New short URL" });
     await expect(shortUrlLocator).toHaveText(MINTED_SHORT_URL_RE);
     mintedShortUrl = ((await shortUrlLocator.textContent()) ?? "").trim();
@@ -192,8 +169,13 @@ test.describe.serial("money path", () => {
     expect(slug).toHaveLength(7);
   });
 
-  test("the new code appears in the studio codes list", async () => {
-    await expect(page.getByRole("button", { name: `Actions for ${CODE_NAME}` })).toBeVisible();
+  test("the new code appears in the codes table", async () => {
+    // The studio's codes list is gone (P9.8-B2) — closing the dialog
+    // reloads the page (CreateCodeDialog's own doc comment explains why a
+    // hard reload, not router.refresh()), which re-fetches /codes' Server
+    // Component data so the new row actually shows up here.
+    await page.getByRole("button", { name: "Close" }).click();
+    await expect(page.getByText(CODE_NAME, { exact: true })).toBeVisible();
   });
 
   test("the live redirect Worker serves the new slug correctly on first hit", async () => {
@@ -210,30 +192,46 @@ test.describe.serial("money path", () => {
     expect(response.headers.get("referrer-policy")).toBe("no-referrer-when-downgrade");
   });
 
+  // P9.8-B2: the Studio rail's per-code "Actions for…" dropdown is gone —
+  // CodesList (which owned it) was deleted along with creation moving to
+  // /codes. Retarget/Access have no on-table-row equivalent either
+  // (codes-table.tsx's row only exposes a view-analytics link and
+  // Pause/Resume); the only surviving surface for all four actions is
+  // /codes/[slug]'s CodeActionsPanel, so these tests move there. Same
+  // sequence of mutations as before (retarget, pause, resume, set access,
+  // reopen and reflect) — the later "code detail page:" block re-exercises
+  // retarget/pause/resume/access again in more depth (artifact, exports,
+  // overflow), but the state THIS block sets (RETARGETED_DESTINATION, the
+  // expiry + password) is what those later assertions expect to already be
+  // there, so this is setup, not just redundant coverage.
   test("retargets the code", async () => {
-    await openCodeActionsMenu(page, CODE_NAME);
-    await page.getByRole("menuitem", { name: "Retarget…" }).click();
+    await page.goto(`${E2E_BASE_URL}/codes/${slug}`);
+    await page.getByRole("button", { name: "Retarget…" }).click();
     const destinationInput = page.getByLabel(`New destination for ${CODE_NAME}`);
     await destinationInput.fill(RETARGETED_DESTINATION);
     await page.getByRole("button", { name: "Confirm retarget" }).click();
-    await expect(destinationInput).toBeHidden();
+    await expect(page.getByRole("link", { name: RETARGETED_DESTINATION })).toBeVisible();
   });
 
   test("pauses the code", async () => {
-    await openCodeActionsMenu(page, CODE_NAME);
-    await page.getByRole("menuitem", { name: "Pause" }).click();
-    await expect(page.getByText("Paused")).toBeVisible();
+    await expect(page.getByText("Active", { exact: true })).toBeVisible();
+    await page.getByRole("button", { name: "Pause" }).click();
+    // exact:true: this row also has a "Download" export button beside
+    // Pause/Resume (code-actions-panel.tsx), and their concatenated
+    // accessible text ("PauseDownload") contains "paused" as a
+    // case-insensitive substring — the same collision the "code detail
+    // page:" pause/resume test further down documents and guards against.
+    await expect(page.getByText("Paused", { exact: true })).toBeVisible();
   });
 
   test("resumes the code", async () => {
-    await openCodeActionsMenu(page, CODE_NAME);
-    await page.getByRole("menuitem", { name: "Resume" }).click();
-    await expect(page.getByText("Paused")).toBeHidden();
+    await page.getByRole("button", { name: "Resume" }).click();
+    await expect(page.getByText("Paused", { exact: true })).toBeHidden();
+    await expect(page.getByText("Active", { exact: true })).toBeVisible();
   });
 
   test("sets an expiry and a password via the Access dialog", async () => {
-    await openCodeActionsMenu(page, CODE_NAME);
-    await page.getByRole("menuitem", { name: "Access…" }).click();
+    await page.getByRole("button", { name: "Access…" }).click();
     await expect(page.getByRole("heading", { name: "Access controls" })).toBeVisible();
 
     await page.getByLabel("Expires").fill(FUTURE_EXPIRY);
@@ -244,16 +242,20 @@ test.describe.serial("money path", () => {
   });
 
   test("reopening the Access dialog reflects the saved expiry and password state", async () => {
-    await openCodeActionsMenu(page, CODE_NAME);
-    await page.getByRole("menuitem", { name: "Access…" }).click();
+    await page.getByRole("button", { name: "Access…" }).click();
+    const dialog = page.getByRole("dialog");
     await expect(page.getByRole("heading", { name: "Access controls" })).toBeVisible();
 
-    // DialogDescription renders `${"Protected"|"Not protected"} · ${expires
-    // .../no expiry}` — capital-P "Protected" only appears on the true
-    // branch ("Not protected" always has a lowercase p), so this is
-    // unambiguous proof the password round-tripped; the repopulated Expires
-    // input is the same proof for the expiry.
-    await expect(page.getByText(/^Protected · expires/)).toBeVisible();
+    // Scoped to the dialog: code-actions-panel.tsx also renders its own
+    // static "Protected · expires <date>" summary line beside the "Access…"
+    // trigger, so an unscoped match hits both and strict mode rejects the
+    // ambiguity (documented again on the "code detail page:" equivalent of
+    // this assertion further down). DialogDescription renders
+    // `${"Protected"|"Not protected"} · ${expires .../no expiry}` — capital-P
+    // "Protected" only appears on the true branch, so this is unambiguous
+    // proof the password round-tripped; the repopulated Expires input is the
+    // same proof for the expiry.
+    await expect(dialog.getByText(/^Protected · expires/)).toBeVisible();
     await expect(page.getByLabel("Expires")).toHaveValue(FUTURE_EXPIRY);
 
     await page.getByRole("button", { name: "Cancel" }).click();
@@ -261,6 +263,8 @@ test.describe.serial("money path", () => {
   });
 
   test("bulk creates 2 valid codes and 1 invalid line, and reports partial success", async () => {
+    // P9.8-B2: the bulk dialog moved from the Studio rail to /codes' header.
+    await page.goto(`${E2E_BASE_URL}/codes`);
     await page.getByRole("button", { name: "Bulk create" }).click();
     await expect(page.getByRole("heading", { name: "Bulk create" })).toBeVisible();
 
@@ -302,9 +306,10 @@ test.describe.serial("money path", () => {
   });
 
   test("/codes shows the Create button, and the row pause toggle flips the status text and back", async () => {
-    // P9.5-T7. Header button: an honest plain link to /studio (the real
-    // create entry point — there is no separate create route).
-    await expect(page.getByRole("link", { name: "Create code" })).toHaveAttribute("href", "/studio");
+    // P9.8-B2: creation lives on this page now (CodesHeaderActions) — this
+    // just asserts the trigger exists; its own dialog is covered by the
+    // earlier mint test.
+    await expect(page.getByRole("button", { name: "Create code" })).toBeVisible();
 
     // Scope to CODE_NAME's own row so this can't accidentally match one of
     // the two bulk-created rows also on this page. CodesTable's rows are
@@ -322,9 +327,12 @@ test.describe.serial("money path", () => {
 
   // P9.6-U3: /codes/[slug] rebuilt from an analytics-only page into the
   // code's real home — the artifact itself, plus all four actions. Each
-  // sub-test below exercises exactly one action from THIS page (not the
-  // Studio rail, which the earlier tests above already cover), reusing the
-  // same fixture code/slug the rest of this file already minted.
+  // sub-test below exercises exactly one action from THIS page; the earlier
+  // "retargets the code"/"pauses the code"/etc. tests above already reached
+  // this same page too (P9.8-B2 moved them here once the Studio rail's own
+  // per-code actions surface was deleted), so this block re-exercises the
+  // same actions in more depth (artifact, exports, overflow) rather than
+  // covering different UI.
   test("code detail page: shows the artifact and its identity", async () => {
     await page.goto(`${E2E_BASE_URL}/codes/${slug}`);
     await expect(page.getByRole("heading", { name: CODE_NAME })).toBeVisible();
@@ -345,7 +353,7 @@ test.describe.serial("money path", () => {
 
     // The destination, shown as an outbound link distinct from the short
     // link — still RETARGETED_DESTINATION at this point in the run (the
-    // studio-driven retarget test above already changed it once).
+    // "retargets the code" test above already changed it once).
     await expect(page.getByRole("link", { name: RETARGETED_DESTINATION })).toBeVisible();
   });
 
@@ -370,15 +378,14 @@ test.describe.serial("money path", () => {
     await expect(page.getByText("Paused", { exact: true })).toBeVisible();
 
     await page.getByRole("button", { name: "Resume" }).click();
-    // exact:true, unlike the Studio-rail equivalent of this assertion
-    // (this file's "resumes the code" test above, which has no adjacent
-    // "Download" button to collide with): a non-exact getByText("Paused")
-    // is a case-insensitive SUBSTRING match, and this page's action row
-    // puts "Pause" immediately before a "Download" button — their
-    // concatenated accessible text, "PauseDownload", itself contains
-    // "paused" as a substring once lowercased. Found by running this
-    // suite locally, not assumed: the non-exact version failed here with
-    // exactly that false match.
+    // exact:true (same guard the earlier "resumes the code" test above
+    // applies, for the same reason: both run on this page): a non-exact
+    // getByText("Paused") is a case-insensitive SUBSTRING match, and this
+    // page's action row puts "Pause" immediately before a "Download"
+    // button — their concatenated accessible text, "PauseDownload", itself
+    // contains "paused" as a substring once lowercased. Found by running
+    // this suite locally, not assumed: the non-exact version failed here
+    // with exactly that false match.
     await expect(page.getByText("Paused", { exact: true })).toBeHidden();
     await expect(page.getByText("Active", { exact: true })).toBeVisible();
   });

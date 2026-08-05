@@ -1,8 +1,7 @@
-import Link from "next/link";
 import { redirect } from "next/navigation";
-import { Plus } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { listDynamicCodesCore } from "@/lib/codes-core";
+import type { KitPickerKit } from "@/lib/brand-kits";
 import { PLAN_LIMITS, type Plan } from "@/lib/entitlements";
 import { rangeLabel, rangeWindowUtc, resolveRangeDays } from "@/lib/analytics";
 import { parseSparklinePoints } from "@/lib/sparkline";
@@ -10,9 +9,9 @@ import { pageSliceFor, resolveCodesPage, totalPagesFor } from "@/lib/pagination"
 import { CodesTable } from "@/components/codes/codes-table";
 import { CodesOverviewPanel } from "@/components/codes/codes-overview-panel";
 import { CodesPagination } from "@/components/codes/codes-pagination";
+import { CodesHeaderActions } from "@/components/codes/codes-header-actions";
 import { StatTile } from "@/components/codes/stat-tile";
 import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 
 // D9: all (app) routes are force-dynamic so the getClaims() guard below runs
 // fresh on every request rather than riding a cached response.
@@ -64,8 +63,8 @@ export default async function CodesOverviewPage(props: PageProps<"/codes">) {
     Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()),
   ).toISOString();
 
-  // P9.6-U2: these four reads depend only on userId/range (both already
-  // resolved above), not on each other, so they run in parallel rather than
+  // P9.6-U2: these reads depend only on userId/range (both already resolved
+  // above), not on each other, so they run in parallel rather than
   // sequentially. `scan_totals_by_day`/`scan_sparklines` (P9.6-U1) replace
   // what used to be a single code-id-less `scan_daily` select here — one
   // row per (code, day) pair with no code_id filter, silently truncated
@@ -76,7 +75,13 @@ export default async function CodesOverviewPage(props: PageProps<"/codes">) {
   // sparklines below possible in the first place — a naive per-code-per-day
   // query for sparklines would hit the same 1000-row wall even faster than
   // the chart query did, so this is new capability, not just a fix.
-  const [totalsResult, sparklinesResult, codesResult, todayResult] = await Promise.all([
+  //
+  // P9.8-B2: `kitsResult` joins this same Promise.all — creation now lives
+  // on this page, and CreateCodeDialog/BulkCreateDialog both need the
+  // caller's kits for their picker. Ordering mirrors studio/page.tsx's own
+  // kit fetch (default-first, then oldest-first: the default kit is what a
+  // fresh dialog session preselects).
+  const [totalsResult, sparklinesResult, codesResult, todayResult, kitsResult] = await Promise.all([
     supabase.rpc("scan_totals_by_day", { start_date: startIso, end_date: endIso }),
     supabase.rpc("scan_sparklines", { start_date: startIso, end_date: endIso }),
     listDynamicCodesCore({ db: supabase, ownerId: userId }),
@@ -84,11 +89,18 @@ export default async function CodesOverviewPage(props: PageProps<"/codes">) {
       .from("scan_events")
       .select("id", { count: "exact", head: true })
       .gte("ts", todayStartIso),
+    supabase
+      .from("brand_kits")
+      .select("id, name, style, is_default")
+      .eq("owner_id", userId)
+      .order("is_default", { ascending: false })
+      .order("created_at", { ascending: true }),
   ]);
 
   const dailyRows = totalsResult.data ?? [];
   const codes = codesResult.ok ? codesResult.data : [];
   const scansToday = todayResult.count ?? 0;
+  const kits = (kitsResult.data ?? []) as KitPickerKit[];
 
   const sparklines = new Map<string, number[]>(
     (sparklinesResult.data ?? []).map((row) => [row.code_id, parseSparklinePoints(row.points)]),
@@ -130,17 +142,12 @@ export default async function CodesOverviewPage(props: PageProps<"/codes">) {
               Every dynamic code and its scan activity.
             </p>
           </div>
-          {/* P9.5-T7: the studio IS the create flow (components/studio/
-              create-code.tsx's CreateCodeControl lives inside it, wired to
-              the live payload/style being edited there) — there is no
-              separate create route to deep-link to, so "Create code" here
-              is an honest plain link to /studio, not a shortcut around it. */}
-          <Button asChild className="shrink-0 gap-1.5">
-            <Link href="/studio">
-              <Plus className="size-3.5" aria-hidden />
-              Create code
-            </Link>
-          </Button>
+          {/* P9.8-B2: creation moved here from the studio (board: "bulk
+              codes may get annoying to handle under a kit in the studio")
+              — the studio is kits-only now. Both dialogs mint a code
+              attached to a chosen kit, mirroring its style (hard sync, D5
+              as amended); CodesHeaderActions owns their open state. */}
+          <CodesHeaderActions kits={kits} plan={plan} codeCount={codes.length} />
         </div>
       </header>
 
@@ -190,11 +197,7 @@ export default async function CodesOverviewPage(props: PageProps<"/codes">) {
 
         {codes.length === 0 ? (
           <p className="py-12 text-center text-sm text-muted-foreground">
-            No dynamic codes yet.{" "}
-            <Link href="/studio" className="text-primary underline-offset-4 hover:underline">
-              Create one in the studio
-            </Link>
-            .
+            No dynamic codes yet. Use Create code above.
           </p>
         ) : (
           <>

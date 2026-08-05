@@ -5,7 +5,6 @@ import { useTheme } from "next-themes";
 import { scannabilityReport } from "@qrcdn/qr-engine";
 import { defaultQrStyle, parseQrStyle, type QrStyle } from "@qrcdn/shared";
 import type { BrandKit } from "@/lib/brand-kits";
-import type { DynamicCodeSummary, QrCode } from "@/lib/codes-core";
 import type { Plan } from "@/lib/entitlements";
 import { useMounted } from "@/hooks/use-mounted";
 import { degreesToRadians } from "@/lib/angle";
@@ -19,8 +18,6 @@ import {
 } from "@/lib/logo";
 import { PREVIEW_PAYLOAD_DEFAULT, renderPreview } from "@/lib/preview";
 import { inkHexFromStyle } from "@/lib/qr-style-derive";
-import { stylesEqual } from "@/lib/style-compare";
-import { printedShortUrl } from "@/lib/short-url";
 import { TopBar } from "./top-bar";
 import { ControlsRail } from "./controls-rail";
 import { PreviewStage } from "./preview-stage";
@@ -56,17 +53,14 @@ function styleFromKit(kit: BrandKit | null | undefined): QrStyle {
  */
 export function StudioShell({
   initialKits,
-  initialCodes,
   plan,
   userId,
 }: {
   initialKits: BrandKit[];
-  initialCodes: DynamicCodeSummary[];
-  /** P7.5-U2: threaded down to CodesList's access-controls dialog, which
-   *  needs it to render the Pro-lock affordance for free-plan callers
-   *  (mirroring components/codes/range-selector.tsx's own lock pattern).
-   *  P7.5-U3 threads the same prop on through ControlsRail to
-   *  CreateCodeControl too, for its vanity-slug Pro lock. */
+  /** P9.8-B2: creation (and its Pro-locks) left the studio for /codes — the
+   *  one remaining consumer is KitBar's free-tier kit-limit note (via
+   *  TopBar), which must not show a free-tier message to a Pro caller
+   *  (agent-found latent bug, kit-bar.tsx's own doc comment). */
   plan: Plan;
   userId: string;
 }) {
@@ -74,7 +68,6 @@ export function StudioShell({
   const [activeKitId, setActiveKitId] = useState<string | null>(initialKits[0]?.id ?? null);
   const [style, setStyle] = useState<QrStyle>(() => styleFromKit(initialKits[0]));
   const [payload, setPayload] = useState(PREVIEW_PAYLOAD_DEFAULT);
-  const [codes, setCodes] = useState<DynamicCodeSummary[]>(initialCodes);
   // The raw File behind a not-yet-persisted style.logo.assetId — kept only
   // so the kit bar's create/save actions can upload it to the brand-logos
   // bucket as the durable source (deliverable #2). Cleared once that upload
@@ -115,74 +108,6 @@ export function StudioShell({
 
   const handleDefaultChanged = useCallback((id: string) => {
     setKits((prev) => prev.map((k) => ({ ...k, is_default: k.id === id })));
-  }, []);
-
-  // Dynamic-code handlers (P5-U4) — same ownership split as the brand-kit
-  // handlers above: CreateCodeControl/CodesList call the P5-U1 server
-  // actions themselves and bubble up only the successful result; this shell
-  // owns the canonical `codes` array plus the working payload/style that a
-  // creation or "Load in studio" swaps.
-  const handleCodeCreated = useCallback((code: QrCode, shortUrl: string) => {
-    // createDynamicCodeCore returns the FULL row (QrCode), including the raw
-    // expires_at/password_hash columns (always null at creation — there's no
-    // create-time access-controls input) — mapped down to the summary shape
-    // explicitly here rather than spread, so the raw password_hash column
-    // name never lands on `codes` state even transiently (P7.5-U2's
-    // DynamicCodeSummary invariant, codes-core.ts).
-    setCodes((prev) => [
-      {
-        id: code.id,
-        slug: code.slug,
-        name: code.name,
-        destination_url: code.destination_url,
-        status: code.status,
-        scan_count: code.scan_count,
-        created_at: code.created_at,
-        brandKitId: code.brand_kit_id,
-        expiresAt: code.expires_at,
-        passwordProtected: code.password_hash !== null,
-      },
-      ...prev,
-    ]);
-    // The product moment (P5-U4 spec): the preview payload switches to the
-    // real short URL so the artifact on stage becomes the live, printable
-    // code instead of a preview of the raw destination.
-    setPayload(shortUrl);
-  }, []);
-
-  const handleCodeLoad = useCallback((code: DynamicCodeSummary, loadedStyle: QrStyle) => {
-    setPayload(printedShortUrl(code.slug));
-    // Loads the code's CURRENT style into the working editor. Under hard
-    // sync (P9.8-B1, D5 as amended) that is its kit's style for an attached
-    // code — and saving further edits back to that kit DOES restyle the
-    // code, along with every sibling attached to the same kit; that is the
-    // product. Only a kit-less code (brand_kit_id null) still holds a
-    // frozen snapshot this copy can never write back to.
-    setStyle(loadedStyle);
-  }, []);
-
-  const handleCodeRetargeted = useCallback((id: string, destinationUrl: string) => {
-    setCodes((prev) => prev.map((c) => (c.id === id ? { ...c, destination_url: destinationUrl } : c)));
-  }, []);
-
-  const handleCodePauseToggled = useCallback((id: string, status: string) => {
-    setCodes((prev) => prev.map((c) => (c.id === id ? { ...c, status } : c)));
-  }, []);
-
-  const handleCodeAccessUpdated = useCallback(
-    (id: string, patch: { expiresAt: string | null; passwordProtected: boolean }) => {
-      setCodes((prev) => prev.map((c) => (c.id === id ? { ...c, ...patch } : c)));
-    },
-    [],
-  );
-
-  // P7.5-U4: bulk create's dialog-close sync — a full replace, not a merge,
-  // since bulk-create-dialog.tsx refetches the caller's whole list right
-  // before calling this (see its own doc comment for why a refetch is
-  // correct here instead of the append handleCodeCreated does for a single
-  // create).
-  const handleCodesRefreshed = useCallback((refreshed: DynamicCodeSummary[]) => {
-    setCodes(refreshed);
   }, []);
 
   const setInk = useCallback((hex: string) => {
@@ -305,21 +230,6 @@ export function StudioShell({
     }
   }, [style]);
 
-  // P9.8-B1: whether the working style has drifted from the active kit's
-  // SAVED style — the same computation KitBar makes for its Save button,
-  // recomputed here (cheap deep-compare) to gate the create/bulk controls:
-  // minting reads the saved kit server-side, so creating while dirty would
-  // mint a code that doesn't match what's on stage.
-  const kitDirty = useMemo(() => {
-    const activeKit = kits.find((k) => k.id === activeKitId) ?? null;
-    if (!activeKit) return false;
-    try {
-      return !stylesEqual(validStyle, parseQrStyle(activeKit.style));
-    } catch {
-      return true;
-    }
-  }, [kits, activeKitId, validStyle]);
-
   const previewData = payload.trim().length > 0 ? payload : PREVIEW_PAYLOAD_DEFAULT;
 
   // Defense in depth (qr-engine.md): re-validate the persisted assetId shape
@@ -389,6 +299,7 @@ export function StudioShell({
         activeKitId={activeKitId}
         currentStyle={validStyle}
         userId={userId}
+        plan={plan}
         pendingLogoFile={pendingLogoFile}
         onSwitch={handleSwitch}
         onCreated={handleCreated}
@@ -402,17 +313,7 @@ export function StudioShell({
           style={validStyle}
           payload={payload}
           effectiveEcc={report.effectiveEcc}
-          codes={codes}
-          plan={plan}
-          activeKitId={activeKitId}
-          kitDirty={kitDirty}
           onPayloadChange={setPayload}
-          onCodeCreated={handleCodeCreated}
-          onCodeLoad={handleCodeLoad}
-          onCodeRetargeted={handleCodeRetargeted}
-          onCodePauseToggled={handleCodePauseToggled}
-          onCodeAccessUpdated={handleCodeAccessUpdated}
-          onCodesRefreshed={handleCodesRefreshed}
           onInkChange={setInk}
           onPaperChange={setPaper}
           onFillTypeChange={setFillType}

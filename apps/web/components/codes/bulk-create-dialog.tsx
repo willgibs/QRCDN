@@ -24,8 +24,10 @@ import { PLAN_LIMITS, type Plan } from "@/lib/entitlements";
 import { suggestCodeName } from "@/lib/code-name";
 import { downloadBlob } from "@/lib/export";
 import { buildResultsCsv } from "@/lib/csv";
-import { createDynamicCodesBulk, listDynamicCodes } from "@/app/(app)/studio/code-actions";
-import type { BulkItemOutcome, DynamicCodeSummary } from "@/lib/codes-core";
+import { createDynamicCodesBulk } from "@/app/(app)/studio/code-actions";
+import type { BulkItemOutcome } from "@/lib/codes-core";
+import type { KitPickerKit } from "@/lib/brand-kits";
+import { KitPicker, defaultKitId } from "./kit-picker";
 
 const COPY_FLASH_TIMEOUT_MS = 1600;
 
@@ -47,6 +49,8 @@ const BATCH_ERROR_MESSAGES: Record<string, string> = {
   code_limit: "That batch would put you over your plan's code limit.",
   bulk_not_available: "Bulk creation is a Pro feature.",
   profile_not_found: "Couldn't find your account. Try again.",
+  brand_kit_not_found: "That brand kit no longer exists. Pick another.",
+  invalid_style: "That kit's style couldn't be read. Try a different kit.",
   // P8-U4: createDynamicCodesBulk is now rate-limited (STUDIO_MUTATE_LIMIT).
   rate_limited: "Too many changes just now. Try again in a few minutes.",
 };
@@ -110,51 +114,51 @@ function parseBulkDraft(raw: string): BulkDraftItem[] {
 // carry a spreadsheet-formula-injection guard (see that file).
 
 /**
- * The studio rail's "Bulk create" affordance (P7.5-U4) — a Dialog (the
- * vendored `Dialog` primitive's second consumer, after `CodeAccessDialog`)
- * that parses a pasted batch of destinations client-side and hands the
- * parsed items to `createDynamicCodesBulk` in one call, then reports partial
- * success: which lines became live codes, which didn't, and why.
+ * `/codes` header's "Bulk create" affordance (moved here from the studio
+ * rail at P9.8-B2 — "same dialog" per that unit's spec: still self-
+ * contained, owning its own `open` state and its own `DialogTrigger`,
+ * unlike `CreateCodeDialog`'s caller-mounted contract, because nothing here
+ * changed about how this dialog is triggered). Parses a pasted batch of
+ * destinations client-side and hands the parsed items to
+ * `createDynamicCodesBulk` in one call, then reports partial success: which
+ * lines became live codes, which didn't, and why.
  *
  * Pro-locked exactly like `CodeAccessDialog`'s own `accessControls` branch —
  * free-plan callers can still open the dialog (the trigger always works),
  * they just see the upsell block instead of the textarea, matching
- * components/codes/range-selector.tsx's Pro pill/tooltip affordance for the
- * "still visible, clearly locked" register this codebase uses everywhere
- * else instead of hiding a feature outright.
+ * components/codes/range-selector.tsx's own lock pattern.
  *
- * List-update-on-success: a `BulkItemOutcome` only carries
- * `{name, ok, slug, url}` — not the full `id`/`status`/`scan_count`/
- * `created_at`/etc. a `DynamicCodeSummary` row needs, so there's no honest
- * way to synthesize new rows the way `handleCodeCreated` does for a single
- * create (which gets the FULL `QrCode` row back). Instead, on dialog close
- * with at least one success, this refetches the caller's whole list
- * (`listDynamicCodes`) and hands it up via `onCodesRefreshed`, which
- * studio-shell.tsx wires straight to `setCodes` — one extra round-trip per
- * batch, in exchange for every field (status, scan_count, timestamps) being
- * real instead of guessed.
+ * Kit-attached (P9.8-B2, replacing the B1-interim `activeKitId`/`kitDirty`
+ * props this file took while it still lived in the studio and mirrored
+ * whatever style was on stage there): every code in the batch attaches to
+ * the SELECTED kit and mirrors its SAVED style, read server-side by
+ * `createDynamicCodesBulkCore`. Submission just requires a kit to exist —
+ * there's no "working style" to be dirty against anymore now that this
+ * dialog lives outside the studio.
+ *
+ * Close-with-successes reloads the page instead of the old
+ * `listDynamicCodes()`/`onCodesRefreshed` plumbing — `/codes` is a Server
+ * Component now that this dialog lives there, so a fresh load is what
+ * makes newly-minted rows show up. `window.location.reload()`, not
+ * `router.refresh()`: see `create-code-dialog.tsx`'s own doc comment for
+ * why (it measurably failed this unit's own e2e verification run, the same
+ * CI-only failure mode `pause-toggle-button.tsx` already documents).
  */
 export function BulkCreateDialog({
   plan,
-  activeKitId,
-  kitDirty,
+  kits,
   codeCount,
-  onCodesRefreshed,
 }: {
   plan: Plan;
-  /** P9.8-B1: every code in the batch attaches to this kit and mirrors its
-   *  SAVED style (read server-side). Submit waits while the working style
-   *  is dirty, same reasoning as CreateCodeControl. */
-  activeKitId: string | null;
-  kitDirty: boolean;
-  /** studio-shell's `codes.length` — current dynamic-code count, for the
-   *  live "N of M remaining" counter. UI-only; the actual cap is enforced
-   *  server-side by `createDynamicCodesBulkCore`. */
+  kits: KitPickerKit[];
+  /** The caller's current dynamic-code count, for the live "N of M
+   *  remaining" counter. UI-only; the actual cap is enforced server-side by
+   *  `createDynamicCodesBulkCore`. */
   codeCount: number;
-  onCodesRefreshed: (codes: DynamicCodeSummary[]) => void;
 }) {
   const [open, setOpen] = useState(false);
   const [draft, setDraft] = useState("");
+  const [selectedKitId, setSelectedKitId] = useState<string | null>(() => defaultKitId(kits));
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [results, setResults] = useState<BulkItemOutcome[] | null>(null);
@@ -168,10 +172,8 @@ export function BulkCreateDialog({
 
   const items = useMemo(() => parseBulkDraft(draft), [draft]);
   const overCap = items.length > BULK_MAX || items.length > remaining;
-  // P9.8-B1: the whole batch mints from the SAVED kit server-side, so
-  // submit waits for a kit to exist and its working edits to be saved.
-  const kitBlocked = activeKitId === null || kitDirty;
-  const canSubmit = items.length > 0 && !overCap && !busy && !kitBlocked;
+  const noKits = kits.length === 0;
+  const canSubmit = items.length > 0 && !overCap && !busy && selectedKitId !== null;
 
   function resetDraftState() {
     setDraft("");
@@ -180,17 +182,16 @@ export function BulkCreateDialog({
     setCopiedUrl(null);
   }
 
-  async function handleOpenChange(next: boolean) {
+  function handleOpenChange(next: boolean) {
+    if (!next && results && results.some((r) => r.ok)) {
+      // /codes is a Server Component — a hard reload re-fetches its data so
+      // the table (and the stat strip's code count) pick up the batch. See
+      // create-code-dialog.tsx's own doc comment for why a reload, not
+      // router.refresh().
+      window.location.reload();
+      return;
+    }
     if (!next) {
-      // Sync the parent's canonical list exactly once, right as the dialog
-      // closes — never mid-session while results are still on screen (the
-      // user may still be reading failures or about to export the CSV).
-      if (results && results.some((r) => r.ok)) {
-        const refreshed = await listDynamicCodes();
-        if (refreshed.ok) {
-          onCodesRefreshed(refreshed.data);
-        }
-      }
       resetDraftState();
     }
     setOpen(next);
@@ -201,7 +202,7 @@ export function BulkCreateDialog({
     setBusy(true);
     setError(null);
     try {
-      const result = await createDynamicCodesBulk(items, activeKitId);
+      const result = await createDynamicCodesBulk(items, selectedKitId);
       if (!result.ok) {
         setError(BATCH_ERROR_MESSAGES[result.error] ?? GENERIC_BATCH_ERROR);
         return;
@@ -222,7 +223,8 @@ export function BulkCreateDialog({
       copyTimer.current = setTimeout(() => setCopiedUrl(null), COPY_FLASH_TIMEOUT_MS);
     } catch {
       // Clipboard access denied/unavailable — the url is still visible and
-      // selectable by hand, same stance as create-code.tsx's own handleCopy.
+      // selectable by hand, same stance as create-code-dialog.tsx's own
+      // handleCopy.
     }
   }
 
@@ -242,12 +244,8 @@ export function BulkCreateDialog({
       <DialogTrigger asChild>
         <Button
           type="button"
-          variant="ghost"
-          size="sm"
-          className={cn(
-            "w-fit gap-1.5",
-            locked ? "text-muted-foreground" : "text-primary hover:bg-primary/10 hover:text-primary",
-          )}
+          variant="outline"
+          className={cn("gap-1.5", locked && "text-muted-foreground")}
         >
           Bulk create
           {locked && (
@@ -335,6 +333,7 @@ export function BulkCreateDialog({
           </div>
         ) : (
           <div className="flex flex-col gap-2">
+            <KitPicker kits={kits} selectedKitId={selectedKitId} onChange={setSelectedKitId} disabled={busy} />
             <Textarea
               autoFocus
               value={draft}
@@ -349,11 +348,9 @@ export function BulkCreateDialog({
             <p className={cn("text-xs", overCap ? "text-destructive" : "text-muted-foreground")}>
               {items.length} to create · {remaining} of {limit} remaining
             </p>
-            {kitBlocked && (
+            {noKits && (
               <p className="text-xs text-muted-foreground">
-                {activeKitId === null
-                  ? "Create a brand kit first: every code in the batch attaches to one."
-                  : "Save your kit first: the batch mints with its saved style."}
+                Create a brand kit first: every code in the batch attaches to one.
               </p>
             )}
             {error && (

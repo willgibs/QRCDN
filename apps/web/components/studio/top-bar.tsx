@@ -1,5 +1,6 @@
 import type { QrStyle } from "@qrcdn/shared";
 import type { BrandKit } from "@/lib/brand-kits";
+import type { Plan } from "@/lib/entitlements";
 import { KitBar } from "./kit-bar";
 
 /**
@@ -32,6 +33,7 @@ export function TopBar({
   activeKitId,
   currentStyle,
   userId,
+  plan,
   pendingLogoFile,
   onSwitch,
   onCreated,
@@ -43,6 +45,10 @@ export function TopBar({
   activeKitId: string | null;
   currentStyle: QrStyle;
   userId: string;
+  /** P9.8-B2 rider: threaded through to KitBar's kit-limit note, which must
+   *  not show the free-tier message to a Pro caller (agent-found latent
+   *  bug — see kit-bar.tsx's own doc comment). */
+  plan: Plan;
   pendingLogoFile: File | null;
   onSwitch: (kit: BrandKit) => void;
   onCreated: (kit: BrandKit) => void;
@@ -58,6 +64,7 @@ export function TopBar({
           activeKitId={activeKitId}
           currentStyle={currentStyle}
           userId={userId}
+          plan={plan}
           pendingLogoFile={pendingLogoFile}
           onSwitch={onSwitch}
           onCreated={onCreated}

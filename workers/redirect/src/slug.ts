@@ -8,6 +8,13 @@
 // recognize "this path is slug-shaped," not to validate charset purity.
 // Whether the slug actually resolves to anything is decided downstream by
 // the KV/REST lookup, not by this matcher.
+//
+// DELIBERATELY NOT narrowed to 4-17 at P9.8-B3 (D12 as amended): that
+// amendment tightens where new vanity slugs can be CREATED, not this
+// Worker's routing shape. Creation caps at 17; routing accepts legacy up to
+// 30 — a code printed before the amendment can carry an 18-30 char slug and
+// must keep redirecting forever ("your code never dies"). Narrowing this
+// pattern would 404 real, already-printed codes.
 const SLUG_PATTERN = /^[0-9A-Za-z]{4,30}$/;
 
 /** True if `segment` (a single path segment, no leading/trailing slashes) is

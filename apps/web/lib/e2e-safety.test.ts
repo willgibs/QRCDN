@@ -108,6 +108,12 @@ const UUID_RE = /\b[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[
 // "NEXT" inside the wholly-unrelated literal "NEXT_PUBLIC_SUPABASE_URL" —
 // an env var name, not a slug, but "NEXT" alone would otherwise match the
 // charset run naively).
+// {4,30}, not {4,17}, DELIBERATELY left unchanged by P9.8-B3 (D12 as
+// amended): that amendment only tightens where NEW vanity slugs can be
+// CREATED. Legacy 18-30 char slugs printed before the amendment are still
+// real, resolvable rows — this is a leak-detection net, not a creation-time
+// validator, so narrowing it to 17 would blind it to exactly the
+// still-live slugs most worth catching in a hardcoded literal.
 const SLUG_LOOKING_RE = new RegExp(`(?<![A-Za-z0-9_])[${SLUG_CHARSET}]{4,30}(?![A-Za-z0-9_])`);
 
 const e2eFiles = collectTsFiles(E2E_DIR);

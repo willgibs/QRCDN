@@ -15,7 +15,7 @@
 // lib/pricing.ts and the legal pages already established.
 
 import { PLAN_LIMITS } from "./entitlements";
-import { SLUG_CHARSET } from "./slug";
+import { MAX_SLUG_LENGTH, MIN_SLUG_LENGTH, SLUG_CHARSET } from "./slug";
 
 export const HELP_CATEGORIES = [
   "Getting started",
@@ -144,7 +144,7 @@ export const HELP_ARTICLES: readonly HelpArticle[] = [
       `While creating a code, expand "Customize link" beneath the name field.`,
       "Type the slug you want and finish creating the code as usual.",
     ],
-    whatToExpect: `Vanity slugs are a Pro feature: 4 to 30 characters, drawn from ${SLUG_CHARSET} (no 0, 1, I, L, O, or U, since those are the characters most often misread on a printed label or a low-resolution photo). Lowercase is fine to type; it gets normalized to uppercase automatically, since that is the printable form every QRCDN short link actually takes. A taken slug fails immediately with a clear "that link is taken" message and no silent retry onto a different one, so you always know to try again with something else rather than wondering which slug actually landed. A handful of words tied to the product itself, like the ones already used in the app's own routes, are permanently off-limits no matter how the rest of the charset check goes.`,
+    whatToExpect: `Vanity slugs are a Pro feature: ${MIN_SLUG_LENGTH} to ${MAX_SLUG_LENGTH} characters, drawn from ${SLUG_CHARSET} (no 0, 1, I, L, O, or U, since those are the characters most often misread on a printed label or a low-resolution photo). Lowercase is fine to type; it gets normalized to uppercase automatically, since that is the printable form every QRCDN short link actually takes. A taken slug fails immediately with a clear "that link is taken" message and no silent retry onto a different one, so you always know to try again with something else rather than wondering which slug actually landed. A handful of words tied to the product itself, like the ones already used in the app's own routes, are permanently off-limits no matter how the rest of the charset check goes.`,
     crossLinks: [{ label: "Create your first dynamic code", href: "/help/create-a-dynamic-code" }],
   },
   {

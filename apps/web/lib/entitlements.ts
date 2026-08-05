@@ -18,7 +18,7 @@ export interface PlanLimits {
   apiMonthlyRequests: number | null;
   /** Expiry and password protection per code. */
   accessControls: boolean;
-  /** Custom vanity slugs (4-30 chars). */
+  /** Custom vanity slugs (4-17 chars, D12 as amended). */
   vanitySlugs: boolean;
   /** Bulk generation. */
   bulk: boolean;

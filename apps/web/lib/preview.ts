@@ -19,6 +19,21 @@ import { defaultQrStyle, type QrStyle } from "@qrcdn/shared";
 
 export const PREVIEW_PAYLOAD_DEFAULT = "HTTPS://QRCDN.COM/PREVIEW";
 
+/**
+ * The worst-case dynamic-code payload (P9.8-B3): `HTTPS://QRCDN.COM/` (18
+ * chars) + a maximum-length 17-character vanity slug = 35 chars, exactly
+ * the version-3-at-ECC-H alphanumeric capacity —
+ * `packages/qr-engine/test/render.test.ts`'s "keeps the worst-case dynamic
+ * payload at version ≤ 3" test pins both sides of that boundary at the
+ * encoder level, and docs/DECISIONS.md's D12 amendment is the empirical
+ * derivation behind the 17-character cap. Every real dynamic payload
+ * (auto-generated or vanity, API included) is bounded at or under this
+ * exact length, so evaluating a brand kit's scannability against THIS
+ * payload — not a short placeholder — proves that kit for every dynamic
+ * code it will ever mint, not just whatever is on screen right now.
+ */
+export const PREVIEW_PAYLOAD_WORST_CASE = "HTTPS://QRCDN.COM/" + "W".repeat(17);
+
 export interface PreviewRenderResult {
   svg: string;
   /**

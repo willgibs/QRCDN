@@ -8,6 +8,7 @@ import { ClosingSection } from "@/components/marketing/closing-section";
 import { FeatureHero } from "@/components/marketing/features/feature-hero";
 import { FaqList } from "@/components/marketing/features/faq-list";
 import { PRICING_ROWS, type PricingRow } from "@/lib/pricing";
+import { MAX_SLUG_LENGTH } from "@/lib/slug";
 
 // /features/access-controls (P9.5-T-F2) — the fourth feature-depth page,
 // composing the landing's section-04 `StateCards` (via its additive `only`
@@ -31,10 +32,12 @@ import { PRICING_ROWS, type PricingRow } from "@/lib/pricing";
 // variant-A text, shipped verbatim.
 //
 // TRUTH-GATE G3 (vanity slug rules) read from `lib/slug.ts`: `SLUG_CHARSET`
-// (30 symbols, digits 2-9 + A-Z minus I/L/O/U), 4-30 chars
-// (`validateVanitySlug`/`isValidSlug`), case-insensitive input normalized
-// to uppercase, and the `RESERVED_SLUGS` blocklist. S3 below states exactly
-// this, no more.
+// (30 symbols, digits 2-9 + A-Z minus I/L/O/U), 4-17 chars (cap tightened
+// from 4-30 at P9.8-B3, D12 as amended — `validateVanitySlug`/`isValidSlug`),
+// case-insensitive input normalized to uppercase, and the `RESERVED_SLUGS`
+// blocklist. S3 below interpolates `MAX_SLUG_LENGTH` directly (matched by
+// `marketing.spec.ts`'s own import of the same constant) so this can never
+// drift again.
 //
 // TRUTH-GATE G4 (can an expired code be revived by editing expiry?) read
 // from `lib/codes-core.ts`'s `setCodeAccessCore` + `lib/validation.ts`'s
@@ -170,11 +173,11 @@ export default function AccessControlsFeaturePage() {
       <Section variant="split">
         <SectionHeading
           title="Name it."
-          lede="Vanity slugs put your words on the address: qrcdn.com/summer-menu instead of a random handle. Pick 4 to 30 characters from a set that skips the letters and digits a camera misreads: no 0, O, 1, I, L, or U."
+          lede={`Vanity slugs put your words on the address: qrcdn.com/summer-menu instead of a random handle. Pick 4 to ${MAX_SLUG_LENGTH} characters from a set that skips the letters and digits a camera misreads: no 0, O, 1, I, L, or U.`}
           className="mb-10"
         />
         <SectionBody className="flex flex-col items-start gap-3">
-          <MonoStrip>4-30 chars · charset skips 0 O 1 I L U · reserved words blocked</MonoStrip>
+          <MonoStrip>{`4-${MAX_SLUG_LENGTH} chars · charset skips 0 O 1 I L U · reserved words blocked`}</MonoStrip>
         </SectionBody>
       </Section>
 

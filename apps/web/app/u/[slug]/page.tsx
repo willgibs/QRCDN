@@ -26,7 +26,7 @@ export async function generateStaticParams() {
   return [];
 }
 
-// The route segment matches any string, not just real 4–30 char slugs — a
+// The route segment matches any string, not just real 4–17 char slugs — a
 // `/u/<garbage-1000-chars>` hit must not blow up the layout.
 const MAX_SLUG_CHARS = 64;
 

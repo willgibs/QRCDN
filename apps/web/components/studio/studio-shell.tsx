@@ -16,7 +16,7 @@ import {
   isLogoDataUri,
   readFileAsDataUri,
 } from "@/lib/logo";
-import { PREVIEW_PAYLOAD_DEFAULT, renderPreview } from "@/lib/preview";
+import { PREVIEW_PAYLOAD_WORST_CASE, renderPreview } from "@/lib/preview";
 import { inkHexFromStyle } from "@/lib/qr-style-derive";
 import { TopBar } from "./top-bar";
 import { ControlsRail } from "./controls-rail";
@@ -67,7 +67,13 @@ export function StudioShell({
   const [kits, setKits] = useState<BrandKit[]>(initialKits);
   const [activeKitId, setActiveKitId] = useState<string | null>(initialKits[0]?.id ?? null);
   const [style, setStyle] = useState<QrStyle>(() => styleFromKit(initialKits[0]));
-  const [payload, setPayload] = useState(PREVIEW_PAYLOAD_DEFAULT);
+  // Defaults to the worst-case dynamic payload (P9.8-B3, lib/preview.ts's
+  // own doc comment has the full derivation), not the short marketing
+  // placeholder: every code this kit ever mints — auto-generated or vanity,
+  // API included — is now bounded at or under this length, so the version
+  // readout and scannability chip a person sees here on first load already
+  // reflect the bound their kit must survive, not an easier case.
+  const [payload, setPayload] = useState(PREVIEW_PAYLOAD_WORST_CASE);
   // The raw File behind a not-yet-persisted style.logo.assetId — kept only
   // so the kit bar's create/save actions can upload it to the brand-logos
   // bucket as the durable source (deliverable #2). Cleared once that upload
@@ -230,7 +236,10 @@ export function StudioShell({
     }
   }, [style]);
 
-  const previewData = payload.trim().length > 0 ? payload : PREVIEW_PAYLOAD_DEFAULT;
+  // Same worst-case fallback as the useState initial above — an
+  // all-whitespace payload must not silently relax the evaluated case back
+  // down to something easier than every kit is actually proven against.
+  const previewData = payload.trim().length > 0 ? payload : PREVIEW_PAYLOAD_WORST_CASE;
 
   // Defense in depth (qr-engine.md): re-validate the persisted assetId shape
   // immediately before it reaches the engine, even though it can only have

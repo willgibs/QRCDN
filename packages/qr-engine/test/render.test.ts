@@ -28,6 +28,21 @@ describe("renderQr", () => {
     expect(qr.version).toBeLessThanOrEqual(3);
   });
 
+  it("keeps the worst-case dynamic payload at version ≤ 3 at ECC H (P9.8-B3 slug cap)", () => {
+    // HTTPS://QRCDN.COM/ (18 chars) + a 17-char slug = 35 chars, exactly the
+    // v3-H alphanumeric capacity. This is the EMPIRICAL basis for the
+    // 17-character vanity-slug cap: with every dynamic payload bounded to
+    // v3, the studio instrument can evaluate a kit against this worst case
+    // and a passing kit is proven for every dynamic code ever minted from
+    // it, API included. The boundary half proves the cap is exact, not
+    // conservative: one more slug character must exceed v3. If either
+    // assertion ever moves (encoder change, capacity table change), the cap
+    // number's math changed underneath us — re-derive before trusting.
+    const base = "HTTPS://QRCDN.COM/";
+    expect(encodeMatrix(base + "W".repeat(17), "H").version).toBeLessThanOrEqual(3);
+    expect(encodeMatrix(base + "W".repeat(18), "H").version).toBeGreaterThan(3);
+  });
+
   it("forces ECC H and version ≥ 3 when logo knockout is on", () => {
     const style = stylePresets.logoKnockout!;
     expect(effectiveEcc(style)).toBe("H");

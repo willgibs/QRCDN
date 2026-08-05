@@ -55,6 +55,19 @@ describe("decode round-trip", () => {
     }
   });
 
+  it("decodes the worst-case dynamic payload at the slug cap (P9.8-B3): 18+17 chars, ECC H, default style", async () => {
+    // HTTPS://QRCDN.COM/ (18 chars) + a 17-char slug = 35 chars — the exact
+    // boundary render.test.ts's "keeps the worst-case dynamic payload at
+    // version ≤ 3" test pins at the encode level (v3-H alphanumeric
+    // capacity, docs/DECISIONS.md's D12 amendment is the derivation). That
+    // test proves the payload ENCODES; this one proves it also DECODES
+    // after rasterization, at the engine's default style with ECC forced
+    // to H — the actual worst case a brand kit must survive for every
+    // dynamic code it will ever mint.
+    const worstCasePayload = "HTTPS://QRCDN.COM/" + "W".repeat(17);
+    await expectRoundTrip(worstCasePayload, parseQrStyle({ v: 1, ecc: "H" }));
+  });
+
   it("decodes every eye frame/pupil combination", async () => {
     const frames = ["square", "rounded", "circle", "leaf"] as const;
     const pupils = ["square", "rounded", "circle", "dot"] as const;

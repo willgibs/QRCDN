@@ -259,13 +259,17 @@ export const API_ENDPOINTS: ApiEndpoint[] = [
         notes:
           "A QrStyle v1 object (dots, eyes, fill, background, logo), the same JSON the Studio's editor exports. Providing one makes the code kit-less and frozen: kit edits never restyle it. Omit it and the code takes your default brand kit's style and attaches to that kit, following its future edits; with no default kit it falls back to the standard style, frozen.",
       },
+      // 17, not the DB's historic 30 — mirrors lib/slug.ts's MAX_SLUG_LENGTH
+      // (D12 as amended, P9.8-B3). Hand-typed here since this file is static
+      // reference content, not wired to the constant: grep MAX_SLUG_LENGTH
+      // before ever changing this number again.
       {
         name: "slug",
         in: "body",
         type: "string",
         required: false,
         notes:
-          "Pro plan only. 4 to 30 characters from 23456789ABCDEFGHJKMNPQRSTVWXYZ (0, 1, I, L, O, and U excluded: they misprint on small labels). Case-insensitive, normalized to uppercase. A taken or reserved slug is rejected, never silently reassigned.",
+          "Pro plan only. 4 to 17 characters from 23456789ABCDEFGHJKMNPQRSTVWXYZ (0, 1, I, L, O, and U excluded: they misprint on small labels). Case-insensitive, normalized to uppercase. A taken or reserved slug is rejected, never silently reassigned.",
       },
     ],
     responseFields: CODE_OBJECT_FIELDS,

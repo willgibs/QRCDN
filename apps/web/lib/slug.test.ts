@@ -1,5 +1,14 @@
 import { describe, expect, it } from "vitest";
-import { RESERVED_SLUGS, SLUG_CHARSET, SLUG_LENGTH, generateSlug, isValidSlug, validateVanitySlug } from "./slug";
+import {
+  MAX_SLUG_LENGTH,
+  MIN_SLUG_LENGTH,
+  RESERVED_SLUGS,
+  SLUG_CHARSET,
+  SLUG_LENGTH,
+  generateSlug,
+  isValidSlug,
+  validateVanitySlug,
+} from "./slug";
 
 // Characters deliberately excluded from SLUG_CHARSET for confusability at
 // print/scan size (see slug.ts header) — must never appear.
@@ -92,12 +101,13 @@ describe("isValidSlug", () => {
     expect(isValidSlug("234")).toBe(false);
   });
 
-  it("accepts the maximum length boundary (30)", () => {
-    expect(isValidSlug(SLUG_CHARSET)).toBe(true);
+  it("accepts the maximum length boundary (17)", () => {
+    expect(MAX_SLUG_LENGTH).toBe(17);
+    expect(isValidSlug(SLUG_CHARSET.slice(0, 17))).toBe(true);
   });
 
-  it("rejects one above the maximum length (31)", () => {
-    expect(isValidSlug(SLUG_CHARSET + "2")).toBe(false);
+  it("rejects one above the maximum length (18)", () => {
+    expect(isValidSlug(SLUG_CHARSET.slice(0, 18))).toBe(false);
   });
 
   it("rejects a lowercase character", () => {
@@ -147,13 +157,16 @@ describe("validateVanitySlug", () => {
     expect(validateVanitySlug("234")).toEqual({ ok: false, error: "invalid_slug" });
   });
 
-  it("rejects one above the maximum length (31)", () => {
-    expect(validateVanitySlug(SLUG_CHARSET + "2")).toEqual({ ok: false, error: "invalid_slug" });
+  it("rejects one above the maximum length (18)", () => {
+    expect(validateVanitySlug(SLUG_CHARSET.slice(0, 18))).toEqual({ ok: false, error: "invalid_slug" });
   });
 
-  it("accepts the length boundaries (4 and 30)", () => {
+  it("accepts the length boundaries (4 and 17)", () => {
     expect(validateVanitySlug("2345")).toEqual({ ok: true, data: "2345" });
-    expect(validateVanitySlug(SLUG_CHARSET)).toEqual({ ok: true, data: SLUG_CHARSET });
+    expect(validateVanitySlug(SLUG_CHARSET.slice(0, 17))).toEqual({
+      ok: true,
+      data: SLUG_CHARSET.slice(0, 17),
+    });
   });
 
   // NOTE (surprising finding, see the dedicated regression test below): "api"
@@ -191,7 +204,7 @@ describe("validateVanitySlug", () => {
   it("[reconcile] every RESERVED_SLUGS entry is already unreachable via isValidSlug (dead reserved-word branch)", () => {
     for (const word of RESERVED_SLUGS) {
       const charsetOk = [...word].every((char) => SLUG_CHARSET.includes(char));
-      const lengthOk = word.length >= 4 && word.length <= 30;
+      const lengthOk = word.length >= MIN_SLUG_LENGTH && word.length <= MAX_SLUG_LENGTH;
       expect(charsetOk && lengthOk).toBe(false);
     }
   });

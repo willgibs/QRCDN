@@ -5,6 +5,7 @@ import { PLAN_LIMITS, PRICING } from "../lib/entitlements";
 import { CHANGELOG_ENTRIES } from "../lib/changelog";
 import { BLOG_POSTS } from "../lib/blog";
 import { HELP_ARTICLES, HELP_CATEGORIES } from "../lib/help";
+import { MAX_SLUG_LENGTH } from "../lib/slug";
 import { LOGO_EFFECTIVE_ERROR, LOGO_EFFECTIVE_WARN } from "@qrcdn/qr-engine";
 
 // Relative imports only in e2e/ (no "@/" — see env.ts's header note).
@@ -812,9 +813,11 @@ test.describe("marketing site", () => {
       page.getByText("password checked server-side · destination never in the gate's HTML"),
     ).toBeVisible();
     // TRUTH-GATE G3 — the real vanity-slug charset/length rule, read from
-    // lib/slug.ts.
+    // lib/slug.ts. MAX_SLUG_LENGTH imported (not hand-typed) so this
+    // verbatim-string assertion can never silently drift from the page's
+    // own interpolated MonoStrip text (P9.8-B3).
     await expect(
-      page.getByText("4-30 chars · charset skips 0 O 1 I L U · reserved words blocked"),
+      page.getByText(`4-${MAX_SLUG_LENGTH} chars · charset skips 0 O 1 I L U · reserved words blocked`),
     ).toBeVisible();
     await expect(page.getByRole("heading", { name: "What each plan holds." })).toBeVisible();
     const table = page.getByRole("table");

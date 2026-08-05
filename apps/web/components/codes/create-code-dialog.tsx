@@ -24,7 +24,7 @@ import { cn } from "@/lib/utils";
 import { validateDestination } from "@/lib/validation";
 import { suggestCodeName } from "@/lib/code-name";
 import { printedShortUrl } from "@/lib/short-url";
-import { SLUG_CHARSET } from "@/lib/slug";
+import { MAX_SLUG_LENGTH, MIN_SLUG_LENGTH, SLUG_CHARSET } from "@/lib/slug";
 import { PLAN_LIMITS, type Plan } from "@/lib/entitlements";
 import { createDynamicCode } from "@/app/(app)/studio/code-actions";
 import type { KitPickerKit } from "@/lib/brand-kits";
@@ -32,10 +32,11 @@ import { KitPicker, defaultKitId } from "./kit-picker";
 
 const COPY_FLASH_TIMEOUT_MS = 1600;
 
-// Single-sourced against lib/slug.ts's SLUG_CHARSET (P7.5-U3), so this
-// helper text can never drift from the charset validateVanitySlug actually
+// Single-sourced against lib/slug.ts's SLUG_CHARSET/MIN_SLUG_LENGTH/
+// MAX_SLUG_LENGTH (P7.5-U3, cap tightened P9.8-B3), so this helper text can
+// never drift from the charset and bounds validateVanitySlug actually
 // enforces. Ported from studio/create-code.tsx before that file was deleted.
-const SLUG_HELPER_TEXT = `4–30 characters from ${SLUG_CHARSET}: no 0, 1, I, L, O, or U (they misprint)`;
+const SLUG_HELPER_TEXT = `${MIN_SLUG_LENGTH}–${MAX_SLUG_LENGTH} characters from ${SLUG_CHARSET}: no 0, 1, I, L, O, or U (they misprint)`;
 
 const GENERIC_ERROR = "Couldn't create that code. Try again.";
 // P9.5-T8 item 5 pattern (CLAUDE.md: entitlement limits live in
@@ -397,7 +398,7 @@ export function CreateCodeDialog({
                       }}
                       placeholder="PARTY26"
                       aria-label="Custom link"
-                      maxLength={30}
+                      maxLength={MAX_SLUG_LENGTH}
                       disabled={busy}
                       spellCheck={false}
                       className="h-8 font-mono text-xs"

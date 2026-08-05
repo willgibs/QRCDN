@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest";
 import { isSlugShaped, toSlugUpper } from "../src/slug";
 
+// Deliberately still pinned at 4-30, not 4-17, after P9.8-B3's vanity-slug
+// CREATION cap tightened to 17 (D12 as amended) — this suite pins the
+// Worker's ROUTING shape (../src/slug.ts's own comment has the full why),
+// which must keep accepting legacy 18-30 char codes printed before that
+// amendment. Do not "fix" these bounds to match the new creation cap.
 describe("isSlugShaped", () => {
   it("accepts 4-30 char alphanumeric segments", () => {
     expect(isSlugShaped("K7M2")).toBe(true);

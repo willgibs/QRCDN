@@ -9,8 +9,9 @@ const ALPHABET = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz
  * scan-decision branch at all before P1's "unknown slug still gets a 302"
  * assertion means anything. The default length (24) and full 62-symbol
  * alphabet are both well outside the product's real slug space (7-char
- * auto-slugs from a narrow 30-symbol charset, or 4-30 char vanity slugs a
- * real owner picked) purely to make an accidental collision with a real
+ * auto-slugs from a narrow 30-symbol charset, or vanity slugs a real owner
+ * picked — creation caps at 17 since P9.8-B3, D12 as amended; routing still
+ * accepts legacy up to 30) purely to make an accidental collision with a real
  * code astronomically unlikely — this is not itself a security boundary,
  * just a correctness one (a collision would make this probe test the wrong
  * thing: a real code's redirect, not the unknown-slug contract).

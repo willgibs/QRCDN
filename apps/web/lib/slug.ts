@@ -13,13 +13,18 @@ import type { ActionResult } from "./validation";
 export const SLUG_CHARSET = "23456789ABCDEFGHJKMNPQRSTVWXYZ";
 export const SLUG_LENGTH = 7;
 
-// Mirrors the qr_codes.slug check constraint (upper + length 4..30) in
-// supabase/migrations/20260721000001_initial_schema.sql. Auto-generated
-// slugs are always SLUG_LENGTH; this wider bound is what makes isValidSlug
-// correct for the column in general (e.g. future vanity slugs, D12 — out of
-// scope for P5), not just for this module's own output.
-const MIN_SLUG_LENGTH = 4;
-const MAX_SLUG_LENGTH = 30;
+// Mirrors the qr_codes.slug check constraint (upper + length 4..17) in
+// supabase/migrations/20260804000012_slug_cap_17.sql (D12 as amended,
+// P9.8-B3 — tightened from 4..30; the number is empirical, not chosen: see
+// that migration + docs/DECISIONS.md D12 for the v3-H capacity derivation).
+// Auto-generated slugs are always SLUG_LENGTH; this wider bound is what
+// makes isValidSlug correct for the column in general (vanity slugs), not
+// just for this module's own output. Exported so callers (the create-code
+// dialog, marketing/help/API-reference copy) can interpolate the real
+// bounds instead of hand-typing them — the drift this file's own history
+// warns about.
+export const MIN_SLUG_LENGTH = 4;
+export const MAX_SLUG_LENGTH = 17;
 
 /**
  * Draws a random SLUG_LENGTH-character slug from SLUG_CHARSET.
@@ -56,9 +61,10 @@ export function isValidSlug(input: string): boolean {
 }
 
 // ---------------------------------------------------------------------------
-// Vanity slugs (P7.5-U3, Pro-gated — D12's "Vanity (Pro): 4-30 chars,
-// reserved blocklist ... single namespace"). Words blocked from ever being
-// assigned as a caller-chosen slug.
+// Vanity slugs (P7.5-U3, Pro-gated — D12's "Vanity (Pro): 4-17 chars,
+// reserved blocklist ... single namespace"; cap tightened from 4-30 at
+// P9.8-B3, D12 as amended). Words blocked from ever being assigned as a
+// caller-chosen slug.
 //
 // Not a technical collision guard: today's routing splits cleanly by host
 // (D1) — printed short codes resolve via workers/redirect on the bare apex
@@ -111,7 +117,7 @@ export const RESERVED_SLUGS: ReadonlySet<string> = new Set([
  * `PLAN_LIMITS[plan].vanitySlugs` before this ever runs). Lowercase input is
  * accepted and normalized — friendlier than forcing callers to shout their
  * own slug — everything else reuses the exact rules the auto-generated path
- * already satisfies by construction (`isValidSlug`'s charset + 4..30 length
+ * already satisfies by construction (`isValidSlug`'s charset + 4..17 length
  * check), plus the reserved-word blocklist above.
  */
 export function validateVanitySlug(input: unknown): ActionResult<string> {

@@ -213,6 +213,21 @@ final set `23456789ABCDEFGHJKMNPQRSTVWXYZ`, 30 symbols, ~21.9B space. Implemente
 in `apps/web/lib/slug.ts` (charset-purity tests pin it); the U1 agent flagged the
 drift between this entry and the P5 spec, spec won.
 
+*Amended at P9.8-B3 (2026-08-04, board idea at the P9.7 close):* vanity length
+cap drops **30 → 17** (auto slugs stay 7). The number is empirical, not chosen:
+`HTTPS://QRCDN.COM/` is 18 characters and version-3-at-ECC-H alphanumeric
+capacity is 35, so a 17-character cap bounds EVERY dynamic payload to symbol
+version ≤ 3 forever — which turns the brand kit into the complete scannability
+gate for dynamic codes: the studio instrument evaluates a kit once against the
+worst-case payload and a passing kit is proven for every code it will ever
+mint, including over the API. Both sides of the boundary are pinned in
+`packages/qr-engine/test/render.test.ts` (35 chars fits v3-H; 36 exceeds it) —
+if the encoder's answer ever moves, that test fails before the cap lies. The
+DB CHECK tightened in migration `20260804000012` after a live-row check (max
+existing slug: 7). Deliberately NOT narrowed: the Worker's `{4,30}` routing
+matcher — an 18-to-30-character code printed before this amendment must
+redirect forever ("your code never dies"); the cap governs creation only.
+
 *Amended at P7.5-U3 (2026-07-23) — vanity slugs shipped:* `validateVanitySlug`
 (`lib/slug.ts`) reuses the **narrow auto-gen charset**, not the wider set the DB
 constraint alone would allow — the print-misread rationale for dropping

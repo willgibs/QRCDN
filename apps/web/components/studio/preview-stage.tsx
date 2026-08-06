@@ -111,6 +111,7 @@ function TransparencyChecker() {
 export function PreviewStage({
   svg,
   payload,
+  payloadLabel,
   report,
   version,
   renderError,
@@ -121,6 +122,12 @@ export function PreviewStage({
 }: {
   svg: string;
   payload: string;
+  /** Human caption shown in place of the raw `payload` string (P9.8-R3):
+   *  when the Destination field is empty the studio evaluates the
+   *  worst-case dynamic payload, and printing that 35-character wall of W's
+   *  under the artifact read as a broken example link. The evaluation is
+   *  unchanged — this only names it. */
+  payloadLabel?: string;
   report: ScannabilityReport;
   /** The QR symbol version `renderQr` actually encoded at
    *  (`PreviewRenderResult.version` — lib/preview.ts). `null` on the
@@ -163,7 +170,7 @@ export function PreviewStage({
           {transparentBackground && <TransparencyChecker />}
           <div
             role="img"
-            aria-label={`QR preview for ${payload}`}
+            aria-label={`QR preview for ${payloadLabel ?? payload}`}
             className="relative [&_svg]:h-auto [&_svg]:w-full"
             dangerouslySetInnerHTML={{ __html: svg }}
           />
@@ -176,7 +183,7 @@ export function PreviewStage({
        *  block is clickable. */}
       <div className="pointer-events-none absolute inset-x-6 bottom-8 z-10 mx-auto flex w-full max-w-md flex-col items-center gap-3 sm:inset-x-10">
         <p className="w-full truncate text-center font-mono text-xs text-muted-foreground">
-          {payload}
+          {payloadLabel ?? payload}
         </p>
         {renderError ? (
           <div

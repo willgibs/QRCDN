@@ -77,13 +77,16 @@ export function StudioShell({
   const [kits, setKits] = useState<BrandKit[]>(initialKits);
   const [activeKitId, setActiveKitId] = useState<string | null>(initialKits[0]?.id ?? null);
   const [style, setStyle] = useState<QrStyle>(() => styleFromKit(initialKits[0]));
-  // Defaults to the worst-case dynamic payload (P9.8-B3, lib/preview.ts's
-  // own doc comment has the full derivation), not the short marketing
-  // placeholder: every code this kit ever mints — auto-generated or vanity,
-  // API included — is now bounded at or under this length, so the version
-  // readout and scannability chip a person sees here on first load already
-  // reflect the bound their kit must survive, not an easier case.
-  const [payload, setPayload] = useState(PREVIEW_PAYLOAD_WORST_CASE);
+  // Starts EMPTY (P9.8-R3, board-review finding: prefilling the worst-case
+  // payload put a wall of W's in the Destination field and it read as our
+  // "example link"). The field shows its normal lowercase placeholder
+  // instead; the PREVIEW still evaluates the worst-case dynamic payload
+  // whenever this is blank (the `previewData` fallback below), so the
+  // version readout and scannability chip on first load keep reflecting the
+  // bound every kit must survive (P9.8-B3, lib/preview.ts has the full
+  // derivation). Exports are a different matter: they encode a REAL link or
+  // nothing — the rail disables them while this is empty.
+  const [payload, setPayload] = useState("");
   // The raw File behind a not-yet-persisted style.logo.assetId — kept only
   // so the kit bar's create/save actions can upload it to the brand-logos
   // bucket as the durable source (deliverable #2). Cleared once that upload
@@ -305,10 +308,27 @@ export function StudioShell({
   // fallback preview-stage.tsx's own doc comment always planned for).
   const paperHex = validStyle.background.transparent ? "var(--qr-bg)" : validStyle.background.color;
 
-  const handleExportSvg = useCallback(() => {
-    const blob = new Blob([svg], { type: "image/svg+xml" });
-    downloadBlob(blob, exportFilename(previewData, "svg"));
-  }, [svg, previewData]);
+  // Exports encode a real destination or nothing (P9.8-R3): with the field
+  // empty, `previewData` is the worst-case evaluation payload — downloading
+  // THAT would hand someone a QR pointing at a placeholder. The rail
+  // disables both buttons on this flag (renderError included: the on-screen
+  // svg is an explicit placeholder in that state, lib/preview.ts contract).
+  const exportDisabled = payload.trim().length === 0 || renderError !== null;
+
+  const handleExportSvg = useCallback(
+    (size: number) => {
+      // Re-render at the chosen export size rather than downloading the
+      // preview string (P9.8-R2): the preview svg is deliberately
+      // attribute-less (CSS-sized), so exporting it shipped a viewBox-only
+      // file that design tools imported at 33x33. `pixelSize` makes the
+      // engine emit width/height at the same size the PNG path rasterizes.
+      const { svg: exportSvg, error } = renderPreview(previewData, validStyle, logoDataUri, size);
+      if (error) return;
+      const blob = new Blob([exportSvg], { type: "image/svg+xml" });
+      downloadBlob(blob, exportFilename(previewData, "svg"));
+    },
+    [previewData, validStyle, logoDataUri],
+  );
 
   const handleExportPng = useCallback(
     async (size: number) => {
@@ -362,6 +382,7 @@ export function StudioShell({
           onLogoFileSelected={handleLogoFileSelected}
           onLogoRemove={handleLogoRemove}
           onLogoSizeChange={handleLogoSizeChange}
+          exportDisabled={exportDisabled}
           onExportSvg={handleExportSvg}
           onExportPng={handleExportPng}
         />
@@ -369,6 +390,7 @@ export function StudioShell({
           className="order-1 lg:order-2 lg:sticky lg:top-[89px] lg:h-[calc(100vh-121px)] lg:flex-1 lg:self-start"
           svg={svg}
           payload={previewData}
+          payloadLabel={payload.trim().length === 0 ? "Worst-case dynamic link" : undefined}
           report={report}
           version={version}
           transparentBackground={validStyle.background.transparent}

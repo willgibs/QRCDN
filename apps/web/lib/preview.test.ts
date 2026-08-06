@@ -52,3 +52,25 @@ describe("renderPreview", () => {
     expect(result.error).toBeNull();
   });
 });
+
+// P9.8-R2 (board-review finding): an exported SVG carried only a viewBox, so
+// design tools imported a "1024" export at viewBox units (33x33 in Figma).
+// Export paths now pass pixelSize; the live preview still omits it.
+describe("renderPreview — pixelSize (export sizing)", () => {
+  it("stamps width/height attributes at the requested export size", () => {
+    const result = renderPreview("HTTPS://QRCDN.COM/K7M2X9A", defaultQrStyle, undefined, 1024);
+    expect(result.error).toBeNull();
+    expect(result.svg).toContain('width="1024"');
+    expect(result.svg).toContain('height="1024"');
+  });
+
+  it("omits width/height when no pixelSize is given (the CSS-sized preview)", () => {
+    const result = renderPreview("HTTPS://QRCDN.COM/K7M2X9A", defaultQrStyle);
+    expect(result.error).toBeNull();
+    // Scoped to the opening <svg> tag: a path's stroke-width elsewhere in
+    // the document must not trip this.
+    const openTag = result.svg.slice(0, result.svg.indexOf(">"));
+    expect(openTag).not.toContain("width=");
+    expect(openTag).not.toContain("height=");
+  });
+});

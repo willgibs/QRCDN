@@ -95,6 +95,17 @@ test.describe("marketing site", () => {
     await expect(page.getByRole("button", { name: "Download SVG" })).toBeVisible();
     await expect(page.getByText("Module size")).toBeVisible();
 
+    // P9.8-R3: the Destination field starts EMPTY (no wall-of-W's example
+    // value; the worst-case payload still drives the preview evaluation
+    // behind it), and exports are disabled until a real destination exists —
+    // an export must never encode the evaluation placeholder.
+    await expect(page.getByLabel("Destination")).toHaveValue("");
+    await expect(page.getByRole("button", { name: "Download SVG" })).toBeDisabled();
+    await expect(page.getByText("Enter a destination to export.")).toBeVisible();
+    await page.getByLabel("Destination").fill("https://example.com/menu");
+    await expect(page.getByRole("button", { name: "Download SVG" })).toBeEnabled();
+    await expect(page.getByText("Enter a destination to export.")).toHaveCount(0);
+
     // The two account incentives, both routing to /login: the bar's Start
     // free and the rail's make-it-dynamic line. Scoped queries: the public
     // nav also carries a "Start free".

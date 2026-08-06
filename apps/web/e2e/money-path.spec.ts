@@ -595,6 +595,60 @@ test.describe.serial("money path", () => {
     );
   });
 
+  test("kit switch: the code detail page attaches a code to a different kit (P9.8-R1)", async () => {
+    // Board-review finding: hard sync made kits the versioning mechanism,
+    // but nothing surfaced or changed a code's kit after creation. This
+    // covers the switch path end to end: a second kit with a visibly
+    // different paper, the detail page's Brand kit item, the picker dialog,
+    // and the post-reload artifact painting the NEW kit's paper. (The
+    // attach-from-kit-less path is unit-covered in codes-core.test.ts — a
+    // kit-less code only exists via the API's explicit-style path, which
+    // this cookie-session suite deliberately doesn't exercise.)
+    await page.goto(`${E2E_BASE_URL}/studio`);
+    await page.getByRole("button", { name: /E2E Money Path Kit/ }).click();
+    await page.getByRole("menuitem", { name: "New kit" }).click();
+    await page.getByLabel("New kit name").fill("E2E Switch Kit");
+    await page.getByRole("button", { name: "Create kit" }).click();
+    await expect(page.getByRole("button", { name: /E2E Switch Kit/ })).toBeVisible();
+    // Distinct paper so the detail-page assertion below cannot pass by
+    // accident: #101013 -> rgb(16, 16, 19), nothing like kit 1's #f4f4f5.
+    await page.getByRole("button", { name: "Paper #101013" }).click();
+    await page.getByRole("button", { name: "Save changes" }).click();
+    // The fresh kit has zero attached codes; the note is the save-complete
+    // signal (kit-bar shows it for any style-bearing save).
+    await expect(page.getByText("Style applied to 0 attached codes.")).toBeVisible();
+
+    await page.goto(`${E2E_BASE_URL}/codes/${slug}`);
+    await expect(page.getByText("E2E Money Path Kit")).toBeVisible();
+    await page.getByRole("button", { name: "Change" }).click();
+    const dialog = page.getByRole("dialog");
+    await dialog.getByLabel("Brand kit").click();
+    await page.getByRole("option", { name: /E2E Switch Kit/ }).click();
+    await dialog.getByRole("button", { name: "Apply kit" }).click();
+
+    // The dialog hard-reloads on success (the codebase's proven refresh
+    // mechanism); the reloaded page must show the new kit AND paint the
+    // artifact from its style.
+    await expect(page.getByText("E2E Switch Kit")).toBeVisible();
+    await expect(page.locator('[role="img"][aria-label^="QR code for"]')).toHaveCSS(
+      "background-color",
+      "rgb(16, 16, 19)",
+    );
+
+    const admin = createAdminClient();
+    const { data: row, error } = await admin
+      .from("qr_codes")
+      .select("style, style_version, brand_kit_id")
+      .eq("slug", slug)
+      .single();
+    if (error || !row) {
+      throw new Error(`[e2e] kit-switch row read failed: ${error?.message ?? "no row"}`);
+    }
+    expect(row.brand_kit_id).not.toBeNull();
+    expect(row.style_version).toBeGreaterThanOrEqual(3);
+    expect((row.style as { background?: { color?: string } }).background?.color).toBe("#101013");
+  });
+
   test("no server action returned a 5xx to a next-action request", () => {
     // THE assertion this whole suite exists for — see fixtures.ts and this
     // file's own header. A non-empty list here means a Studio/API-keys

@@ -710,6 +710,73 @@ export async function getDynamicCodeStyleCore(
   }
 }
 
+/**
+ * Attach a code to a brand kit, or move it to a different one (P9.8-R1,
+ * board-review finding: hard sync made kits the versioning mechanism, but
+ * nothing let an existing code point at one — pre-P9.8 rows and explicit-
+ * style API creations were stranded kit-less with no way in).
+ *
+ * Hard-sync semantics (D5 as amended): attaching IS adopting the kit's
+ * current saved style — `qr_codes.style` becomes a kit-maintained mirror
+ * from this moment on and future kit saves propagate via `sync_kit_codes()`.
+ * There is deliberately NO detach: kits are the versioning mechanism, so
+ * "keep this look" means keeping (or duplicating) the kit that has it.
+ *
+ * `style_version` is read-then-written (+1) rather than incremented in SQL:
+ * the `sync_kit_codes()` SQL function exists because PostgREST cannot
+ * express `style_version + 1` across a FAN-OUT atomically — for this single
+ * owner-scoped row, a read-then-write is honest and the counter is a
+ * propagation marker, not a concurrency token (last write wins is correct
+ * for two racing attaches of the same code).
+ *
+ * No KV write: style never reaches the redirect path (D2 record shape), so
+ * unlike retarget there is nothing to sync.
+ */
+export async function attachCodeKitCore(
+  ctx: CodesCoreCtx,
+  id: string,
+  kitId: unknown,
+): Promise<ActionResult<{ id: string; brandKitId: string }>> {
+  const kitIdResult = validateBrandKitId(kitId);
+  if (!kitIdResult.ok) {
+    return kitIdResult;
+  }
+
+  const kit = await kitStyleFor(ctx, kitIdResult.data);
+  if (!kit.ok) {
+    return kit;
+  }
+
+  const { data: current, error: readError } = await ctx.db
+    .from("qr_codes")
+    .select("id, style_version")
+    .eq("owner_id", ctx.ownerId)
+    .eq("id", id)
+    .eq("kind", "dynamic")
+    .single();
+  if (readError || !current) {
+    return { ok: false, error: "not_found" };
+  }
+
+  const { data, error } = await ctx.db
+    .from("qr_codes")
+    .update({
+      brand_kit_id: kit.data.id,
+      style: kit.data.style,
+      style_version: (current.style_version ?? 1) + 1,
+    })
+    .eq("owner_id", ctx.ownerId)
+    .eq("id", id)
+    .eq("kind", "dynamic")
+    .select("id, brand_kit_id")
+    .single();
+  if (error || !data || !data.brand_kit_id) {
+    return { ok: false, error: "update_failed" };
+  }
+
+  return { ok: true, data: { id: data.id, brandKitId: data.brand_kit_id } };
+}
+
 export async function retargetCodeCore(
   ctx: CodesCoreCtx,
   id: string,

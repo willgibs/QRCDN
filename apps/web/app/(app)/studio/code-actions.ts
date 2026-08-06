@@ -3,6 +3,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import {
+  attachCodeKitCore,
   createDynamicCodeCore,
   createDynamicCodesBulkCore,
   getDynamicCodeStyleCore,
@@ -175,6 +176,30 @@ export async function retargetCode(
   }
 
   return retargetCodeCore(ctxFrom(ctx), idResult.data, destination);
+}
+
+export async function attachCodeKit(
+  id: string,
+  kitId: unknown,
+): Promise<ActionResult<{ id: string; brandKitId: string }>> {
+  const idResult = validateQrCodeId(id);
+  if (!idResult.ok) {
+    return idResult;
+  }
+
+  // getUser(), not getClaims(): attaching rewrites a live code's style to
+  // the kit's and puts every future save of that kit in charge of it (hard
+  // sync, D5 as amended) — the same destructive-adjacent tier as
+  // retargetCode above (CLAUDE.md hard rule).
+  const ctx = await requireUserContext();
+  if (!ctx) {
+    return { ok: false, error: "unauthenticated" };
+  }
+  if (!(await studioMutateAllowed(ctx.userId))) {
+    return { ok: false, error: "rate_limited" };
+  }
+
+  return attachCodeKitCore(ctxFrom(ctx), idResult.data, kitId);
 }
 
 export async function setCodePaused(

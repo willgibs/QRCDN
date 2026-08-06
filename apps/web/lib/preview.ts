@@ -75,9 +75,18 @@ export function renderPreview(
   data: string,
   style: QrStyle,
   logoDataUri?: string,
+  /**
+   * P9.8-R2 (board-review finding): when set, the SVG carries explicit
+   * `width`/`height` attributes at this pixel size (render.ts emits them
+   * from `RenderRequest.pixelSize`). Without them an exported SVG has only
+   * its viewBox, and design tools import it at viewBox units — a "1024"
+   * export dropped into Figma at 33x33. Export paths MUST pass this; the
+   * live preview deliberately omits it (the stage sizes via CSS).
+   */
+  pixelSize?: number,
 ): PreviewRenderResult {
   try {
-    const result = renderQr({ data, style, logoDataUri });
+    const result = renderQr({ data, style, logoDataUri, pixelSize });
     return { svg: result.svg, error: null, version: result.version };
   } catch (err) {
     const svg = renderQr({ data: PREVIEW_PAYLOAD_DEFAULT, style: defaultQrStyle }).svg;

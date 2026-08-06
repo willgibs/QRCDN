@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@qrcdn/shared";
 import {
+  attachCodeKitCore,
   createDynamicCodeCore,
   createDynamicCodesBulkCore,
   getCodeAnalyticsCore,
@@ -1427,5 +1428,113 @@ describe("createDynamicCodeCore — kit attachment (P9.8-B1, D5 as amended)", ()
     const payload = builders[3].calls.insert?.[0]?.[0] as Record<string, unknown>;
     expect(payload.brand_kit_id).toBeNull();
     expect(payload.style).toMatchObject({ v: 1 });
+  });
+});
+
+describe("attachCodeKitCore — attach/change a code's kit (P9.8-R1)", () => {
+  const KIT_ID = "8a9f1c2e-4b3d-4e5f-9a0b-1c2d3e4f5a6b";
+  const CODE_ID = "code-1";
+
+  it("attaches: adopts the kit's parsed style and bumps style_version, owner-scoped end to end", async () => {
+    const { db, builders } = createDb([
+      { table: "brand_kits", result: { data: { id: KIT_ID, style: { v: 1 } }, error: null } },
+      {
+        table: "qr_codes",
+        result: { data: { id: CODE_ID, style_version: 3 }, error: null },
+      },
+      {
+        table: "qr_codes",
+        result: { data: { id: CODE_ID, brand_kit_id: KIT_ID }, error: null },
+      },
+    ]);
+
+    const result = await attachCodeKitCore(ctxWith(db), CODE_ID, KIT_ID);
+
+    expect(result).toEqual({ ok: true, data: { id: CODE_ID, brandKitId: KIT_ID } });
+    // Owner scoping on every query — under the API's admin client these
+    // filters are the only tenant boundary (file-header rule).
+    for (const b of builders) {
+      expect(eqCallsOf(b)).toEqual(expect.arrayContaining([["owner_id", OWNER_ID]]));
+    }
+    const payload = builders[2].calls.update?.[0]?.[0] as Record<string, unknown>;
+    expect(payload.brand_kit_id).toBe(KIT_ID);
+    // Read-then-write increment (single row; the sync_kit_codes() SQL
+    // function exists for fan-out atomicity, not this).
+    expect(payload.style_version).toBe(4);
+    // Server-side parse: schema defaults filled in — the style came from
+    // the kit row, never a client.
+    expect(payload.style).toMatchObject({ v: 1, dots: expect.anything() });
+  });
+
+  it("a null style_version still increments from the schema default of 1", async () => {
+    const { db, builders } = createDb([
+      { table: "brand_kits", result: { data: { id: KIT_ID, style: { v: 1 } }, error: null } },
+      { table: "qr_codes", result: { data: { id: CODE_ID, style_version: null }, error: null } },
+      { table: "qr_codes", result: { data: { id: CODE_ID, brand_kit_id: KIT_ID }, error: null } },
+    ]);
+
+    const result = await attachCodeKitCore(ctxWith(db), CODE_ID, KIT_ID);
+
+    expect(result.ok).toBe(true);
+    const payload = builders[2].calls.update?.[0]?.[0] as Record<string, unknown>;
+    expect(payload.style_version).toBe(2);
+  });
+
+  it("a cross-owner or unknown kit is brand_kit_not_found, zero writes", async () => {
+    const { db, builders } = createDb([
+      { table: "brand_kits", result: { data: null, error: { message: "0 rows" } } },
+    ]);
+
+    const result = await attachCodeKitCore(ctxWith(db), CODE_ID, KIT_ID);
+
+    expect(result).toEqual({ ok: false, error: "brand_kit_not_found" });
+    expect(builders.every((b) => !b.calls.update)).toBe(true);
+  });
+
+  it("a kit whose stored style fails to parse is invalid_style, zero writes", async () => {
+    const { db, builders } = createDb([
+      {
+        table: "brand_kits",
+        result: { data: { id: KIT_ID, style: { v: 999 } }, error: null },
+      },
+    ]);
+
+    const result = await attachCodeKitCore(ctxWith(db), CODE_ID, KIT_ID);
+
+    expect(result).toEqual({ ok: false, error: "invalid_style" });
+    expect(builders.every((b) => !b.calls.update)).toBe(true);
+  });
+
+  it("a cross-owner or unknown code is not_found, zero writes", async () => {
+    const { db, builders } = createDb([
+      { table: "brand_kits", result: { data: { id: KIT_ID, style: { v: 1 } }, error: null } },
+      { table: "qr_codes", result: { data: null, error: { message: "0 rows" } } },
+    ]);
+
+    const result = await attachCodeKitCore(ctxWith(db), CODE_ID, KIT_ID);
+
+    expect(result).toEqual({ ok: false, error: "not_found" });
+    expect(builders.every((b) => !b.calls.update)).toBe(true);
+  });
+
+  it("a non-uuid kit id is invalid_id before any query", async () => {
+    const { db, from } = createDb([]);
+
+    const result = await attachCodeKitCore(ctxWith(db), CODE_ID, "not-a-uuid");
+
+    expect(result).toEqual({ ok: false, error: "invalid_id" });
+    expect(from).not.toHaveBeenCalled();
+  });
+
+  it("an update failure surfaces as update_failed", async () => {
+    const { db } = createDb([
+      { table: "brand_kits", result: { data: { id: KIT_ID, style: { v: 1 } }, error: null } },
+      { table: "qr_codes", result: { data: { id: CODE_ID, style_version: 1 }, error: null } },
+      { table: "qr_codes", result: { data: null, error: { message: "boom" } } },
+    ]);
+
+    const result = await attachCodeKitCore(ctxWith(db), CODE_ID, KIT_ID);
+
+    expect(result).toEqual({ ok: false, error: "update_failed" });
   });
 });

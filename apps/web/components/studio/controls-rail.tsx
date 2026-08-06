@@ -76,6 +76,7 @@ export function ControlsRail({
   onLogoFileSelected,
   onLogoRemove,
   onLogoSizeChange,
+  exportDisabled = false,
   onExportSvg,
   onExportPng,
   className,
@@ -117,7 +118,15 @@ export function ControlsRail({
   onLogoFileSelected: (file: File) => Promise<string | null>;
   onLogoRemove: () => void;
   onLogoSizeChange: (ratio: number) => void;
-  onExportSvg: () => void;
+  /** P9.8-R3: exports encode a real destination or nothing. True while the
+   *  Destination field is empty (the preview is evaluating the worst-case
+   *  payload, which must never leave as a download) or the typed payload
+   *  can't encode (the on-screen svg is an explicit placeholder). */
+  exportDisabled?: boolean;
+  /** P9.8-R2: both formats take the chosen export size — SVG passes it to
+   *  the engine as `pixelSize` so the file carries real width/height
+   *  attributes instead of importing at viewBox units (33x33 in Figma). */
+  onExportSvg: (size: number) => void;
   onExportPng: (size: number) => Promise<void>;
   className?: string;
 }) {
@@ -157,7 +166,7 @@ export function ControlsRail({
     setExportError(null);
     setExporting("svg");
     try {
-      onExportSvg();
+      onExportSvg(Number(exportSize));
     } catch {
       setExportError("Couldn't export. Try again.");
     } finally {
@@ -505,7 +514,7 @@ export function ControlsRail({
               type="button"
               variant="outline"
               className="flex-1"
-              disabled={exporting !== null}
+              disabled={exporting !== null || exportDisabled}
               onClick={handleExportSvgClick}
             >
               {exporting === "svg" && <Loader2 className="size-3.5 animate-spin" aria-hidden />}
@@ -515,13 +524,16 @@ export function ControlsRail({
               type="button"
               variant="outline"
               className="flex-1"
-              disabled={exporting !== null}
+              disabled={exporting !== null || exportDisabled}
               onClick={handleExportPngClick}
             >
               {exporting === "png" && <Loader2 className="size-3.5 animate-spin" aria-hidden />}
               {exporting === "png" ? "Rasterizing" : "Download PNG"}
             </Button>
           </div>
+          {exportDisabled && payload.trim().length === 0 && (
+            <p className="text-xs text-muted-foreground">Enter a destination to export.</p>
+          )}
           {exportError && (
             <p role="alert" className="text-xs text-destructive">
               {exportError}

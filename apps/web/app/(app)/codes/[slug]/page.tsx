@@ -11,6 +11,8 @@ import { printedShortUrl, shortUrl } from "@/lib/short-url";
 import { formatDate } from "@/lib/date-format";
 import { CodeAnalyticsPanel, CodeStatTiles } from "@/components/codes/code-analytics-panel";
 import { CodeActionsPanel } from "@/components/codes/code-actions-panel";
+import { CodeKitControl } from "@/components/codes/code-kit-control";
+import type { KitPickerKit } from "@/lib/brand-kits";
 import { StatusPill, ProtectedTag } from "@/components/codes/codes-table";
 import { CopyButton } from "@/components/marketing/copy-button";
 
@@ -89,7 +91,11 @@ export default async function CodeDetailPage(props: PageProps<"/codes/[slug]">) 
   // (large jsonb, may carry a logo data URI) so it never bloats /codes'
   // list response, and this is the one page that actually needs the frozen
   // snapshot to render the artifact.
-  const [styleResult, dailyResult, todayResult, recentResult] = await Promise.all([
+  // kitsResult joins the parallel block (P9.8-R1): the identity rail now
+  // names the code's attached kit and offers attach/change, so it needs the
+  // caller's kits — same KitPickerKit projection codes/page.tsx fetches for
+  // its create dialogs.
+  const [styleResult, dailyResult, todayResult, recentResult, kitsResult] = await Promise.all([
     getDynamicCodeStyleCore(ctx, code.id),
     supabase
       .from("scan_daily")
@@ -109,7 +115,14 @@ export default async function CodeDetailPage(props: PageProps<"/codes/[slug]">) 
       .eq("code_id", code.id)
       .order("ts", { ascending: false })
       .limit(10),
+    supabase
+      .from("brand_kits")
+      .select("id, name, style, is_default")
+      .eq("owner_id", userId)
+      .order("created_at"),
   ]);
+
+  const kits = (kitsResult.data ?? []) as KitPickerKit[];
 
   // Render the QR server-side from the code's frozen style snapshot.
   // renderQr (@qrcdn/qr-engine, via lib/preview.ts's never-throw wrapper) is
@@ -229,6 +242,8 @@ export default async function CodeDetailPage(props: PageProps<"/codes/[slug]">) 
                 <p className="mt-1 text-sm text-muted-foreground">No destination set.</p>
               )}
             </div>
+
+            <CodeKitControl code={code} kits={kits} />
 
             <div>
               <p className="font-mono text-xs uppercase tracking-[0.15em] text-muted-foreground">Created</p>

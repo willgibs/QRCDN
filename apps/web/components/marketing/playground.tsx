@@ -360,12 +360,29 @@ export function Playground({ embedded = false, index }: { embedded?: boolean; in
     setExportError(null);
     setDownloadOpen(false);
     try {
-      downloadBlob(new Blob([svg], { type: "image/svg+xml" }), exportFilename(previewData, "svg"));
+      // Re-rendered at PNG_EXPORT_SIZE rather than downloading the preview
+      // string (P9.8-R2, same fix as studio-shell.tsx): the preview svg has
+      // no width/height attributes, so design tools imported the file at
+      // viewBox units (33x33 in Figma) instead of a usable size.
+      const { svg: exportSvg, error } = renderPreview(
+        previewData,
+        style,
+        undefined,
+        PNG_EXPORT_SIZE,
+      );
+      if (error) {
+        setExportError("Couldn't export: try again.");
+        return;
+      }
+      downloadBlob(
+        new Blob([exportSvg], { type: "image/svg+xml" }),
+        exportFilename(previewData, "svg"),
+      );
       setJustExported("svg");
     } catch {
       setExportError("Couldn't export: try again.");
     }
-  }, [svg, previewData]);
+  }, [previewData, style]);
 
   const handleExportPng = useCallback(async () => {
     setExportError(null);

@@ -1,3 +1,4 @@
+import type { ComponentProps } from "react";
 import { Section, SectionHeading, SectionBody } from "@/components/marketing/section";
 import { MonoStrip } from "@/components/marketing/mono-strip";
 import { Note } from "@/components/marketing/note";
@@ -65,7 +66,13 @@ const CONTROLS = [
   },
 ] as const;
 
-export function AccessControlsSection({ index }: { index: string }) {
+export function AccessControlsSection({
+  index,
+  titleSize,
+}: {
+  index: string;
+  titleSize?: ComponentProps<typeof SectionHeading>["titleSize"];
+}) {
   return (
     <Section variant="split" divider="none">
       <SectionHeading
@@ -73,6 +80,7 @@ export function AccessControlsSection({ index }: { index: string }) {
         index={index}
         title="Control who can visit."
         lede="Put a password on a code, give it an end date, or pause it outright. The printed code never changes. What changes is who gets through."
+        titleSize={titleSize}
         className="mb-10"
       />
 

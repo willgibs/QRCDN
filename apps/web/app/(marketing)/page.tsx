@@ -69,28 +69,44 @@ export const metadata: Metadata = {
 //
 // Highlights takes `tint` directly under the hero, so How it works moves to
 // `default` to keep the alternation legal.
+//
+// P9.9-C0: this file also owns the heading ladder. Every section's title
+// used to render at one of two fixed sizes decided inside its own component
+// (`titleAs`'s default resolution in section.tsx) — no page-level view of
+// which sections read louder or quieter than their neighbors, the same
+// problem ordinals had before P9.7-V1. The ladder has three registers: Loud
+// (`--text-h1`, the hero's own scale) for the one section that should hit as
+// hard as the hero; Normal (`--text-h2-lg`, new this unit) for the bulk of
+// the page; Quiet (`--text-h2`, `SectionHeading`'s plain default) for
+// sections that should recede. `titleSize="h2-lg"` below is Normal;
+// `titleSize="h1"` on ManifestoSection is Loud (it stays a semantic `<h2>` —
+// `titleAs` defaults to `"h2"` — so the one-h1-per-page invariant still
+// holds, only the visual size reaches display register); GuardrailsSection/
+// ComparisonSection/OpenSourceSection take no `titleSize` prop at all and
+// stay Quiet. Same rationale as the ordinals rule above: the hierarchy is
+// one visible block here, not literals scattered across eleven files.
 export default function HomePage() {
   return (
     <>
       <Hero />
-      <HighlightsSection index="01" />
-      <HowItWorksSection index="02" />
-      <Playground index="03" />
-      <BrandSystemSection index="04" />
-      <DynamicCodesSection index="05" />
-      <AccessControlsSection index="06" />
-      <AnalyticsSection index="07" />
+      <HighlightsSection index="01" titleSize="h2-lg" />
+      <HowItWorksSection index="02" titleSize="h2-lg" />
+      <Playground index="03" titleSize="h2-lg" />
+      <BrandSystemSection index="04" titleSize="h2-lg" />
+      <DynamicCodesSection index="05" titleSize="h2-lg" />
+      <AccessControlsSection index="06" titleSize="h2-lg" />
+      <AnalyticsSection index="07" titleSize="h2-lg" />
       <GuardrailsSection index="08" />
-      <ApiSection index="09" />
+      <ApiSection index="09" titleSize="h2-lg" />
       <ComparisonSection index="10" />
       <OpenSourceSection index="11" />
-      <ManifestoSection index="12" />
-      <PricingTeaser index="13" />
+      <ManifestoSection index="12" titleSize="h1" />
+      <PricingTeaser index="13" titleSize="h2-lg" />
       {/* Explicit title at every ClosingSection call site (this one and all
           four feature pages), so a landing copy change can never silently
           rewrite a feature page's closing heading through the shared
           component default. */}
-      <ClosingSection title="Create your first code in minutes." />
+      <ClosingSection title="Create your first code in minutes." titleSize="h2-lg" />
     </>
   );
 }

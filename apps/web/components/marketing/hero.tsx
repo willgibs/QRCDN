@@ -86,13 +86,6 @@ export function Hero() {
             <Link href="/developers">See the API</Link>
           </Button>
         </div>
-
-        {/* Board round 5: hidden below md — it was pushing the orbit stage
-            down, and the board wants the orbit higher above the fold on
-            mobile. Unchanged at md and up (own stagger step, same as
-            before). */}
-        <div className="hero-enter hero-enter-4 hidden w-full max-w-lg md:block">
-        </div>
       </div>
 
       <div className="relative mx-auto max-w-6xl px-6 pb-14 pt-8 sm:pt-10">

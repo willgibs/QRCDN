@@ -108,14 +108,14 @@ export default function BrandStudioFeaturePage() {
       <Section variant="split">
         <SectionHeading
           title="One kit, every artifact."
-          lede="Set ink, paper, shapes, and logo once as a kit. Every code you mint inherits it, and every re-render is identical forever: the style is frozen into the code at mint."
+          lede="Set ink, paper, shapes, and logo once as a kit. Every code you mint inherits it, and every kit edit reaches every attached code: reprints always match the current brand."
           className="mb-10"
         />
         <SectionBody className="max-w-5xl">
           <KitContactSheet />
         </SectionBody>
         <SectionBody delay={0.15} className="mt-8 flex justify-center">
-          <MonoStrip>style frozen per code at mint · re-renders identical forever</MonoStrip>
+          <MonoStrip>edit the kit once · every attached code follows · reprints always current</MonoStrip>
         </SectionBody>
       </Section>
 

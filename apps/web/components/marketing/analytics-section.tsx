@@ -1,3 +1,4 @@
+import type { ComponentProps } from "react";
 import { Section, SectionHeading, SectionBody } from "@/components/marketing/section";
 import { MonoStrip } from "@/components/marketing/mono-strip";
 import { LearnMoreLink } from "@/components/marketing/learn-more-link";
@@ -13,7 +14,13 @@ import { ScanField } from "./scan-field";
 // body now carries only the privacy strip, which "stays as shipped" per
 // the spec. Entitlement numbers for it still come from entitlements.ts
 // only (CLAUDE.md hard rule), just read inside dashboard-window.tsx now.
-export function AnalyticsSection({ index }: { index: string }) {
+export function AnalyticsSection({
+  index,
+  titleSize,
+}: {
+  index: string;
+  titleSize?: ComponentProps<typeof SectionHeading>["titleSize"];
+}) {
   return (
     <Section id="analytics" variant="showcase" surface="floor" divider="none">
       <SectionHeading
@@ -21,6 +28,7 @@ export function AnalyticsSection({ index }: { index: string }) {
         index={index}
         title="Track every scan globally."
         lede="Every scan is a place and a moment. By day, country, city, device and referrer, rolled up daily and honest about bots."
+        titleSize={titleSize}
         className="mb-10"
       />
 

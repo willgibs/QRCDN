@@ -128,6 +128,18 @@ property each element type actually needs. `HUE_CLASSES` (the plain-`var()` Tail
 lost its `border`/`bg` fields as part of this — `dot`/`stroke`/`fill`/`text` are untouched and
 still safe (verified: they compile to a bare `var(--dest-N)` reference, no `color-mix` involved).
 
+### D13 amendment (P9.9-C0): the heading ladder
+
+A third type-scale addition, additive to Layer 2 the same way the T1b family and `--text-h2-lg`'s sibling sizes above were: `--text-h2-lg` (clamp `2rem`→`3.25rem` over 360–1440, paired `--line-height: 1.08`/`--letter-spacing: -0.027em` — interpolated between the `h2` and `h1` pairings, same house 360–1440 slope convention). It fills the gap between `--text-h2` and `--text-h1` for `SectionHeading`'s `titleSize` prop, giving the landing a three-step heading ladder instead of the flat "every section is `h2`" default:
+
+| Register | Token | Where (landing, `/`) |
+|---|---|---|
+| Loud | `--text-h1` | Section 12, Trust & privacy — the page's one section on the ink plate (`surface="ink"`) |
+| Normal | `--text-h2-lg` | Sections 01–07, 09, and 13, plus the closing section |
+| Quiet | `--text-h2` (the plain `SectionHeading` default) | Section 08 Scannability, 10 Comparison, 11 Open source |
+
+`app/(marketing)/page.tsx` declares the ladder — every `titleSize` prop lives in that one file's JSX, not scattered as literals across each section component (each section only threads the prop through to its own `SectionHeading`). Same ownership model P9.7-V1 established for section ordinals: the file that decides page composition is the one place the visible hierarchy is legible as a block, not eleven independent judgment calls.
+
 ## Dark mode mechanics
 
 - Class strategy: `@custom-variant dark (&:is(.dark *));` in `globals.css` — Tailwind's `dark:` variant fires off a `.dark` ancestor class, not `prefers-color-scheme` directly.

@@ -216,7 +216,10 @@ export function ComparisonSection({ index }: { index: string }) {
           </div>
           <div
             aria-hidden
-            className="pointer-events-none absolute inset-y-0 right-0 w-10 rounded-r-2xl bg-gradient-to-l from-surface-tint to-transparent"
+            // from-background, not -tint: this section renders on the
+            // default surface (surface="tint" was a stale carryover from an
+            // earlier surface assignment).
+            className="pointer-events-none absolute inset-y-0 right-0 w-10 rounded-r-2xl bg-gradient-to-l from-background to-transparent"
           />
         </div>
 

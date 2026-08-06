@@ -44,14 +44,30 @@ export function ModuleMark({ className }: { className?: string }) {
 export function Eyebrow({
   children,
   index,
+  tone = "default",
 }: {
   children: ReactNode;
   index?: string;
+  /** "ink" (P9.9-C0, additive - default stays byte-identical) swaps the
+   *  label and ordinal onto the ink plate's own muted token: the site's
+   *  `--muted-foreground` doesn't re-scope inside `surface="ink"`, so
+   *  without this the eyebrow renders as the un-inverted grey and reads
+   *  dimmer than everything around it. Same prop shape as `MonoStrip`'s
+   *  `tone`; `ModuleMark` stays accent violet in both tones. */
+  tone?: "default" | "ink";
 }) {
   return (
-    <p className="mb-3 flex items-center gap-2.5 font-mono text-xs uppercase tracking-[0.2em] text-muted-foreground">
+    <p
+      className={`mb-3 flex items-center gap-2.5 font-mono text-xs uppercase tracking-[0.2em] ${
+        tone === "ink" ? "text-ink-muted" : "text-muted-foreground"
+      }`}
+    >
       <ModuleMark />
-      {index && <span className="text-muted-foreground/70">{index}</span>}
+      {index && (
+        <span className={tone === "ink" ? "text-ink-muted/70" : "text-muted-foreground/70"}>
+          {index}
+        </span>
+      )}
       {children}
     </p>
   );

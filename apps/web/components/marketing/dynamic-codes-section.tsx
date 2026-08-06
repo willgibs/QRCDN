@@ -1,3 +1,4 @@
+import type { ComponentProps } from "react";
 import { Section, SectionHeading, SectionBody } from "@/components/marketing/section";
 import { MonoStrip } from "@/components/marketing/mono-strip";
 import { LearnMoreLink } from "@/components/marketing/learn-more-link";
@@ -21,7 +22,13 @@ import { DYNAMIC_CODES_DOORWAY_ENABLED } from "@/lib/marketing-flags";
 // depict the password gate and the expired-code row this new page expands
 // on, and the existing doorway-link convention (a LearnMoreLink beside the
 // mono strips) accepts a second entry with zero layout change.
-export function DynamicCodesSection({ index }: { index: string }) {
+export function DynamicCodesSection({
+  index,
+  titleSize,
+}: {
+  index: string;
+  titleSize?: ComponentProps<typeof SectionHeading>["titleSize"];
+}) {
   return (
     <Section id="dynamic-codes" variant="showcase" surface="tint" divider="none">
       <SectionHeading
@@ -29,6 +36,7 @@ export function DynamicCodesSection({ index }: { index: string }) {
         index={index}
         title="Update a destination anytime."
         lede="A QRCDN code is a permanent address. Retarget it in seconds and the printed code never changes."
+        titleSize={titleSize}
       />
 
       {/* P9.7-V4: the state cards moved to section 06, where they were always

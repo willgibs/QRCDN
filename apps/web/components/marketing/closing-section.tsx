@@ -1,3 +1,4 @@
+import type { ComponentProps } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Section, SectionHeading, SectionBody } from "@/components/marketing/section";
@@ -27,13 +28,15 @@ import { Section, SectionHeading, SectionBody } from "@/components/marketing/sec
 export function ClosingSection({
   title = "Print something that can change its mind.",
   lede = "Start free. No card, no trial clock.",
+  titleSize,
 }: {
   title?: string;
   lede?: string;
+  titleSize?: ComponentProps<typeof SectionHeading>["titleSize"];
 } = {}) {
   return (
     <Section variant="centered" rhythm="air">
-      <SectionHeading titleAs="h2" title={title} lede={lede} />
+      <SectionHeading titleAs="h2" title={title} lede={lede} titleSize={titleSize} />
 
       <SectionBody delay={0.15} className="mt-8 flex flex-col items-center gap-5">
         <Button

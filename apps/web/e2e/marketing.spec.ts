@@ -1038,7 +1038,7 @@ test.describe("marketing site", () => {
       ["Analytics", "/features/analytics"],
       ["Access controls", "/features/access-controls"],
       ["Pricing", "/pricing"],
-      ["Studio", "/login"],
+      ["Studio", "/studio"],
     ] as const) {
       await expect(footer.getByRole("link", { name: label, exact: true })).toHaveAttribute("href", href);
     }

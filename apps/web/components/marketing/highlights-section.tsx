@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import type { ComponentProps, ReactNode } from "react";
 import { Section, SectionHeading, SectionBody } from "@/components/marketing/section";
 import { PLAN_LIMITS } from "@/lib/entitlements";
 import { cn } from "@/lib/utils";
@@ -201,7 +201,13 @@ const CARDS: readonly Card[] = [
   },
 ];
 
-export function HighlightsSection({ index }: { index: string }) {
+export function HighlightsSection({
+  index,
+  titleSize,
+}: {
+  index: string;
+  titleSize?: ComponentProps<typeof SectionHeading>["titleSize"];
+}) {
   return (
     <Section variant="stack" surface="tint" divider="none">
       <SectionHeading
@@ -209,6 +215,7 @@ export function HighlightsSection({ index }: { index: string }) {
         index={index}
         title="Everything you need in one place."
         lede="Five pieces, one platform: design the code, mint it from a kit, repoint it after it prints, measure what it does, and drive all of it over an API."
+        titleSize={titleSize}
         className="mb-10"
       />
 

@@ -150,9 +150,10 @@ export function Section({
   );
 }
 
-const TITLE_SIZE_CLASS: Record<"display" | "h1" | "h2" | "h3", string> = {
+const TITLE_SIZE_CLASS: Record<"display" | "h1" | "h2-lg" | "h2" | "h3", string> = {
   display: "text-display",
   h1: "text-h1",
+  "h2-lg": "text-h2-lg",
   h2: "text-h2",
   h3: "text-h3",
 };
@@ -166,6 +167,7 @@ export function SectionHeading({
   actions,
   titleAs = "h2",
   titleSize,
+  tone = "default",
   reveal = true,
   className,
 }: {
@@ -183,8 +185,22 @@ export function SectionHeading({
    *  before this prop existed: `titleAs="h1"` -> `text-display`,
    *  `titleAs="h2"` -> `text-h2`. There must never be a second page `<h1>`:
    *  a section that wants bigger type while staying an `<h2>` sets
-   *  `titleAs="h2"` with `titleSize="h1"` rather than `titleAs="h1"`. */
-  titleSize?: "display" | "h1" | "h2" | "h3";
+   *  `titleAs="h2"` with `titleSize="h1"` rather than `titleAs="h1"`.
+   *  `"h2-lg"` (P9.9-C0) is the landing's Normal register between h1 and
+   *  h2; the Loud/Normal/Quiet ladder for `/` is declared in
+   *  `app/(marketing)/page.tsx`, the same ownership model P9.7-V1 already
+   *  established for section ordinals. */
+  titleSize?: "display" | "h1" | "h2-lg" | "h2" | "h3";
+  /** "ink" (P9.9-C0, additive - default stays byte-identical) recolors the
+   *  whole heading block for a `surface="ink"` plate: the site's
+   *  foreground/muted tokens don't re-scope inside ink, so the eyebrow and
+   *  lede would otherwise keep their un-inverted greys. Also sets the
+   *  title's `text-ink-foreground` EXPLICITLY: without it the title only
+   *  read correctly by accident (tailwind-merge treats `text-foreground`
+   *  and the `text-h1` size utility as one conflict group and silently
+   *  dropped the color, letting the section root's `text-ink-foreground`
+   *  inherit through). Same prop shape as `MonoStrip`/`Eyebrow` `tone`. */
+  tone?: "default" | "ink";
   /** Reveal-wraps the whole heading on scroll into view. Set false inside
    *  something already handling its own entrance (e.g. a tab panel). */
   reveal?: boolean;
@@ -201,17 +217,29 @@ export function SectionHeading({
       )}
     >
       <div data-slot="section-heading-main" className="flex flex-col gap-3">
-        {eyebrow && <Eyebrow index={index}>{eyebrow}</Eyebrow>}
+        {eyebrow && (
+          <Eyebrow index={index} tone={tone}>
+            {eyebrow}
+          </Eyebrow>
+        )}
         <TitleTag
           className={cn(
-            "font-display font-semibold text-foreground",
+            "font-display font-semibold",
+            tone === "ink" ? "text-ink-foreground" : "text-foreground",
             TITLE_SIZE_CLASS[resolvedTitleSize],
           )}
         >
           {title}
         </TitleTag>
         {lede && (
-          <p className="max-w-lede text-lede text-muted-foreground">{lede}</p>
+          <p
+            className={cn(
+              "max-w-lede text-lede",
+              tone === "ink" ? "text-ink-muted" : "text-muted-foreground",
+            )}
+          >
+            {lede}
+          </p>
         )}
       </div>
       {(aside || actions) && (

@@ -1,3 +1,4 @@
+import type { ComponentProps } from "react";
 import Link from "next/link";
 import { Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -32,7 +33,13 @@ const PRO_FEATURES = [
   "API access, bulk generation & vanity links",
 ];
 
-export function PricingTeaser({ index }: { index: string }) {
+export function PricingTeaser({
+  index,
+  titleSize,
+}: {
+  index: string;
+  titleSize?: ComponentProps<typeof SectionHeading>["titleSize"];
+}) {
   return (
     <Section divider="none">
       <SectionHeading
@@ -45,6 +52,7 @@ export function PricingTeaser({ index }: { index: string }) {
             {ANNUAL_MONTHLY_EQUIV_USD}/mo when you print at scale.
           </>
         }
+        titleSize={titleSize}
         className="mb-10"
       />
 

@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
+import type { ComponentProps } from "react";
 import Link from "next/link";
 import { Check, ChevronDown, Loader2 } from "lucide-react";
 import { useReducedMotion } from "motion/react";
@@ -256,7 +257,15 @@ function ContrastMeter({ worstContrast }: { worstContrast: number }) {
   );
 }
 
-export function Playground({ embedded = false, index }: { embedded?: boolean; index?: string } = {}) {
+export function Playground({
+  embedded = false,
+  index,
+  titleSize,
+}: {
+  embedded?: boolean;
+  index?: string;
+  titleSize?: ComponentProps<typeof SectionHeading>["titleSize"];
+} = {}) {
   const [payload, setPayload] = useState(PREVIEW_PAYLOAD_DEFAULT);
   const [dotStyle, setDotStyle] = useState<(typeof DOT_STYLES)[number]>(DEFAULT_STYLE.dots.style);
   const [eyeFrame, setEyeFrame] = useState<(typeof EYE_FRAMES)[number]>(DEFAULT_STYLE.eyes.frame);
@@ -609,7 +618,20 @@ export function Playground({ embedded = false, index }: { embedded?: boolean; in
         eyebrow="Design studio"
         index={index}
         title="Customize your brand design."
-        lede="The real engine and the same scannability instrument the full studio runs on. Take it further at /studio, free."
+        lede={
+          <>
+            The real engine and the same scannability instrument the full studio runs on. Take it
+            further at{" "}
+            <Link
+              href="/studio"
+              className="underline decoration-muted-foreground/40 underline-offset-4 transition-colors hover:text-foreground"
+            >
+              /studio
+            </Link>
+            , free.
+          </>
+        }
+        titleSize={titleSize}
         className="mb-10"
       />
       {body}

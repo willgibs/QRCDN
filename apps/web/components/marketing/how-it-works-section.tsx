@@ -1,3 +1,4 @@
+import type { ComponentProps } from "react";
 import { Section, SectionHeading, SectionBody } from "@/components/marketing/section";
 import { Filmstrip } from "@/components/marketing/filmstrip";
 
@@ -41,10 +42,21 @@ import { Filmstrip } from "@/components/marketing/filmstrip";
  * `e2e/marketing.spec.ts` asserts on this section's copy (grep-checked
  * before each change, not assumed).
  */
-export function HowItWorksSection({ index }: { index: string }) {
+export function HowItWorksSection({
+  index,
+  titleSize,
+}: {
+  index: string;
+  titleSize?: ComponentProps<typeof SectionHeading>["titleSize"];
+}) {
   return (
     <Section variant="band">
-      <SectionHeading eyebrow="How it works" index={index} title="Make codes that last forever." />
+      <SectionHeading
+        eyebrow="How it works"
+        index={index}
+        title="Make codes that last forever."
+        titleSize={titleSize}
+      />
 
       <SectionBody>
         <Filmstrip />

@@ -1,3 +1,4 @@
+import type { ComponentProps } from "react";
 import { Section, SectionHeading, SectionBody } from "@/components/marketing/section";
 import { MonoStrip } from "@/components/marketing/mono-strip";
 import { LearnMoreLink } from "@/components/marketing/learn-more-link";
@@ -10,8 +11,9 @@ import { KitContactSheet } from "./kit-contact-sheet";
 // exact note), so it's retired (zero other importers, grep-verified) in
 // favor of `KitContactSheet`: one kit style rendered across several
 // real-world print artifacts, saying "set once, appears everywhere"
-// instead of showing another editor. Mono strip cites D5 (style frozen per
-// code at mint) — see docs/DECISIONS.md.
+// instead of showing another editor. Mono strip cites D5 as amended at
+// P9.8 (hard sync: kit edits propagate to every attached code) — see
+// docs/DECISIONS.md.
 //
 // P9.5-T-F2: gained `id="brand-system"` — every other Section on the
 // landing that carries a doorway link already has one (#studio,
@@ -21,7 +23,13 @@ import { KitContactSheet } from "./kit-contact-sheet";
 // SECOND of its two call sites, alongside playground.tsx's #studio) —
 // gives e2e (and any future in-page link) a stable anchor to scope to,
 // same as every sibling section.
-export function BrandSystemSection({ index }: { index: string }) {
+export function BrandSystemSection({
+  index,
+  titleSize,
+}: {
+  index: string;
+  titleSize?: ComponentProps<typeof SectionHeading>["titleSize"];
+}) {
   return (
     <Section id="brand-system" variant="split" divider="none">
       <SectionHeading
@@ -29,6 +37,7 @@ export function BrandSystemSection({ index }: { index: string }) {
         index={index}
         title="Every code starts from your kit."
         lede="Ink, paper, shapes, logo: set once as a kit. Every code you make starts from it, from menu tents to ticket stubs."
+        titleSize={titleSize}
         className="mb-10"
       />
 
@@ -37,7 +46,7 @@ export function BrandSystemSection({ index }: { index: string }) {
       </SectionBody>
 
       <SectionBody delay={0.15} className="mt-8 flex flex-col items-start gap-4">
-        <MonoStrip>style frozen per code at mint · re-renders identical forever</MonoStrip>
+        <MonoStrip>edit the kit once · every attached code follows · reprints always current</MonoStrip>
         {BRAND_STUDIO_DOORWAY_ENABLED && (
           <LearnMoreLink href="/features/brand-studio">Explore the brand studio</LearnMoreLink>
         )}

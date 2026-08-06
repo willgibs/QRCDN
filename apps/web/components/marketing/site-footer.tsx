@@ -24,7 +24,7 @@ const COLUMNS = [
       { href: "/features/analytics", label: "Analytics" },
       { href: "/features/access-controls", label: "Access controls" },
       { href: "/pricing", label: "Pricing" },
-      { href: "/login", label: "Studio" },
+      { href: "/studio", label: "Studio" },
     ],
   },
   {

@@ -41,7 +41,12 @@ concurrency:
 
 jobs:
   e2e:
-    if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
+    # push and manual dispatch always run; PRs only from THIS repo (fork PRs
+    # can't see E2E_SUPABASE_SECRET_KEY — see the header comment). The
+    # dispatch arm rides the P9.9-C0.5 workflow_dispatch trigger: a
+    # dispatched run is always repo-local, so it is exactly as trusted as a
+    # push.
+    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch' || github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
     timeout-minutes: 15
     env:

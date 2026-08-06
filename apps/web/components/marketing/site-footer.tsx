@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { ModuleMark } from "@/components/brand/magic";
-import { ThemeToggle } from "@/components/marketing/theme-toggle";
 
 // GitHub repo URL — the same literal open-source-section.tsx's own
 // REPO_URL uses. Not imported from there: that component is landing-only
@@ -126,12 +125,12 @@ export function SiteFooter() {
           ))}
         </div>
 
-        <div className="mt-12 flex flex-col-reverse items-center justify-between gap-6 border-t border-border/60 pt-6 sm:flex-row">
-          <div className="flex flex-col items-center gap-1.5 text-center sm:flex-row sm:gap-4 sm:text-left">
-            <p className="font-mono text-xs text-muted-foreground">your code never dies</p>
-            <p className="text-xs text-muted-foreground">© 2026 QRCDN</p>
-          </div>
-          <ThemeToggle />
+        {/* No ThemeToggle here since P9.9-C0.5: marketing is dark-only
+            (board directive) — the toggle lives in the app shell (AppNav),
+            where light/dark remains a real preference. */}
+        <div className="mt-12 flex flex-col items-center gap-1.5 border-t border-border/60 pt-6 text-center sm:flex-row sm:gap-4 sm:text-left">
+          <p className="font-mono text-xs text-muted-foreground">your code never dies</p>
+          <p className="text-xs text-muted-foreground">© 2026 QRCDN</p>
         </div>
       </div>
     </footer>

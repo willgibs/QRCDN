@@ -568,7 +568,9 @@ export function Playground({
                     {justExported ? "Downloaded" : "Download"}
                   </Button>
                 </PopoverTrigger>
-                <PopoverContent align="center" className="w-36 p-1.5">
+                {/* `dark` on the CONTENT: portals to document.body, outside
+                    the marketing forced-dark wrapper (P9.9-C0.5). */}
+                <PopoverContent align="center" className="dark w-36 p-1.5">
                   <div className="flex flex-col">
                     <button
                       type="button"

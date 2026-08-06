@@ -22,7 +22,17 @@ export default function RootLayout({
   return (
     <html lang="en" className={`${fontVariables} h-full`} suppressHydrationWarning>
       <body className="min-h-full flex flex-col antialiased">
-        <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+        {/* enableColorScheme={false} (P9.9-C0.5): next-themes' default writes
+            an inline `color-scheme` style on <html>, and inline beats any
+            stylesheet — including the forced-dark marketing override. The
+            equivalent light/dark pair now lives in globals.css, keyed off
+            the same `.dark` class this provider toggles. */}
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="system"
+          enableSystem
+          enableColorScheme={false}
+        >
           {children}
         </ThemeProvider>
         <Analytics />

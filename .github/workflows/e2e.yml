@@ -30,6 +30,10 @@ on:
       - "packages/**"
       - "supabase/migrations/**"
       - ".github/workflows/e2e.yml"
+  # Manual trigger (P9.9-C0.5): same outage-recovery lever as ci.yml — the
+  # 2026-08-06 GitHub Actions outage dropped push webhooks with no way to
+  # start a run by hand.
+  workflow_dispatch: {}
 
 concurrency:
   group: e2e-${{ github.ref }}

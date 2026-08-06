@@ -9,6 +9,10 @@ on:
       - "docs/**"
       - "**.md"
   pull_request:
+  # Manual trigger (P9.9-C0.5): the 2026-08-06 GitHub Actions outage
+  # throttled push webhooks, leaving a shipped commit with no runs and no
+  # way to start any — this is the recovery lever that was missing.
+  workflow_dispatch: {}
 
 # Burst pushes (our per-unit commit cadence) cancel superseded runs instead
 # of finishing them — the local lint/typecheck/test pass before every push is

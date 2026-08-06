@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { ModuleMark } from "@/components/brand/magic";
+import { ThemeToggle } from "@/components/theme-toggle";
 import { signOutAction } from "@/app/(app)/studio/actions";
 import { cn } from "@/lib/utils";
 
@@ -70,6 +71,9 @@ export function AppNav({ userEmail }: { userEmail: string }) {
         </div>
 
         <div className="flex shrink-0 items-center gap-3">
+          {/* The product's one theme control (P9.9-C0.5): marketing went
+              dark-only, so light/dark is an app preference and lives here. */}
+          <ThemeToggle />
           {userEmail && (
             <span
               className="hidden max-w-[180px] truncate font-mono text-xs text-muted-foreground sm:inline"

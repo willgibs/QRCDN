@@ -247,6 +247,9 @@
 }
 
 .dark {
+  /* --background's value is duplicated as a literal in the
+     `html:has([data-force-dark]) body` rule (P9.9-C0.5 dark-only
+     marketing) — change both together. */
   --background: oklch(0.13 0.004 280);
   --foreground: oklch(0.96 0.002 280);
   --card: oklch(0.17 0.005 280);
@@ -320,6 +323,34 @@
   html {
     @apply font-sans;
   }
+}
+
+/* UA color-scheme, in CSS instead of next-themes' inline style (P9.9-C0.5).
+   ThemeProvider now passes enableColorScheme={false}: an inline style on
+   <html> would defeat the forced-dark override below (inline always beats a
+   stylesheet), so the base light/dark pair moves here — same behavior the
+   inline mechanism produced, driven by the same `.dark` class next-themes
+   still toggles. Order matters: the `html:has` override must come LAST
+   (equal specificity, later wins).
+
+   Forced-dark scope (board directive 2026-08-06: marketing is dark-only,
+   no theme toggle; the app keeps light/dark): any page whose shell carries
+   `data-force-dark` (the `dark`-classed wrapper in (marketing)/layout.tsx,
+   not-found.tsx, and /login) gets a dark UA color-scheme and a dark <body>
+   behind overscroll, regardless of the visitor's OS/site theme. The body
+   background is a LITERAL duplicate of `.dark`'s --background — a wrapper
+   div's tokens cannot reach <body> — cross-commented at the token. */
+html.dark {
+  color-scheme: dark;
+}
+html:not(.dark) {
+  color-scheme: light;
+}
+html:has([data-force-dark]) {
+  color-scheme: dark;
+}
+html:has([data-force-dark]) body {
+  background-color: oklch(0.13 0.004 280); /* = .dark --background */
 }
 
 /* Press feedback on every pressable element (emil-design-eng): the interface

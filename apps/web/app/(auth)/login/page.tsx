@@ -52,7 +52,13 @@ export default async function LoginPage(props: PageProps<"/login">) {
   const initialError = authErrorMessage(params.auth_error);
 
   return (
-    <div className="relative flex min-h-dvh flex-col items-center justify-center overflow-hidden bg-background px-6 py-16 lg:flex-row lg:justify-center lg:gap-16">
+    // P9.9-C0.5: /login rides the marketing dark-only directive — visitors
+    // arrive here from marketing CTAs and the HeroBackdrop glow is tuned for
+    // the dark register. Same wrapper contract as (marketing)/layout.tsx.
+    <div
+      data-force-dark
+      className="dark relative flex min-h-dvh flex-col items-center justify-center overflow-hidden bg-background px-6 py-16 lg:flex-row lg:justify-center lg:gap-16"
+    >
       <HeroBackdrop />
 
       <div className="relative flex w-full max-w-sm flex-col items-center">

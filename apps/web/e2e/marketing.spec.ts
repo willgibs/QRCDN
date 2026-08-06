@@ -713,6 +713,54 @@ test.describe("marketing site", () => {
     expect(html).not.toMatch(/opacity\s*:\s*0(?!\.)/);
   });
 
+  // P9.9-C0.5 (board directive): marketing is DARK-ONLY. A visitor whose OS
+  // prefers LIGHT must still get the dark register on every marketing
+  // surface: the forced-dark wrapper present, the UA color-scheme dark (the
+  // css `html:has([data-force-dark])` override — next-themes' inline
+  // color-scheme is disabled so this rule can win), and the body painted
+  // dark behind overscroll. The three assertions cover the three distinct
+  // mechanisms; any one failing means a light flash or light chrome leaks.
+  test("marketing renders dark for a light-preference visitor (P9.9-C0.5)", async ({
+    browser,
+  }) => {
+    const context = await browser.newContext({ colorScheme: "light" });
+    const page = await context.newPage();
+    try {
+      for (const path of ["/", "/pricing", "/login"]) {
+        await page.goto(path);
+        await expect(page.locator("[data-force-dark]")).toHaveCount(1);
+        const { scheme, bodyBg } = await page.evaluate(() => ({
+          scheme: getComputedStyle(document.documentElement).colorScheme,
+          bodyBg: getComputedStyle(document.body).backgroundColor,
+        }));
+        expect(scheme, `${path} UA color-scheme`).toBe("dark");
+        expect(bodyBg, `${path} body background`).not.toBe("rgb(255, 255, 255)");
+      }
+    } finally {
+      await context.close();
+    }
+  });
+
+  // The inverse guard: the same light-preference visitor on the PUBLIC
+  // studio (an app surface, not marketing) must still get the light theme —
+  // the forced-dark scope must not leak past the marketing shells.
+  test("/studio still follows the visitor's theme (P9.9-C0.5 scope guard)", async ({
+    browser,
+  }) => {
+    const context = await browser.newContext({ colorScheme: "light" });
+    const page = await context.newPage();
+    try {
+      await page.goto("/studio");
+      await expect(page.locator("[data-force-dark]")).toHaveCount(0);
+      const scheme = await page.evaluate(
+        () => getComputedStyle(document.documentElement).colorScheme,
+      );
+      expect(scheme).toBe("light");
+    } finally {
+      await context.close();
+    }
+  });
+
   test("/pricing never SSRs opacity:0 anywhere in the document (P9.7-U1)", async ({ request }) => {
     const response = await request.get("/pricing");
     const html = await response.text();

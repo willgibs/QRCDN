@@ -105,7 +105,10 @@ export function SiteNav() {
                 <ChevronDown className="size-3.5" aria-hidden />
               </button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="start" className="w-48">
+            {/* `dark` on the CONTENT: this menu portals to document.body,
+                outside the marketing layout's forced-dark wrapper, so it
+                must carry the scope itself (P9.9-C0.5). */}
+            <DropdownMenuContent align="start" className="dark w-48">
               {FEATURE_LINKS.map(({ href, label }) => (
                 <DropdownMenuItem key={href} asChild>
                   <Link href={href}>{label}</Link>

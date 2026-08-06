@@ -614,9 +614,14 @@ test.describe.serial("money path", () => {
     // accident: #101013 -> rgb(16, 16, 19), nothing like kit 1's #f4f4f5.
     await page.getByRole("button", { name: "Paper #101013" }).click();
     await page.getByRole("button", { name: "Save changes" }).click();
-    // The fresh kit has zero attached codes; the note is the save-complete
-    // signal (kit-bar shows it for any style-bearing save).
-    await expect(page.getByText("Style applied to 0 attached codes.")).toBeVisible();
+    // The fresh kit has zero attached codes, and the sync note is
+    // deliberately gated on syncedCodes > 0 (kit-bar.tsx handleSave — a
+    // zero-count note would be noise). The save-complete signal here is the
+    // button's own 1600ms "Saved" flash, which renders only after
+    // updateBrandKit resolves ok. (First CI run of this test asserted the
+    // note and failed exactly on that gate — the gate is correct, the test
+    // was wrong.)
+    await expect(page.getByRole("button", { name: "Saved" })).toBeVisible();
 
     await page.goto(`${E2E_BASE_URL}/codes/${slug}`);
     await expect(page.getByText("E2E Money Path Kit")).toBeVisible();

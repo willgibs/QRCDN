@@ -476,7 +476,14 @@ export function KitBar({
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
-          {hasUnsavedChanges && (
+          {/* Mounted through the whole save lifecycle, not just while dirty
+              (P9.8-R fix): onSaved clears hasUnsavedChanges the moment the
+              action resolves, so a dirty-only mount unmounted the button
+              BEFORE the 1600ms "Saved" flash could render — flashSaved had
+              been setting state on a dead component since B1 and the
+              confirmation never showed. savedFlashId keeps it alive exactly
+              for the flash window; busyId covers the in-flight state. */}
+          {(hasUnsavedChanges || busyId === activeKit.id || savedFlashId === activeKit.id) && (
             <SaveButton
               busy={busyId === activeKit.id}
               saved={savedFlashId === activeKit.id}

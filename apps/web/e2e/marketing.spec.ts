@@ -713,26 +713,28 @@ test.describe("marketing site", () => {
     expect(html).not.toMatch(/opacity\s*:\s*0(?!\.)/);
   });
 
-  // P9.9-C0.5 (board directive): marketing is DARK-ONLY. A visitor whose OS
-  // prefers LIGHT must still get the dark register on every marketing
-  // surface: the forced-dark wrapper present, the UA color-scheme dark (the
-  // css `html:has([data-force-dark])` override — next-themes' inline
-  // color-scheme is disabled so this rule can win), and the body painted
-  // dark behind overscroll. The three assertions cover the three distinct
-  // mechanisms; any one failing means a light flash or light chrome leaks.
-  test("marketing renders dark for a light-preference visitor (P9.9-C0.5)", async ({
+  // P9.9-C0.6 (board directive, superseding C0.5's marketing-only scope the
+  // same day): the WHOLE product is dark-only. A visitor whose OS prefers
+  // LIGHT must get the dark register everywhere — marketing, auth, and the
+  // public studio alike. The `dark` class is server-rendered (static in the
+  // root layout, no theme provider), so it must be present in the html
+  // element's class list before any client JS runs; `color-scheme` follows
+  // from the `html { color-scheme: dark }` rule; the body paints dark off
+  // the `.dark` tokens.
+  test("the whole product renders dark for a light-preference visitor (P9.9-C0.6)", async ({
     browser,
   }) => {
     const context = await browser.newContext({ colorScheme: "light" });
     const page = await context.newPage();
     try {
-      for (const path of ["/", "/pricing", "/login"]) {
+      for (const path of ["/", "/pricing", "/login", "/studio"]) {
         await page.goto(path);
-        await expect(page.locator("[data-force-dark]")).toHaveCount(1);
-        const { scheme, bodyBg } = await page.evaluate(() => ({
+        const { hasDarkClass, scheme, bodyBg } = await page.evaluate(() => ({
+          hasDarkClass: document.documentElement.classList.contains("dark"),
           scheme: getComputedStyle(document.documentElement).colorScheme,
           bodyBg: getComputedStyle(document.body).backgroundColor,
         }));
+        expect(hasDarkClass, `${path} static dark class`).toBe(true);
         expect(scheme, `${path} UA color-scheme`).toBe("dark");
         expect(bodyBg, `${path} body background`).not.toBe("rgb(255, 255, 255)");
       }
@@ -741,24 +743,12 @@ test.describe("marketing site", () => {
     }
   });
 
-  // The inverse guard: the same light-preference visitor on the PUBLIC
-  // studio (an app surface, not marketing) must still get the light theme —
-  // the forced-dark scope must not leak past the marketing shells.
-  test("/studio still follows the visitor's theme (P9.9-C0.5 scope guard)", async ({
-    browser,
-  }) => {
-    const context = await browser.newContext({ colorScheme: "light" });
-    const page = await context.newPage();
-    try {
-      await page.goto("/studio");
-      await expect(page.locator("[data-force-dark]")).toHaveCount(0);
-      const scheme = await page.evaluate(
-        () => getComputedStyle(document.documentElement).colorScheme,
-      );
-      expect(scheme).toBe("light");
-    } finally {
-      await context.close();
-    }
+  // The static class is in the SERVER-RENDERED bytes, not applied by a
+  // client script: no theme flash is possible even pre-hydration / JS-off.
+  test("the dark class ships in the raw served HTML (P9.9-C0.6)", async ({ request }) => {
+    const response = await request.get("/");
+    const html = await response.text();
+    expect(html).toMatch(/<html[^>]*class="[^"]*\bdark\b[^"]*"/);
   });
 
   test("/pricing never SSRs opacity:0 anywhere in the document (P9.7-U1)", async ({ request }) => {

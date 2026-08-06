@@ -1,12 +1,10 @@
 "use client";
 
 import { useCallback, useMemo, useState } from "react";
-import { useTheme } from "next-themes";
 import { scannabilityReport } from "@qrcdn/qr-engine";
 import { defaultQrStyle, parseQrStyle, type QrStyle } from "@qrcdn/shared";
 import type { BrandKit } from "@/lib/brand-kits";
 import type { Plan } from "@/lib/entitlements";
-import { useMounted } from "@/hooks/use-mounted";
 import { degreesToRadians } from "@/lib/angle";
 import { downloadBlob, exportFilename, rasterizeSvgToPng } from "@/lib/export";
 import { brandQrBackdrop } from "@/lib/brand-qr";
@@ -278,24 +276,20 @@ export function StudioShell({
     [previewData, validStyle, logoDataUri],
   );
 
-  // Theme-dependent output must wait for mount (hooks/use-mounted.ts) — SSR
-  // doesn't know the resolved color scheme. `brandQrBackdrop.precision` must
-  // match --qr-bg in globals.css by hand (lib/brand-qr.ts's own doc comment
-  // makes the same note) — there's no build-time check yet.
-  const { resolvedTheme } = useTheme();
-  const mounted = useMounted();
-  const dark = mounted && resolvedTheme === "dark";
-
   // Wired truthfully (P4 design-iteration note 3.3): when background.transparent
-  // is on, the report should score contrast against what the code will
-  // actually sit on in this preview — the mat's --qr-bg fallback — not the
-  // guardrail's own white default, which would under-report risk in dark mode.
+  // is on, the report scores contrast against what the code will actually
+  // sit on in this preview — the mat's --qr-bg fallback, ALWAYS the dark
+  // value since P9.9-C0.6 (app-wide dark, board directive: one register
+  // everywhere means the studio evaluates against exactly what every
+  // surface renders — this used to resolve per-theme behind a useMounted
+  // guard). `brandQrBackdrop.precision` must match --qr-bg in globals.css
+  // by hand (lib/brand-qr.ts's own doc comment makes the same note).
   const report = useMemo(
     () =>
       scannabilityReport(validStyle, {
-        transparentBackdrop: brandQrBackdrop.precision[dark ? "dark" : "light"],
+        transparentBackdrop: brandQrBackdrop.precision.dark,
       }),
-    [validStyle, dark],
+    [validStyle],
   );
 
   // Shared derivation (lib/qr-style-derive.ts) — feeds ArtifactStage's

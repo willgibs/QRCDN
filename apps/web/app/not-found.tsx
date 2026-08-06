@@ -27,11 +27,8 @@ export const metadata: Metadata = {
 // sign-off. No data fetching, no dynamic APIs — this renders statically.
 
 export default function NotFound() {
-  // P9.9-C0.5: dark-only marketing chrome — same forced-dark wrapper as
-  // app/(marketing)/layout.tsx (this file composes the chrome directly, so
-  // it must carry the wrapper directly too; see that layout's doc comment).
   return (
-    <div data-force-dark className="dark flex min-h-dvh flex-col bg-background text-foreground">
+    <div className="flex min-h-dvh flex-col">
       <SiteNav />
 
       <main className="relative flex flex-1 flex-col items-center justify-center overflow-hidden bg-background px-6 py-16">

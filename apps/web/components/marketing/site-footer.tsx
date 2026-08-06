@@ -125,9 +125,8 @@ export function SiteFooter() {
           ))}
         </div>
 
-        {/* No ThemeToggle here since P9.9-C0.5: marketing is dark-only
-            (board directive) — the toggle lives in the app shell (AppNav),
-            where light/dark remains a real preference. */}
+        {/* The ThemeToggle that lived here is gone for good (P9.9-C0.6):
+            the whole product is dark-only by board directive. */}
         <div className="mt-12 flex flex-col items-center gap-1.5 border-t border-border/60 pt-6 text-center sm:flex-row sm:gap-4 sm:text-left">
           <p className="font-mono text-xs text-muted-foreground">your code never dies</p>
           <p className="text-xs text-muted-foreground">© 2026 QRCDN</p>

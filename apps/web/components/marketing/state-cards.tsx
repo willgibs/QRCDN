@@ -129,7 +129,7 @@ export function StateCards({
     <StateCard key="expired" routeLabel="dashboard · your codes">
       <div className="flex items-center justify-between gap-3 rounded-lg border border-border/60 bg-background/60 px-3 py-2.5">
         <div className="flex min-w-0 flex-col">
-          <span className="truncate text-sm font-medium text-foreground">Café Norte menu</span>
+          <span className="truncate text-sm font-medium text-foreground">Ember menu</span>
           <span className="font-mono text-[11px] text-muted-foreground">/{DEMO_SLUG}</span>
         </div>
         <span

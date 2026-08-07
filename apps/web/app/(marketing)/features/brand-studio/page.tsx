@@ -3,7 +3,7 @@ import Link from "next/link";
 import { Section, SectionHeading, SectionBody } from "@/components/marketing/section";
 import { MonoStrip } from "@/components/marketing/mono-strip";
 import { LearnMoreLink } from "@/components/marketing/learn-more-link";
-import { KitContactSheet } from "@/components/marketing/kit-contact-sheet";
+import { KitSyncTheatre } from "@/components/marketing/kit-sync-theatre";
 import { Playground } from "@/components/marketing/playground";
 import { GuardrailsPlot } from "@/components/marketing/guardrails-plot";
 import { ClosingSection } from "@/components/marketing/closing-section";
@@ -12,9 +12,11 @@ import { FaqList } from "@/components/marketing/features/faq-list";
 import { PRICING_ROWS, type PricingRow } from "@/lib/pricing";
 
 // /features/brand-studio (P9.5-T-F2) — the third feature-depth page,
-// composing the landing's proven section-02/03/05 components
-// (Playground, KitContactSheet, GuardrailsPlot) with page-depth copy from
-// the T-F chunk-2 deck. See /features/dynamic-codes' own header comment
+// composing the landing's proven section components (Playground,
+// KitSyncTheatre since P9.9-C1 — KitContactSheet retired with the section
+// 04 rebuild, this page follows the landing's chosen staging, same sharing
+// rule as always — GuardrailsPlot) with page-depth copy from the T-F
+// chunk-2 deck. See /features/dynamic-codes' own header comment
 // (P9.5-T-F1) for the shared reasoning this chunk continues: verbatim deck
 // strings outside truth-gate variants, static route, one invented
 // micro-heading for the FAQ block the deck leaves unheaded.
@@ -104,7 +106,8 @@ export default function BrandStudioFeaturePage() {
         mono="SVG + PNG export · instrument: live · engine: open source"
       />
 
-      {/* S1 — One kit, every artifact. KitContactSheet reused as-is. */}
+      {/* S1 — One kit, every artifact. KitSyncTheatre shared with the
+          landing's section 04 (P9.9-C1). */}
       <Section variant="split">
         <SectionHeading
           title="One kit, every artifact."
@@ -112,7 +115,7 @@ export default function BrandStudioFeaturePage() {
           className="mb-10"
         />
         <SectionBody className="max-w-5xl">
-          <KitContactSheet />
+          <KitSyncTheatre />
         </SectionBody>
         <SectionBody delay={0.15} className="mt-8 flex justify-center">
           <MonoStrip>edit the kit once · every attached code follows · reprints always current</MonoStrip>

@@ -465,6 +465,75 @@ html {
   }
 }
 
+/* Kit-sync theatre (P9.9-C1, board pick "B with A's physicality"): the
+   brand-system section's one looping scene. A 9s cycle: the kit card's
+   Save pulses, the paper swatch and all three print artifacts cross-fade
+   white -> #f45b05 together, the app's real save note fades in, then the
+   loop resets. All opacity:0 declarations live HERE in the stylesheet
+   (never inline in markup) so the whole-document served-HTML guard in
+   marketing.spec.ts stays true. Reduced motion: the loop never runs and
+   the synced after-state + note simply show (the honest still: the edit
+   already propagated). Timeline anatomy: 0-38% before-state, 40-44% the
+   save pulse, 46% onward after-state + note, 96-100% reset fade. */
+@keyframes ks-swap {
+  0%,
+  42% {
+    opacity: 0;
+  }
+  50%,
+  92% {
+    opacity: 1;
+  }
+  98%,
+  100% {
+    opacity: 0;
+  }
+}
+@keyframes ks-save-pulse {
+  0%,
+  40% {
+    transform: scale(1);
+  }
+  43% {
+    transform: scale(0.95);
+  }
+  47%,
+  100% {
+    transform: scale(1);
+  }
+}
+@keyframes ks-note-in {
+  0%,
+  48% {
+    opacity: 0;
+  }
+  56%,
+  92% {
+    opacity: 1;
+  }
+  98%,
+  100% {
+    opacity: 0;
+  }
+}
+.ks-after,
+.ks-note {
+  opacity: 1;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .ks-after {
+    opacity: 0;
+    animation: ks-swap 9s var(--motion-ease-in-out) infinite;
+  }
+  .ks-note {
+    opacity: 0;
+    animation: ks-note-in 9s var(--motion-ease-out) infinite;
+  }
+  .ks-save {
+    animation: ks-save-pulse 9s var(--motion-ease-out) infinite;
+  }
+}
+
 /* react-colorful overrides (P4 design-iteration note 2) — the library ships
    its own injected <style> with hardcoded pixel radii and a black divider
    between the saturation square and the hue bar; this reskins it to the

@@ -47,7 +47,7 @@ import { cn } from "@/lib/utils";
  * `embedded` (P9.5-T-F2, additive — the landing's own `<Playground />` call
  * omits it and keeps today's byte-identical behavior, own `<Section
  * id="studio">` wrapper/heading/closing doorway included): unlike every
- * other component this unit reuses (KitContactSheet, GuardrailsPlot,
+ * other component this unit reuses (the section-04 body, GuardrailsPlot,
  * StateCards), Playground is the one that already bakes in its own full
  * `Section`/`SectionHeading` — the T-F2 deck's "Playground island reused
  * as-is" still needs `/features/brand-studio` to supply its OWN S2 head/
@@ -95,16 +95,15 @@ const PNG_EXPORT_SIZE = 1024;
 
 /**
  * Preset shelf (P9.5-T3b) — three named style presets, one click sets
- * dots/eyes/ink/size together. Names reuse the exact three demo-kit
- * identities `studio-window.tsx` used to define ("Café Norte", "Second
- * Story", "Personal") so the playground and the brand-system contact sheet
- * (`kit-contact-sheet.tsx`) read as one recurring cast of example brands
- * even though that component itself is retired this unit — "Café Norte"'s
- * shape/ink pair below is deliberately identical to the contact sheet's own
- * KIT_STYLE (rounded dots, leaf eyes, `#131316` ink) for the same reason.
- * "Personal" is the untouched schema/DEFAULT_STYLE look (`ink: null` clears
- * any active override rather than re-asserting the same hex, exercising the
- * same fallback path a manual reset would).
+ * dots/eyes/ink/size together. The lead identity is "Ember" (P9.9-C1
+ * board rename; the cast began life as `studio-window.tsx`'s "Café
+ * Norte" / "Second Story" / "Personal"), kept deliberately identical to
+ * the brand-system section's demo kit (`kit-sync-theatre.tsx`: rounded
+ * dots 0.88, leaf eyes, `#131316` espresso ink) so the playground and
+ * section 04 read as one recurring example brand. "Personal" is the
+ * untouched schema/DEFAULT_STYLE look (`ink: null` clears any active
+ * override rather than re-asserting the same hex, exercising the same
+ * fallback path a manual reset would).
  */
 interface PlaygroundPreset {
   name: string;
@@ -115,7 +114,7 @@ interface PlaygroundPreset {
 }
 
 const PRESETS: readonly PlaygroundPreset[] = [
-  { name: "Café Norte", dotStyle: "rounded", eyeFrame: "leaf", sizeRatio: 0.88, ink: "#131316" },
+  { name: "Ember", dotStyle: "rounded", eyeFrame: "leaf", sizeRatio: 0.88, ink: "#131316" },
   { name: "Second Story", dotStyle: "circle", eyeFrame: "circle", sizeRatio: 0.78, ink: "#1e3a8a" },
   { name: "Personal", dotStyle: "square", eyeFrame: "square", sizeRatio: 1, ink: null },
 ];

@@ -314,14 +314,16 @@ test.describe("marketing site", () => {
 
     // All 3 named presets render (text-based, not role-based — avoids
     // coupling the test to Radix ToggleGroup's exact internal role choice).
-    await expect(playgroundSection.getByText("Café Norte", { exact: true })).toBeVisible();
+    // "Ember" is the P9.9-C1 board rename of the lead demo identity
+    // (was "Café Norte").
+    await expect(playgroundSection.getByText("Ember", { exact: true })).toBeVisible();
     await expect(playgroundSection.getByText("Second Story", { exact: true })).toBeVisible();
     await expect(playgroundSection.getByText("Personal", { exact: true })).toBeVisible();
 
-    // Clicking one actually applies it: Café Norte's sizeRatio (0.88) shows
+    // Clicking one actually applies it: Ember's sizeRatio (0.88) shows
     // up in the Module size readout once the ~300ms control transition
     // settles (Playwright's toBeVisible auto-retries past that).
-    await playgroundSection.getByText("Café Norte", { exact: true }).click();
+    await playgroundSection.getByText("Ember", { exact: true }).click();
     await expect(playgroundSection.getByText("88%", { exact: true })).toBeVisible();
   });
 
@@ -551,13 +553,34 @@ test.describe("marketing site", () => {
   test("heads: the amended section heads are live (P9.7-V1 IA rewrite)", async ({ page }) => {
     await page.goto("/");
     await expect(page.getByRole("heading", { name: "Customize your brand design." })).toBeVisible();
-    await expect(page.getByRole("heading", { name: "Every code starts from your kit." })).toBeVisible();
+    // P9.9-C1: section 04 takes the stronger claim the P9.8 hard-sync
+    // reversal made true (was "Every code starts from your kit.").
+    await expect(page.getByRole("heading", { name: "Every code syncs instantly." })).toBeVisible();
     await expect(
       page.getByRole("heading", { name: "Update a destination anytime." }),
     ).toBeVisible();
     await expect(
       page.getByRole("heading", { name: "Free to start, upgrade for more." }),
     ).toBeVisible();
+  });
+
+  test("brand system: the sync theatre stages the hard-sync flagship (P9.9-C1)", async ({
+    page,
+  }) => {
+    await page.goto("/");
+    const section = page.locator("#brand-system");
+    // The kit card (the control) and its identity.
+    await expect(section.getByText("Ember", { exact: true })).toBeVisible();
+    await expect(section.getByText("attached codes", { exact: true })).toBeVisible();
+    // Three real print artifacts, each a real engine render (an svg per
+    // state, before + after = 6 total).
+    await expect(section.locator("figure")).toHaveCount(3);
+    expect(await section.locator("figure svg").count()).toBe(6);
+    await expect(section.getByText("qrcdn.com/menu", { exact: true })).toBeVisible();
+    // The app's real save note, verbatim shape (kit-bar.tsx) — the moment
+    // the section exists to show. Present in the DOM regardless of where
+    // the CSS loop currently is (opacity is presentation, not presence).
+    await expect(section.getByText("Style applied to 3 attached codes.")).toBeAttached();
   });
 
   test("hero h1: renders the v4 headline and never SSRs at opacity 0", async ({ page, request }) => {

@@ -28,7 +28,7 @@ import { cn } from "@/lib/utils";
  *
  * Zero client JS: every value below is computed once at module scope from
  * the real engine, the same static-composition idiom `qr-tile.tsx` and
- * `kit-contact-sheet.tsx` already use. No hooks, no "use client".
+ * `kit-sync-theatre.tsx` use. No hooks, no "use client".
  *
  * ---- Why a `<symbol>`/`<use>` pair instead of six inlined engine renders ----
  * The product claim this section makes is "the same code, unchanged, at
@@ -77,9 +77,9 @@ const QR_A = "HTTPS://QRCDN.COM/CAFE";
 const QR_B = "HTTPS://QRCDN.COM/MENU";
 const QR_C = "HTTPS://QRCDN.COM/TOUR";
 
-/** The D13-locked precision ink hex, derived rather than re-hardcoded — same
- *  helper `kit-contact-sheet.tsx`'s own ink legend already uses. Always the
- *  LIGHT variant: the kit swatch below shows ink-on-paper (what actually
+/** The D13-locked precision ink hex, derived rather than re-hardcoded (the
+ *  `inkHexFromStyle` helper the studio surfaces share). Always the LIGHT
+ *  variant: the kit swatch below shows ink-on-paper (what actually
  *  prints), which never swaps with the site's own theme. */
 const KIT_INK = inkHexFromStyle(brandQrStyles.precision.light);
 

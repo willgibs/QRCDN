@@ -3,26 +3,18 @@ import { Section, SectionHeading, SectionBody } from "@/components/marketing/sec
 import { MonoStrip } from "@/components/marketing/mono-strip";
 import { LearnMoreLink } from "@/components/marketing/learn-more-link";
 import { BRAND_STUDIO_DOORWAY_ENABLED } from "@/lib/marketing-flags";
-import { KitContactSheet } from "./kit-contact-sheet";
+import { KitSyncTheatre } from "./kit-sync-theatre";
 
-// 03 — Brand system (P9.5-T3a: migrated onto Section/SectionHeading, copy
-// deck v3 head/lede/mono strip applied). P9.5-T3b: body replaced — the old
-// `StudioWindow` kit-window mock read as a second builder (the board's
-// exact note), so it's retired (zero other importers, grep-verified) in
-// favor of `KitContactSheet`: one kit style rendered across several
-// real-world print artifacts, saying "set once, appears everywhere"
-// instead of showing another editor. Mono strip cites D5 as amended at
-// P9.8 (hard sync: kit edits propagate to every attached code) — see
-// docs/DECISIONS.md.
+// 04 — Brand system. P9.5-T3b's `KitContactSheet` body retired at P9.9-C1
+// (board pick from the C1 exploration artifact: "B, the sync theatre, with
+// A's physicality") in favor of `KitSyncTheatre`: the section now SHOWS
+// the P9.8 hard-sync flagship (D5 as amended: kit edits propagate to every
+// attached code) instead of captioning it, and the heading takes the
+// stronger claim the reversal made true. Mono strip cites D5 as amended at
+// P9.8 — see docs/DECISIONS.md.
 //
-// P9.5-T-F2: gained `id="brand-system"` — every other Section on the
-// landing that carries a doorway link already has one (#studio,
-// #dynamic-codes, #analytics, #api, #open-source); this was the one
-// omission, harmless while its own doorway stayed off but worth closing
-// now that BRAND_STUDIO_DOORWAY_ENABLED flips true here too (this is the
-// SECOND of its two call sites, alongside playground.tsx's #studio) —
-// gives e2e (and any future in-page link) a stable anchor to scope to,
-// same as every sibling section.
+// P9.5-T-F2: `id="brand-system"` is the bento's anchor target; e2e asserts
+// it resolves to exactly one element. It must survive every redesign.
 export function BrandSystemSection({
   index,
   titleSize,
@@ -35,17 +27,17 @@ export function BrandSystemSection({
       <SectionHeading
         eyebrow="Brand system"
         index={index}
-        title="Every code starts from your kit."
-        lede="Ink, paper, shapes, logo: set once as a kit. Every code you make starts from it, from menu tents to ticket stubs."
+        title="Every code syncs instantly."
+        lede="Set your kit once. Edit it anytime: every attached code re-renders in the same breath, from menu tents to ticket stubs."
         titleSize={titleSize}
         className="mb-10"
       />
 
       <SectionBody className="max-w-5xl">
-        <KitContactSheet />
+        <KitSyncTheatre />
       </SectionBody>
 
-      <SectionBody delay={0.15} className="mt-8 flex flex-col items-start gap-4">
+      <SectionBody delay={0.15} className="mt-10 flex flex-col items-start gap-4">
         <MonoStrip>edit the kit once · every attached code follows · reprints always current</MonoStrip>
         {BRAND_STUDIO_DOORWAY_ENABLED && (
           <LearnMoreLink href="/features/brand-studio">Explore the brand studio</LearnMoreLink>

@@ -516,9 +516,28 @@ html {
     opacity: 0;
   }
 }
+/* Artifact label color rides the paper flip: #6b6b74 on white paper,
+   #9d9da6 once the mat turns #18181b (the night-kit shift). */
+@keyframes ks-caption-flip {
+  0%,
+  42% {
+    color: #6b6b74;
+  }
+  50%,
+  92% {
+    color: #9d9da6;
+  }
+  98%,
+  100% {
+    color: #6b6b74;
+  }
+}
 .ks-after,
 .ks-note {
   opacity: 1;
+}
+.ks-caption {
+  color: #9d9da6;
 }
 @media (prefers-reduced-motion: no-preference) {
   .ks-after {
@@ -531,6 +550,10 @@ html {
   }
   .ks-save {
     animation: ks-save-pulse 9s var(--motion-ease-out) infinite;
+  }
+  .ks-caption {
+    color: #6b6b74;
+    animation: ks-caption-flip 9s var(--motion-ease-in-out) infinite;
   }
 }
 

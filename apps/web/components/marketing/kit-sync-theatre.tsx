@@ -10,14 +10,17 @@ import { cn } from "@/lib/utils";
  * reduced-motion honored) a kit edit propagates to every artifact in the
  * same breath, closing on the app's real save note.
  *
- * The demo edit flips the kit's PAPER to #f45b05 (board-picked hex), not
- * its ink: #f45b05 as INK scores 85 with a marginal-contrast warning
- * (3.31:1 < the engine's 4:1 CONTRAST_WARN_MIN) — the demo kit must never
- * be something our own instrument flags, one section above "Know it scans
- * before you print it." Espresso ink on #f45b05 paper scores 100, zero
- * issues, 5.60:1 (verified through `scannabilityReport` at build time of
- * this unit). Replaces `kit-contact-sheet.tsx` (deleted this unit), whose
- * four visual defects are recorded in the C1 exploration artifact.
+ * The demo edit (board-picked, 2026-08-06 polish round) flips the kit to
+ * its night state: #cff5ff ink on #18181b paper. That is an INVERTED
+ * code (light modules on dark), which the instrument flags as an
+ * 85/warning ("some older scanners") while the decode campaign harness
+ * passes it empirically: zxing round-trips 4/4 payloads including the
+ * 35-char worst case at 15.3:1 contrast (verified at build time of the
+ * color change). The board chose the assignment explicitly with that
+ * verdict reported; flipping ink/paper roles back to normal polarity
+ * (score 100) is a two-line change here if the call ever reverses.
+ * Replaces `kit-contact-sheet.tsx` (deleted at C1), whose four visual
+ * defects are recorded in the C1 exploration artifact.
  *
  * "Ember" replaces "Café Norte" as the recurring demo brand (board note) —
  * the playground presets and state-cards carry the same rename, so the
@@ -26,21 +29,23 @@ import { cn } from "@/lib/utils";
  * pattern), zero client JS.
  */
 
-const EMBER_INK = "#131316";
-const EMBER_PAPER_EDITED = "#f45b05";
+const INK_BEFORE = "#131316";
+const PAPER_BEFORE = "#ffffff";
+const INK_AFTER = "#cff5ff";
+const PAPER_AFTER = "#18181b";
 
-function emberStyle(paper: string) {
+function emberStyle(ink: string, paper: string) {
   return parseQrStyle({
     v: 1,
     dots: { style: "rounded", sizeRatio: 0.88 },
     eyes: { frame: "leaf", pupil: "rounded", color: null },
-    fill: { type: "solid", color: EMBER_INK },
+    fill: { type: "solid", color: ink },
     background: { transparent: false, color: paper },
   });
 }
 
-const STYLE_BEFORE = emberStyle("#ffffff");
-const STYLE_AFTER = emberStyle(EMBER_PAPER_EDITED);
+const STYLE_BEFORE = emberStyle(INK_BEFORE, PAPER_BEFORE);
+const STYLE_AFTER = emberStyle(INK_AFTER, PAPER_AFTER);
 
 interface Artifact {
   payload: string;
@@ -92,20 +97,26 @@ export function KitSyncTheatre() {
       <div className="rounded-2xl border border-border/70 bg-card/60 p-5 text-sm">
         <p className="mb-4 flex items-center gap-2.5 font-medium text-foreground">
           <span className="relative inline-flex size-4" aria-hidden>
-            <PaperSwatch className="absolute inset-0 bg-white" />
-            <PaperSwatch className="ks-after absolute inset-0 bg-[#f45b05]" />
+            <PaperSwatch className="absolute inset-0 bg-[#131316]" />
+            <PaperSwatch className="ks-after absolute inset-0 bg-[#cff5ff]" />
           </span>
           Ember
         </p>
         <dl className="font-mono text-[0.68rem] text-muted-foreground">
           {(
             [
-              ["ink", <span key="v">espresso</span>],
+              [
+                "ink",
+                <span key="v" className="relative inline-flex size-4 align-middle">
+                  <PaperSwatch className="absolute inset-0 bg-[#131316]" />
+                  <PaperSwatch className="ks-after absolute inset-0 bg-[#cff5ff]" />
+                </span>,
+              ],
               [
                 "paper",
                 <span key="v" className="relative inline-flex size-4 align-middle">
                   <PaperSwatch className="absolute inset-0 bg-white" />
-                  <PaperSwatch className="ks-after absolute inset-0 bg-[#f45b05]" />
+                  <PaperSwatch className="ks-after absolute inset-0 bg-[#18181b]" />
                 </span>,
               ],
               ["modules", <span key="v">rounded · 0.88</span>],
@@ -148,7 +159,7 @@ export function KitSyncTheatre() {
               {/* after-state paper wash over the whole mat */}
               <span
                 aria-hidden
-                className="ks-after pointer-events-none absolute inset-0 rounded-xl bg-[#f45b05]"
+                className="ks-after pointer-events-none absolute inset-0 rounded-xl bg-[#18181b]"
               />
               {artifact.ticket && (
                 <>
@@ -176,7 +187,10 @@ export function KitSyncTheatre() {
                   dangerouslySetInnerHTML={{ __html: RENDERS[i].after }}
                 />
               </span>
-              <figcaption className="relative flex items-baseline justify-between font-mono text-[0.6rem] text-[#6b6b74]">
+              {/* ks-caption: the label must survive the mat's paper flip —
+                  #6b6b74 works on white but dies on #18181b, so the color
+                  rides the same timeline (globals.css). */}
+              <figcaption className="ks-caption relative flex items-baseline justify-between font-mono text-[0.6rem]">
                 <span>{artifact.label}</span>
                 <span>{artifact.caption}</span>
               </figcaption>

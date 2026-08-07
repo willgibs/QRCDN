@@ -465,26 +465,30 @@ html {
   }
 }
 
-/* Kit-sync theatre (P9.9-C1; timeline rebuilt at C1-R2 as the
-   board-picked "ripple"): the brand-system section's one looping scene,
-   telling the REAL product flow in a 9s cycle:
+/* Kit-sync theatre (P9.9-C1; ripple timeline C1-R2, refined same round:
+   the board cut the simulated save flow — a button in a demo reads as
+   clickable — so the card is simply a CHANGE BETWEEN KIT STATES, and the
+   property values take a slowed number-pop-in per character
+   (transitions.dev 02: rise from below, blur, a bouncy settle) instead of
+   a flat fade. The 9s cycle:
 
-     18-22%   EDIT: the kit card's ink/paper swatches + hex values swap
-              (blurred text swap) and the "Unsaved changes" hint appears
-     40-43%   SAVE: the button presses (fast out, the user's action)
-     46%+     RIPPLE: the three artifacts re-render left to right, 120ms
+     18-26%   THE KIT CHANGES: hex values pop in per character (90ms
+              char stagger, ~720ms per char, bounce ease), the old value
+              rises out faster than the new one lands (exits snappy,
+              entrances deliberate); swatches + the identity chip flip
+     32-42%   RIPPLE: the three artifacts re-render left to right, 120ms
               stagger, each a blur-bridged crossfade with a 0.985 settle
               (an unmasked crossfade reads as two objects overlapping;
               blur bridges them into one object transforming)
-     ~56%     the app's save note rises in, blurred, after the last mat
+     42-48%   the app's save note rises in, blurred, after the last mat
      97-100%  reset
 
    All opacity:0 declarations live HERE in the stylesheet (never inline in
    markup) so the whole-document served-HTML guard in marketing.spec.ts
-   stays true. Reduced motion: no loop; the honest synced still (after
-   state + note, no dirty hint). Stagger rides animation-delay on the
-   .ks-m2/.ks-m3 mats, which phase-shifts their whole 9s cycle by
-   0.12/0.24s: exactly the ripple. */
+   stays true. Reduced motion: no loop; the honest synced still. Stagger
+   rides animation-delay (chars 0.09s steps; mats .ks-m2/.ks-m3 at
+   0.12/0.24s), which phase-shifts each element's whole 9s cycle: exactly
+   the ripple. The bounce curve is the number-pop-in reference's own. */
 @keyframes ks-edit-in {
   0%,
   18% {
@@ -521,45 +525,54 @@ html {
     opacity: 1;
   }
 }
-@keyframes ks-dirty {
+@keyframes ks-ch-in {
   0%,
-  20% {
+  18% {
     opacity: 0;
+    transform: translateY(8px);
+    filter: blur(2px);
   }
-  25%,
-  40% {
+  26%,
+  91% {
     opacity: 1;
+    transform: translateY(0);
+    filter: blur(0);
   }
-  45%,
+  97%,
   100% {
     opacity: 0;
   }
 }
-@keyframes ks-save-press {
+@keyframes ks-ch-out {
   0%,
-  40% {
-    transform: scale(1);
+  18% {
+    opacity: 1;
+    transform: translateY(0);
+    filter: blur(0);
   }
-  41.5% {
-    transform: scale(0.95);
+  22%,
+  91% {
+    opacity: 0;
+    transform: translateY(-8px);
+    filter: blur(2px);
   }
-  44%,
+  97%,
   100% {
-    transform: scale(1);
+    opacity: 1;
   }
 }
 @keyframes ks-swap {
   0%,
-  46% {
+  32% {
     opacity: 0;
     filter: blur(2.5px);
     transform: scale(0.985);
   }
-  51% {
+  37% {
     opacity: 0.75;
     filter: blur(2px);
   }
-  56%,
+  42%,
   91% {
     opacity: 1;
     filter: blur(0);
@@ -574,12 +587,12 @@ html {
 }
 @keyframes ks-note-in {
   0%,
-  56% {
+  42% {
     opacity: 0;
     transform: translateY(6px);
     filter: blur(3px);
   }
-  62%,
+  48%,
   91% {
     opacity: 1;
     transform: translateY(0);
@@ -594,10 +607,10 @@ html {
    #9d9da6 once the mat turns #18181b (the night-kit shift). */
 @keyframes ks-caption-flip {
   0%,
-  48% {
+  34% {
     color: #6b6b74;
   }
-  56%,
+  42%,
   91% {
     color: #9d9da6;
   }
@@ -608,12 +621,17 @@ html {
 }
 .ks-after,
 .ks-note,
-.ks-edit {
+.ks-edit,
+.ks-ch-in {
   opacity: 1;
 }
 .ks-edit-before,
-.ks-dirty {
+.ks-ch-out {
   opacity: 0;
+}
+.ks-ch-in,
+.ks-ch-out {
+  display: inline-block;
 }
 .ks-caption {
   color: #9d9da6;
@@ -627,11 +645,13 @@ html {
     opacity: 1;
     animation: ks-edit-out 9s var(--motion-ease-out) infinite;
   }
-  .ks-dirty {
-    animation: ks-dirty 9s var(--motion-ease-out) infinite;
+  .ks-ch-in {
+    opacity: 0;
+    animation: ks-ch-in 9s cubic-bezier(0.34, 1.45, 0.64, 1) infinite;
   }
-  .ks-save {
-    animation: ks-save-press 9s var(--motion-ease-out) infinite;
+  .ks-ch-out {
+    opacity: 1;
+    animation: ks-ch-out 9s var(--motion-ease-in-out) infinite;
   }
   .ks-after {
     opacity: 0;

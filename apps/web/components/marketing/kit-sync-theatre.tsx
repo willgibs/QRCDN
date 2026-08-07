@@ -90,17 +90,38 @@ function PaperSwatch({ className }: { className?: string }) {
   );
 }
 
+/** The slowed number-pop-in (transitions.dev 02) for a kit property value:
+ *  each character rides its own phase-shifted 9s cycle (90ms stagger, the
+ *  reference's bounce curve, ~720ms per char — "a slower version" per the
+ *  board). `tone="out"` is the old value rising away; exits run snappier
+ *  than entrances by design. Monospace keeps the two stacked values
+ *  character-aligned. */
+function PopChars({ value, tone }: { value: string; tone: "in" | "out" }) {
+  return (
+    <>
+      {value.split("").map((ch, i) => (
+        <span
+          // a hex value's chars are positionally stable across the loop
+          key={i}
+          className={tone === "in" ? "ks-ch-in" : "ks-ch-out"}
+          style={{ animationDelay: `${(i * 0.09).toFixed(2)}s` }}
+        >
+          {ch}
+        </span>
+      ))}
+    </>
+  );
+}
+
 export function KitSyncTheatre() {
   return (
     <div className="grid items-start gap-8 md:grid-cols-[15rem_1fr] md:gap-10">
-      {/* The control: the kit card, polished at C1-R2 (board note: "the
-          studio demo UI could be polished") to read as the real studio's
-          kit surface in miniature: ModuleMark identity tinted by the kit's
-          own ink (the kit-bar convention), mono hex VALUES that visibly
-          swap at the edit beat, the full style row set, an "Unsaved
-          changes" state hint, and a right-aligned save the size the app
-          actually uses. Decorative demo, not a form — the Save affordance
-          is a styled div, never a button. */}
+      {/* The control: the kit card. C1-R2 refinement per the board: NO
+          simulated app flow (a save button in a demo reads as clickable),
+          just a clean change between two kit states — the ink-tinted
+          ModuleMark identity chip, mono hex values popping in per
+          character (the slowed number-pop-in), and the full style row
+          set. Purely presentational. */}
       <div className="rounded-2xl border border-border/70 bg-card/60 p-5 text-sm">
         <p className="mb-3 flex items-center gap-2.5 font-medium text-foreground">
           {/* The kit identity in miniature: the ink-tinted ModuleMark on its
@@ -123,9 +144,13 @@ export function KitSyncTheatre() {
           <div className="flex items-center justify-between gap-2 border-t border-border/60 py-2">
             <dt>ink</dt>
             <dd className="flex items-center gap-1.5 text-foreground/80">
-              <span className="relative inline-flex h-[1em] w-[7ch]" aria-hidden={false}>
-                <span className="ks-edit-before absolute inset-0 text-right">#131316</span>
-                <span className="ks-edit absolute inset-0 text-right">#cff5ff</span>
+              <span className="relative inline-flex h-[1.2em] w-[7ch] items-center">
+                <span className="absolute inset-0 flex items-center justify-end">
+                  <PopChars value="#131316" tone="out" />
+                </span>
+                <span className="absolute inset-0 flex items-center justify-end">
+                  <PopChars value="#cff5ff" tone="in" />
+                </span>
               </span>
               <span className="relative inline-flex size-3.5">
                 <PaperSwatch className="absolute inset-0 size-3.5 bg-[#131316]" />
@@ -136,9 +161,13 @@ export function KitSyncTheatre() {
           <div className="flex items-center justify-between gap-2 border-t border-border/60 py-2">
             <dt>paper</dt>
             <dd className="flex items-center gap-1.5 text-foreground/80">
-              <span className="relative inline-flex h-[1em] w-[7ch]" aria-hidden={false}>
-                <span className="ks-edit-before absolute inset-0 text-right">#ffffff</span>
-                <span className="ks-edit absolute inset-0 text-right">#18181b</span>
+              <span className="relative inline-flex h-[1.2em] w-[7ch] items-center">
+                <span className="absolute inset-0 flex items-center justify-end">
+                  <PopChars value="#ffffff" tone="out" />
+                </span>
+                <span className="absolute inset-0 flex items-center justify-end">
+                  <PopChars value="#18181b" tone="in" />
+                </span>
               </span>
               <span className="relative inline-flex size-3.5">
                 <PaperSwatch className="absolute inset-0 size-3.5 bg-white" />
@@ -159,17 +188,6 @@ export function KitSyncTheatre() {
             <dd>3</dd>
           </div>
         </dl>
-        <div className="mt-3 flex items-center justify-between gap-3">
-          <p className="ks-dirty font-mono text-[0.6rem] text-muted-foreground" aria-hidden>
-            Unsaved changes
-          </p>
-          <div
-            aria-hidden
-            className="ks-save rounded-lg bg-primary px-3.5 py-1.5 text-[0.72rem] font-semibold text-primary-foreground"
-          >
-            Save changes
-          </div>
-        </div>
       </div>
 
       {/* The fleet: three print artifacts, paper-white on the dark page,

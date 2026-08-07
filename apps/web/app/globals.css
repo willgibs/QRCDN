@@ -465,40 +465,162 @@ html {
   }
 }
 
-/* Kit-sync theatre (P9.9-C1; the C1-R2e three-state cycle). The card is a
-   change between KIT STATES and the loop now walks THREE distinct creative
-   states over 15s, each its own look (board direction), returning to the
-   first with the same transition so the loop has NO visible wrap:
+/* Kit-sync theatre (P9.9-C1; the C1-R2f shimmer cycle). Three distinct
+   kit states over 15s (day / mono / glacier, verified per the C1 color
+   protocol: day 100; mono + glacier inverted-warning, 3/3 empirical
+   decode), returning to the first seamlessly. The board rejected the
+   prior mask-sweep wave with screenshots showing WHY it failed: a mask
+   front's screen position depends on its element's box size, so the
+   full-mat wash, the QR block, and the sticker circle all showed their
+   fronts at different places at the same instant (misregistered white
+   fragments mid-transition). This cycle is OPACITY-ONLY, which is
+   box-size-independent by construction:
 
-     state 1 "day":     #131316 ink / #ffffff paper / rounded 0.88 / leaf
-     state 2 "mono":    #ffffff ink / #18181b paper / square 1.00 / square
-     state 3 "glacier": #90daff ink / #04131d paper / circle 0.78 / circle
+     each transition (~1.5s at beats 20% / 53% / 86%):
+       fade to dark   (~0.35s) - the ks-cover plate rises over the mat
+       the shimmer    (~0.8s)  - a wavy rainbow sweep over the dark plate
+                                 (in-house take on transitions.dev's
+                                 pro "organic shimmer": two pastel bands
+                                 at different angles moving phase-locked
+                                 at 1:1.5 + a thin white edge glow, all
+                                 blurred and screen-blended; the
+                                 two-band interference reads organic)
+       quick return   (~0.25s) - the cover drops fast (exits snappier
+                                 than entrances), revealing the next
+                                 state, whose layers stepped over while
+                                 covered - never visibly
 
-   (Verification, per the C1 color protocol: day scores 100; mono and
-   glacier are inverted codes, instrument 85/inverted-warning, and BOTH
-   decode 3/3 empirically incl. the 35-char worst case at 17.7:1 and
-   12.2:1.)
-
-   Beats at 20-27% / 53-60% / 86-93%. The QR shift is a PASS-THROUGH WAVE:
-   each state layer's soft diagonal gradient mask travels one continuous
-   direction (bottom-right toward top-left and onward), so a state sweeps
-   IN behind the leading edge and later sweeps OUT behind the trailing
-   edge — the same front for every color pair (the board's fix for the
-   wipe only reading on light-to-dark), and the third beat sweeps glacier
-   away to reveal the day base underneath: the wrap is seamless because
-   0% and 100% render identical pixels. The mono layer silently drops
-   opacity at 63% while fully covered by glacier (never visible). Kit-card
-   property values ride ks-v1/v2/v3 per-character pop cycles (the slowed
-   number-pop-in, 90ms char stagger, the reference's bounce curve);
-   swatches/chips ride opacity-only ks-blk-2/3. Captions and the
-   ink-colored poster/loyalty decorations ride 4-segment color timelines.
-
-   All opacity:0 declarations live HERE in the stylesheet (never inline in
-   markup) so the whole-document served-HTML guard in marketing.spec.ts
-   stays true. Reduced motion: no loop; the honest still is state 1 (a
-   cycle has no terminal state, so the resting truth is the day kit).
-   Stagger rides animation-delay (chars 0.09s steps; the five mats
-   .ks-m2...ks-m5 at 0.1s steps), phase-shifting whole 15s cycles. */
+   State layers (day base / ks-state-2 mono / ks-state-3 glacier, plus
+   the mat paper washes on the same classes) are step-opacity switches
+   timed under the covers. Kit-card values keep the per-character
+   number-pop-in on matching windows. Loop wrap: 0% and 100% render
+   identical day-rest pixels; the shimmer's position resets happen at
+   opacity 0. All opacity:0 lives HERE in the stylesheet (the
+   served-HTML guard). Reduced motion: no loop, the day still. Mat
+   stagger rides animation-delay (.ks-m2...ks-m5, 0.1s steps); card
+   chars stagger 0.09s. */
+@keyframes ks-cover {
+  0%,
+  20% {
+    opacity: 0;
+  }
+  22.3%,
+  28% {
+    opacity: 1;
+  }
+  29.7%,
+  53% {
+    opacity: 0;
+  }
+  55.3%,
+  61% {
+    opacity: 1;
+  }
+  62.7%,
+  86% {
+    opacity: 0;
+  }
+  88.3%,
+  94% {
+    opacity: 1;
+  }
+  95.7%,
+  100% {
+    opacity: 0;
+  }
+}
+@keyframes ks-shimmer {
+  0%,
+  22% {
+    opacity: 0;
+    background-position:
+      120% 120%,
+      140% 140%,
+      120% 120%;
+  }
+  23.2%,
+  27.3% {
+    opacity: 0.9;
+  }
+  28.5%,
+  54.9% {
+    opacity: 0;
+    background-position:
+      -20% -20%,
+      -40% -40%,
+      -20% -20%;
+  }
+  55%,
+  55.2% {
+    opacity: 0;
+    background-position:
+      120% 120%,
+      140% 140%,
+      120% 120%;
+  }
+  56.2%,
+  60.3% {
+    opacity: 0.9;
+  }
+  61.5%,
+  87.9% {
+    opacity: 0;
+    background-position:
+      -20% -20%,
+      -40% -40%,
+      -20% -20%;
+  }
+  88%,
+  88.2% {
+    opacity: 0;
+    background-position:
+      120% 120%,
+      140% 140%,
+      120% 120%;
+  }
+  89.2%,
+  93.3% {
+    opacity: 0.9;
+  }
+  94.5%,
+  100% {
+    opacity: 0;
+    background-position:
+      -20% -20%,
+      -40% -40%,
+      -20% -20%;
+  }
+}
+/* Step switches, always under a cover hump. */
+@keyframes ks-state-2 {
+  0%,
+  24.9% {
+    opacity: 0;
+  }
+  25%,
+  57.9% {
+    opacity: 1;
+  }
+  58%,
+  100% {
+    opacity: 0;
+  }
+}
+@keyframes ks-state-3 {
+  0%,
+  57.9% {
+    opacity: 0;
+  }
+  58%,
+  90.9% {
+    opacity: 1;
+  }
+  91%,
+  100% {
+    opacity: 0;
+  }
+}
+/* Kit-card per-character value pops (the slowed number-pop-in). */
 @keyframes ks-v1 {
   0%,
   20% {
@@ -507,17 +629,17 @@ html {
     filter: blur(0);
   }
   24%,
-  88% {
+  90% {
     opacity: 0;
     transform: translateY(-8px);
     filter: blur(2px);
   }
-  89% {
+  91% {
     opacity: 0;
     transform: translateY(8px);
     filter: blur(2px);
   }
-  93%,
+  95%,
   100% {
     opacity: 1;
     transform: translateY(0);
@@ -526,7 +648,7 @@ html {
 }
 @keyframes ks-v2 {
   0%,
-  20% {
+  21% {
     opacity: 0;
     transform: translateY(8px);
     filter: blur(2px);
@@ -546,7 +668,7 @@ html {
 }
 @keyframes ks-v3 {
   0%,
-  53% {
+  54% {
     opacity: 0;
     transform: translateY(8px);
     filter: blur(2px);
@@ -566,132 +688,116 @@ html {
 }
 @keyframes ks-blk-2 {
   0%,
-  22% {
+  21% {
     opacity: 0;
   }
-  27%,
-  55% {
+  26%,
+  54% {
     opacity: 1;
   }
-  60%,
+  58%,
   100% {
     opacity: 0;
   }
 }
 @keyframes ks-blk-3 {
   0%,
-  55% {
+  54% {
     opacity: 0;
   }
-  60%,
-  88% {
+  59%,
+  87% {
     opacity: 1;
   }
-  93%,
+  91%,
   100% {
     opacity: 0;
   }
 }
-/* The pass-through wave. Mask geometry: a 220%-sized 135deg gradient,
-   black leading half, soft 45-55% band as the front. Position 100% 100%
-   parks the element under the transparent tail (hidden); 0% 0% under the
-   black body (shown); -100% -100% pushes the tail across (hidden again,
-   same travel direction). */
-@keyframes ks-sweep-b {
-  0%,
-  20% {
-    mask-position: 100% 100%;
-    -webkit-mask-position: 100% 100%;
-    opacity: 1;
-  }
-  27%,
-  62% {
-    mask-position: 0% 0%;
-    -webkit-mask-position: 0% 0%;
-    opacity: 1;
-  }
-  63%,
-  100% {
-    mask-position: 0% 0%;
-    -webkit-mask-position: 0% 0%;
-    opacity: 0;
-  }
-}
-@keyframes ks-sweep-c {
-  0%,
-  53% {
-    mask-position: 100% 100%;
-    -webkit-mask-position: 100% 100%;
-  }
-  60%,
-  86% {
-    mask-position: 0% 0%;
-    -webkit-mask-position: 0% 0%;
-  }
-  93%,
-  100% {
-    mask-position: -100% -100%;
-    -webkit-mask-position: -100% -100%;
-  }
-}
-/* Caption + decoration color timelines: day paper wants dark text; both
-   dark papers want light text (mono a warm grey, glacier a cool one);
-   the ink-colored decorations (poster wordmark, loyalty name) follow the
-   kit ink itself. */
+/* Caption + decoration color timelines; switches sit under the covers.
+   Day paper wants dark text; mono/glacier papers want light text; the
+   ink-colored decorations follow the kit ink itself. */
 @keyframes ks-caption-flip {
   0%,
-  22% {
+  24.9% {
     color: #6b6b74;
   }
-  27%,
-  55% {
+  25%,
+  57.9% {
     color: #9d9da6;
   }
-  60%,
-  88% {
+  58%,
+  90.9% {
     color: #85a8bd;
   }
-  93%,
+  91%,
   100% {
     color: #6b6b74;
   }
 }
 @keyframes ks-inkline {
   0%,
-  22% {
+  24.9% {
     color: #131316;
   }
-  27%,
-  55% {
+  25%,
+  57.9% {
     color: #ffffff;
   }
-  60%,
-  88% {
+  58%,
+  90.9% {
     color: #90daff;
   }
-  93%,
+  91%,
   100% {
     color: #131316;
   }
 }
-.ks-sweep {
-  mask-image: linear-gradient(135deg, #000 0%, #000 45%, transparent 55%, transparent 100%);
-  -webkit-mask-image: linear-gradient(135deg, #000 0%, #000 45%, transparent 55%, transparent 100%);
-  mask-size: 220% 220%;
-  -webkit-mask-size: 220% 220%;
-  mask-repeat: no-repeat;
-  -webkit-mask-repeat: no-repeat;
-  mask-position: 100% 100%;
-  -webkit-mask-position: 100% 100%;
+.ks-cover {
+  background: #0a0a0c;
+  opacity: 0;
 }
-.ks-ch-v1 {
-  opacity: 1;
+.ks-shimmer {
+  opacity: 0;
+  background-image:
+    linear-gradient(
+      100deg,
+      transparent 30%,
+      rgb(125 211 252 / 0.25) 42%,
+      rgb(196 181 253 / 0.3) 50%,
+      rgb(249 168 212 / 0.25) 58%,
+      transparent 70%
+    ),
+    linear-gradient(
+      80deg,
+      transparent 35%,
+      rgb(252 211 77 / 0.18) 47%,
+      rgb(125 211 252 / 0.22) 53%,
+      transparent 65%
+    ),
+    linear-gradient(100deg, transparent 48%, rgb(255 255 255 / 0.5) 50%, transparent 52%);
+  background-size:
+    250% 250%,
+    250% 250%,
+    250% 250%;
+  background-repeat: no-repeat;
+  background-position:
+    120% 120%,
+    140% 140%,
+    120% 120%;
+  filter: blur(8px);
+  mix-blend-mode: screen;
 }
+.ks-state-2,
+.ks-state-3,
 .ks-ch-v2,
 .ks-ch-v3,
 .ks-blk-2,
 .ks-blk-3 {
   opacity: 0;
+}
+.ks-ch-v1 {
+  opacity: 1;
 }
 .ks-ch-v1,
 .ks-ch-v2,
@@ -705,6 +811,18 @@ html {
   color: #131316;
 }
 @media (prefers-reduced-motion: no-preference) {
+  .ks-cover {
+    animation: ks-cover 15s var(--motion-ease-out) infinite;
+  }
+  .ks-shimmer {
+    animation: ks-shimmer 15s var(--motion-ease-in-out) infinite;
+  }
+  .ks-state-2 {
+    animation: ks-state-2 15s linear infinite;
+  }
+  .ks-state-3 {
+    animation: ks-state-3 15s linear infinite;
+  }
   .ks-ch-v1 {
     animation: ks-v1 15s cubic-bezier(0.34, 1.45, 0.64, 1) infinite;
   }
@@ -720,38 +838,40 @@ html {
   .ks-blk-3 {
     animation: ks-blk-3 15s var(--motion-ease-in-out) infinite;
   }
-  .ks-sweep-b {
-    animation: ks-sweep-b 15s var(--motion-ease-in-out) infinite;
-  }
-  .ks-sweep-c {
-    animation: ks-sweep-c 15s var(--motion-ease-in-out) infinite;
-  }
   .ks-caption {
-    animation: ks-caption-flip 15s var(--motion-ease-in-out) infinite;
+    animation: ks-caption-flip 15s linear infinite;
   }
   .ks-inkline {
-    animation: ks-inkline 15s var(--motion-ease-in-out) infinite;
+    animation: ks-inkline 15s linear infinite;
   }
-  .ks-m2 .ks-sweep-b,
-  .ks-m2 .ks-sweep-c,
+  .ks-m2 .ks-cover,
+  .ks-m2 .ks-shimmer,
+  .ks-m2 .ks-state-2,
+  .ks-m2 .ks-state-3,
   .ks-m2 .ks-caption,
   .ks-m2 .ks-inkline {
     animation-delay: 0.1s;
   }
-  .ks-m3 .ks-sweep-b,
-  .ks-m3 .ks-sweep-c,
+  .ks-m3 .ks-cover,
+  .ks-m3 .ks-shimmer,
+  .ks-m3 .ks-state-2,
+  .ks-m3 .ks-state-3,
   .ks-m3 .ks-caption,
   .ks-m3 .ks-inkline {
     animation-delay: 0.2s;
   }
-  .ks-m4 .ks-sweep-b,
-  .ks-m4 .ks-sweep-c,
+  .ks-m4 .ks-cover,
+  .ks-m4 .ks-shimmer,
+  .ks-m4 .ks-state-2,
+  .ks-m4 .ks-state-3,
   .ks-m4 .ks-caption,
   .ks-m4 .ks-inkline {
     animation-delay: 0.3s;
   }
-  .ks-m5 .ks-sweep-b,
-  .ks-m5 .ks-sweep-c,
+  .ks-m5 .ks-cover,
+  .ks-m5 .ks-shimmer,
+  .ks-m5 .ks-state-2,
+  .ks-m5 .ks-state-3,
   .ks-m5 .ks-caption,
   .ks-m5 .ks-inkline {
     animation-delay: 0.4s;

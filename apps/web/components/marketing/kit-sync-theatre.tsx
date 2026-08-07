@@ -24,15 +24,17 @@ import { cn } from "@/lib/utils";
  * zxing campaign harness incl. the 35-char worst case (17.7:1 / 12.2:1
  * contrast). Board-directed with that verdict on record.
  *
- * Every state shift travels as a PASS-THROUGH WAVE (soft diagonal mask,
- * one continuous direction; see globals.css) so the transition reads
- * identically for every color pair and the loop wrap renders identical
- * pixels. Mats sit straight (rotated dark strokes aliased). Server-only:
- * FIFTEEN engine renders at module scope (5 payloads x 3 states; ~35KB
- * raw each, ~5x wire compression; matrices differ per payload so
- * filmstrip's symbol/use sharing cannot apply). The save-note line was
- * removed at the board's call: a looping cycle has no save moment, and
- * the lede carries the sync claim.
+ * Every state shift is the C1-R2f SHIMMER TRANSITION (board direction,
+ * replacing the mask wave whose fronts misregistered across different box
+ * sizes): the mat fades to a dark plate, a wavy rainbow shimmer sweeps
+ * it, and the plate drops quickly to reveal the next state — all opacity,
+ * box-size-independent, loop-clean (see globals.css `ks-*`). Mats sit
+ * straight (rotated dark strokes aliased). Server-only: FIFTEEN engine
+ * renders at module scope (5 payloads x 3 states; ~35KB raw each, ~5x
+ * wire compression; matrices differ per payload so filmstrip's symbol/use
+ * sharing cannot apply). The save-note line was removed at the board's
+ * call: a looping cycle has no save moment, and the lede carries the
+ * sync claim.
  *
  * "Ember" is the recurring demo brand (playground preset, state-cards).
  */
@@ -150,7 +152,9 @@ function SwatchStack({ colors }: { colors: [string, string, string] }) {
 }
 
 /** The three state layers of one artifact's code: day base, mono and
- *  glacier riding the pass-through wave. */
+ *  glacier as step-opacity switches — they only ever flip while the
+ *  transition cover is opaque (globals.css timing), so the swap is never
+ *  visible. */
 function QrLayers({ index, className }: { index: number; className?: string }) {
   return (
     <span className={cn("relative block", className)}>
@@ -159,29 +163,49 @@ function QrLayers({ index, className }: { index: number; className?: string }) {
         dangerouslySetInnerHTML={{ __html: RENDERS[index].day }}
       />
       <span
-        className="ks-sweep ks-sweep-b absolute inset-0 [&_svg]:h-auto [&_svg]:w-full"
+        className="ks-state-2 absolute inset-0 [&_svg]:h-auto [&_svg]:w-full"
         dangerouslySetInnerHTML={{ __html: RENDERS[index].mono }}
       />
       <span
-        className="ks-sweep ks-sweep-c absolute inset-0 [&_svg]:h-auto [&_svg]:w-full"
+        className="ks-state-3 absolute inset-0 [&_svg]:h-auto [&_svg]:w-full"
         dangerouslySetInnerHTML={{ __html: RENDERS[index].glacier }}
       />
     </span>
   );
 }
 
-/** The mat's own paper riding the same wave (mono then glacier; the day
- *  paper is the mat's white base). */
+/** The mat's own paper on the same step switches (mono then glacier; the
+ *  day paper is the mat's white base). Renders BEFORE the mat's content. */
 function PaperWashes({ rounded = "rounded-xl" }: { rounded?: string }) {
   return (
     <>
       <span
         aria-hidden
-        className={cn("ks-sweep ks-sweep-b pointer-events-none absolute inset-0 bg-[#18181b]", rounded)}
+        className={cn("ks-state-2 pointer-events-none absolute inset-0 bg-[#18181b]", rounded)}
       />
       <span
         aria-hidden
-        className={cn("ks-sweep ks-sweep-c pointer-events-none absolute inset-0 bg-[#04131d]", rounded)}
+        className={cn("ks-state-3 pointer-events-none absolute inset-0 bg-[#04131d]", rounded)}
+      />
+    </>
+  );
+}
+
+/** The transition itself (board direction): the mat fades to a dark
+ *  plate, a wavy rainbow shimmer sweeps it (the in-house organic-shimmer:
+ *  two pastel bands moving phase-locked at 1:1.5 plus a thin edge glow,
+ *  blurred and screen-blended), then the plate drops quickly to reveal
+ *  the next state. Renders LAST in the mat (topmost). */
+function TransitionFx({ rounded = "rounded-xl" }: { rounded?: string }) {
+  return (
+    <>
+      <span
+        aria-hidden
+        className={cn("ks-cover pointer-events-none absolute inset-0 z-20", rounded)}
+      />
+      <span
+        aria-hidden
+        className={cn("ks-shimmer pointer-events-none absolute inset-0 z-20", rounded)}
       />
     </>
   );
@@ -263,6 +287,7 @@ export function KitSyncTheatre() {
             <span>qrcdn.com/menu</span>
             <span>table tent</span>
           </figcaption>
+          <TransitionFx />
         </figure>
 
         {/* 2 · round door sticker */}
@@ -277,6 +302,7 @@ export function KitSyncTheatre() {
           <figcaption className="ks-caption relative font-mono text-[0.55rem]">
             qrcdn.com/hours
           </figcaption>
+          <TransitionFx rounded="rounded-full" />
         </figure>
 
         {/* 3 · ticket, punched + perforated */}
@@ -292,6 +318,7 @@ export function KitSyncTheatre() {
             <span>qrcdn.com/events</span>
             <span>ticket</span>
           </figcaption>
+          <TransitionFx />
         </figure>
 
         {/* 4 · poster */}
@@ -300,11 +327,13 @@ export function KitSyncTheatre() {
           <span className="ks-inkline relative font-display text-sm font-bold tracking-[0.3em]">
             EMBER
           </span>
-          <span aria-hidden className="ks-inkline relative border-t border-current opacity-70" />
+          {/* a print rule, not a bar: low opacity keeps it a detail */}
+          <span aria-hidden className="ks-inkline relative border-t border-current opacity-40" />
           <QrLayers index={3} className="mx-auto w-[62%]" />
           <figcaption className="ks-caption relative text-center font-mono text-[0.6rem]">
             qrcdn.com/poster · A2 print
           </figcaption>
+          <TransitionFx />
         </figure>
 
         {/* 5 · loyalty card */}
@@ -318,6 +347,7 @@ export function KitSyncTheatre() {
             </figcaption>
           </span>
           <QrLayers index={4} className="w-[34%] shrink-0" />
+          <TransitionFx />
         </figure>
       </div>
     </div>

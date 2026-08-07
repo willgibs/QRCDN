@@ -6,12 +6,12 @@ import { cn } from "@/lib/utils";
 
 /**
  * 04 Brand system's body (P9.9-C1, board pick: "B, the sync theatre, with
- * A's physicality"; this is the C1-R2e shape). The Ember kit card is the
- * control; FIVE print artifacts across varied marketing surfaces are the
- * fleet (board: the kit should read as carrying across the surfaces codes
- * live on, not a grid of codes): a table tent, a round door sticker, a
- * notched ticket, a poster, and a loyalty card. A 15s CSS loop
- * (globals.css `ks-*`, reduced-motion = the day still) cycles THREE
+ * A's physicality"; final C1 shape after the R2 polish rounds). The Ember
+ * kit card is the control; THREE print artifacts are the fleet — a table
+ * tent, a door sticker, and a notched ticket, deliberately the SIMPLE mat
+ * form (two bespoke-anatomy rounds were built and the board called the
+ * revert: "these aren't cutting it and I'd rather proceed"). An 18s CSS
+ * loop (globals.css `ks-*`, reduced-motion = the day still) cycles THREE
  * distinct creative kit states and returns seamlessly:
  *
  *   day:     #131316 on #ffffff, rounded 0.88, leaf eyes
@@ -29,8 +29,8 @@ import { cn } from "@/lib/utils";
  * sizes): the mat fades to a dark plate, a wavy rainbow shimmer sweeps
  * it, and the plate drops quickly to reveal the next state — all opacity,
  * box-size-independent, loop-clean (see globals.css `ks-*`). Mats sit
- * straight (rotated dark strokes aliased). Server-only: FIFTEEN engine
- * renders at module scope (5 payloads x 3 states; ~35KB raw each, ~5x
+ * straight (rotated dark strokes aliased). Server-only: NINE engine
+ * renders at module scope (3 payloads x 3 states; ~35KB raw each, ~5x
  * wire compression; matrices differ per payload so filmstrip's symbol/use
  * sharing cannot apply). The save-note line was removed at the board's
  * call: a looping cycle has no save moment, and the lede carries the
@@ -65,8 +65,6 @@ const PAYLOADS = [
   "HTTPS://QRCDN.COM/MENU",
   "HTTPS://QRCDN.COM/HOURS",
   "HTTPS://QRCDN.COM/EVENTS",
-  "HTTPS://QRCDN.COM/POSTER",
-  "HTTPS://QRCDN.COM/CLUB",
 ] as const;
 
 const RENDERS = PAYLOADS.map((payload) => ({
@@ -271,151 +269,52 @@ export function KitSyncTheatre() {
           </div>
           <div className="flex items-center justify-between border-t border-border/60 py-2">
             <dt>attached codes</dt>
-            <dd>5</dd>
+            <dd>3</dd>
           </div>
         </dl>
       </div>
 
-      {/* The fleet: five marketing surfaces the same kit carries across,
-          each with REAL print anatomy (board round 2: "need a total
-          redesign to feel bespoke") — a folded table tent with a menu
-          header, a die-cut round sticker with a cut ring and curved text,
-          a stub-and-perforation ticket, a framed poster, a stamp-card.
-          Straight-set; order maps to PAYLOADS. */}
-      <div className="grid grid-cols-2 gap-5 sm:grid-cols-6">
-        {/* 1 · table tent: the fold line at the head, then a real menu
-            header (wordmark + section label), the code, and an
-            instruction line — the composition a printed tent card
-            actually carries. */}
-        <figure className={cn("relative m-0 flex flex-col rounded-xl bg-white px-4 pb-3.5 pt-2.5 sm:col-span-2", MAT_SHADOW)}>
+      {/* The fleet: back to the simple three-mat form (board call after
+          two bespoke rounds: "these aren't cutting it and I'd rather
+          proceed") — three clean paper mats, the ticket keeping its
+          punched notches and tear line, every mat cycling the three kit
+          states behind the aurora transition. Order maps to PAYLOADS. */}
+      <div className="grid grid-cols-1 gap-6 sm:grid-cols-3 sm:gap-5">
+        {/* 1 · table tent */}
+        <figure className={cn("relative m-0 flex flex-col gap-2 rounded-xl bg-white p-3.5", MAT_SHADOW)}>
           <PaperWashes />
-          {/* the tent fold */}
-          <span aria-hidden className="ks-caption relative mb-2.5 border-t border-current opacity-30" />
-          <span className="relative mb-2 flex items-baseline justify-between">
-            <span className="ks-inkline font-display text-[0.7rem] font-bold tracking-[0.24em]">EMBER</span>
-            <span className="ks-caption font-mono text-[0.55rem] uppercase tracking-[0.14em]">menu</span>
-          </span>
-          <QrLayers index={0} className="mx-auto w-[78%]" />
-          <span className="ks-caption relative mt-2 text-center font-mono text-[0.55rem]">
-            scan for today&apos;s menu
-          </span>
-          <figcaption className="ks-caption relative mt-1.5 flex items-baseline justify-between font-mono text-[0.55rem] opacity-80">
+          <QrLayers index={0} />
+          <figcaption className="ks-caption relative flex items-baseline justify-between font-mono text-[0.6rem]">
             <span>qrcdn.com/menu</span>
             <span>table tent</span>
           </figcaption>
           <TransitionFx />
         </figure>
 
-        {/* 2 · die-cut round sticker: a dashed cut ring, curved wordmark
-            riding the top arc (svg textPath, currentColor through the
-            caption timeline), the code, and the address on the bottom
-            arc's chord. */}
-        <figure
-          className={cn(
-            "ks-m2 relative m-0 flex aspect-square flex-col items-center justify-center self-center rounded-full bg-white p-[11%] sm:col-span-2",
-            MAT_SHADOW,
-          )}
-        >
-          <PaperWashes rounded="rounded-full" />
-          {/* die-cut guide */}
-          <span
-            aria-hidden
-            className="ks-caption pointer-events-none absolute inset-[5%] rounded-full border border-dashed border-current opacity-40"
-          />
-          {/* curved wordmark on the top arc */}
-          <span aria-hidden className="ks-caption pointer-events-none absolute inset-[8%]">
-            <svg viewBox="0 0 100 100" className="h-full w-full">
-              <defs>
-                <path id="ks-sticker-arc" d="M 14 50 A 36 36 0 0 1 86 50" fill="none" />
-              </defs>
-              <text fill="currentColor" fontSize="7.5" letterSpacing="2.5" fontFamily="monospace">
-                <textPath href="#ks-sticker-arc" startOffset="50%" textAnchor="middle">
-                  SCAN FOR HOURS
-                </textPath>
-              </text>
-            </svg>
-          </span>
-          <QrLayers index={1} className="w-[52%]" />
-          <span className="ks-inkline relative mt-1.5 font-display text-[0.6rem] font-bold tracking-[0.24em]">
-            EMBER
-          </span>
-          <figcaption className="ks-caption relative mt-0.5 font-mono text-[0.5rem] opacity-80">
-            qrcdn.com/hours
-          </figcaption>
-          <TransitionFx rounded="rounded-full" />
-        </figure>
-
-        {/* 3 · ticket: a real stub — vertical ADMIT ONE on its own strip,
-            the perforation with punched notches sitting ON the tear line,
-            then the body with the code and the event footer. */}
-        <figure className={cn("ks-m3 relative m-0 flex rounded-xl bg-white sm:col-span-2", MAT_SHADOW)}>
+        {/* 2 · door sticker */}
+        <figure className={cn("ks-m2 relative m-0 flex flex-col gap-2 rounded-xl bg-white p-3.5", MAT_SHADOW)}>
           <PaperWashes />
-          {/* stub */}
-          <span className="relative flex w-9 shrink-0 items-center justify-center">
-            <span
-              className="ks-caption font-mono text-[0.5rem] uppercase tracking-[0.3em]"
-              style={{ writingMode: "vertical-rl" }}
-            >
-              admit one
-            </span>
-          </span>
-          {/* perforation, notched at both ends */}
-          <span aria-hidden className="ks-caption relative my-2 border-l border-dashed border-current opacity-50" />
-          <span aria-hidden className="absolute -top-1.5 left-9 z-10 size-3 -translate-x-1/2 rounded-full bg-background" />
-          <span aria-hidden className="absolute -bottom-1.5 left-9 z-10 size-3 -translate-x-1/2 rounded-full bg-background" />
-          {/* body */}
-          <span className="relative flex min-w-0 flex-1 flex-col p-3">
-            <QrLayers index={2} className="mx-auto w-[82%]" />
-            <figcaption className="ks-caption relative mt-2 flex items-baseline justify-between font-mono text-[0.55rem]">
-              <span>qrcdn.com/events</span>
-              <span className="ks-inkline font-bold">EMBER LIVE</span>
-            </figcaption>
-          </span>
-          <TransitionFx />
-        </figure>
-
-        {/* 4 · poster: a framed print — inset border, the wordmark at
-            poster scale, a subline, air, then the code sitting low with
-            its imprint line. */}
-        <figure className={cn("ks-m4 relative m-0 flex flex-col rounded-xl bg-white p-6 sm:col-span-3", MAT_SHADOW, "col-span-2")}>
-          <PaperWashes />
-          <span aria-hidden className="ks-caption pointer-events-none absolute inset-3 rounded-md border border-current opacity-25" />
-          <span className="ks-inkline relative mt-2 text-center font-display text-xl font-bold tracking-[0.42em]">
-            EMBER
-          </span>
-          <span className="ks-caption relative mt-1.5 text-center font-mono text-[0.55rem] uppercase tracking-[0.2em]">
-            open late · fridays
-          </span>
-          <QrLayers index={3} className="mx-auto mt-5 w-[46%]" />
-          <figcaption className="ks-caption relative mb-1 mt-4 text-center font-mono text-[0.55rem] opacity-80">
-            qrcdn.com/poster · A2 print
+          <QrLayers index={1} />
+          <figcaption className="ks-caption relative flex items-baseline justify-between font-mono text-[0.6rem]">
+            <span>qrcdn.com/hours</span>
+            <span>door sticker</span>
           </figcaption>
           <TransitionFx />
         </figure>
 
-        {/* 5 · loyalty stamp card: wordmark, the stamp row (three earned),
-            member line, address — the anatomy of the card in a wallet. */}
-        <figure className={cn("ks-m5 relative m-0 flex items-center gap-4 self-center rounded-xl bg-white p-4 sm:col-span-3", MAT_SHADOW, "col-span-2")}>
+        {/* 3 · ticket, punched + perforated */}
+        <figure className={cn("ks-m3 relative m-0 flex flex-col gap-2 rounded-xl bg-white p-3.5", MAT_SHADOW)}>
           <PaperWashes />
-          <span className="relative flex min-w-0 flex-1 flex-col gap-1.5">
-            <span className="ks-inkline font-display text-xs font-bold tracking-[0.24em]">EMBER</span>
-            <span aria-hidden className="ks-caption flex gap-1.5 py-0.5">
-              {Array.from({ length: 8 }, (_, i) => (
-                <span
-                  key={i}
-                  className={cn(
-                    "size-2 rounded-full border border-current",
-                    i < 3 && "bg-current",
-                  )}
-                />
-              ))}
-            </span>
-            <span className="ks-caption font-mono text-[0.55rem]">loyalty club · member 0117</span>
-            <figcaption className="ks-caption font-mono text-[0.55rem] opacity-80">
-              qrcdn.com/club
-            </figcaption>
-          </span>
-          <QrLayers index={4} className="w-[32%] shrink-0" />
+          {/* punched notches: the page background showing through */}
+          <span aria-hidden className="absolute -top-1.5 left-1/2 z-10 size-3 -translate-x-1/2 rounded-full bg-background" />
+          <span aria-hidden className="absolute -bottom-1.5 left-1/2 z-10 size-3 -translate-x-1/2 rounded-full bg-background" />
+          <QrLayers index={2} />
+          {/* tear line */}
+          <span aria-hidden className="ks-caption relative border-t border-dashed border-current opacity-60" />
+          <figcaption className="ks-caption relative flex items-baseline justify-between font-mono text-[0.6rem]">
+            <span>qrcdn.com/events</span>
+            <span>ticket</span>
+          </figcaption>
           <TransitionFx />
         </figure>
       </div>

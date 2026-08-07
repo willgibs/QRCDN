@@ -834,24 +834,6 @@ html {
   .ks-m3 .ks-inkline {
     animation-delay: 0.24s;
   }
-  .ks-m4 .ks-cover,
-  .ks-m4 .ks-aurora-a,
-  .ks-m4 .ks-aurora-b,
-  .ks-m4 .ks-state-2,
-  .ks-m4 .ks-state-3,
-  .ks-m4 .ks-caption,
-  .ks-m4 .ks-inkline {
-    animation-delay: 0.36s;
-  }
-  .ks-m5 .ks-cover,
-  .ks-m5 .ks-aurora-a,
-  .ks-m5 .ks-aurora-b,
-  .ks-m5 .ks-state-2,
-  .ks-m5 .ks-state-3,
-  .ks-m5 .ks-caption,
-  .ks-m5 .ks-inkline {
-    animation-delay: 0.48s;
-  }
 }
 
 /* react-colorful overrides (P4 design-iteration note 2) — the library ships

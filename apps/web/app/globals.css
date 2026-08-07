@@ -465,157 +465,131 @@ html {
   }
 }
 
-/* Kit-sync theatre (P9.9-C1; the C1-R2f shimmer cycle). Three distinct
-   kit states over 15s (day / mono / glacier, verified per the C1 color
+/* Kit-sync theatre (P9.9-C1; the C1-R2g aurora cycle). Three distinct kit
+   states over 18s (day / mono / glacier, verified per the C1 color
    protocol: day 100; mono + glacier inverted-warning, 3/3 empirical
-   decode), returning to the first seamlessly. The board rejected the
-   prior mask-sweep wave with screenshots showing WHY it failed: a mask
-   front's screen position depends on its element's box size, so the
-   full-mat wash, the QR block, and the sticker circle all showed their
-   fronts at different places at the same instant (misregistered white
-   fragments mid-transition). This cycle is OPACITY-ONLY, which is
-   box-size-independent by construction:
+   decode), returning to the first seamlessly. Board round 2 on the
+   transition, with reference screenshots: the organic shimmer is an
+   AURORA, not a band — soft radial color fields (green, magenta, amber,
+   teal) drifting slowly on the dark plate — and the previous
+   fade/shimmer/fade read as three jagged steps at twice the right speed.
 
-     each transition (~1.5s at beats 20% / 53% / 86%):
-       fade to dark   (~0.35s) - the ks-cover plate rises over the mat
-       the shimmer    (~0.8s)  - a wavy rainbow sweep over the dark plate
-                                 (in-house take on transitions.dev's
-                                 pro "organic shimmer": two pastel bands
-                                 at different angles moving phase-locked
-                                 at 1:1.5 + a thin white edge glow, all
-                                 blurred and screen-blended; the
-                                 two-band interference reads organic)
-       quick return   (~0.25s) - the cover drops fast (exits snappier
-                                 than entrances), revealing the next
-                                 state, whose layers stepped over while
-                                 covered - never visibly
+   This cycle is one continuum per transition (~3s of an 18s loop, 3s
+   dwell per state): the plate fades up slowly (~0.6s) WHILE the aurora
+   breathes in (~1s, overlapping), the aurora drifts (two oversized
+   counter-rotating blob layers whose rotation runs continuously through
+   the whole 18s, so there is never a motion start/stop seam — only
+   opacity windows), then plate and aurora recede together (~0.6s) as the
+   next state emerges beneath. State layers and paper washes are step
+   switches under the opaque plate. Kit-card values keep the slowed
+   per-character pops on matching windows; captions and ink-colored
+   decorations ride 4-segment color timelines switching under the plate.
 
-   State layers (day base / ks-state-2 mono / ks-state-3 glacier, plus
-   the mat paper washes on the same classes) are step-opacity switches
-   timed under the covers. Kit-card values keep the per-character
-   number-pop-in on matching windows. Loop wrap: 0% and 100% render
-   identical day-rest pixels; the shimmer's position resets happen at
-   opacity 0. All opacity:0 lives HERE in the stylesheet (the
-   served-HTML guard). Reduced motion: no loop, the day still. Mat
-   stagger rides animation-delay (.ks-m2...ks-m5, 0.1s steps); card
-   chars stagger 0.09s. */
+   All opacity:0 lives HERE in the stylesheet (the served-HTML guard).
+   Loop wrap: 0% and 100% render identical day-rest pixels (the third
+   reveal completes exactly at 100%, and rotation is 360-degree-periodic).
+   Reduced motion: no loop, the day still. Mat stagger rides
+   animation-delay (.ks-m2...ks-m5, 0.12s steps); card chars 0.09s. */
 @keyframes ks-cover {
   0%,
-  20% {
+  16.7% {
     opacity: 0;
   }
-  22.3%,
-  28% {
+  20%,
+  30% {
     opacity: 1;
   }
-  29.7%,
-  53% {
+  33.3%,
+  50% {
     opacity: 0;
   }
-  55.3%,
-  61% {
+  53.3%,
+  63.3% {
     opacity: 1;
   }
-  62.7%,
-  86% {
+  66.7%,
+  83.3% {
     opacity: 0;
   }
-  88.3%,
-  94% {
+  86.7%,
+  96.7% {
     opacity: 1;
   }
-  95.7%,
   100% {
     opacity: 0;
   }
 }
-@keyframes ks-shimmer {
+@keyframes ks-aurora-op {
   0%,
-  22% {
+  17.8% {
     opacity: 0;
-    background-position:
-      120% 120%,
-      140% 140%,
-      120% 120%;
   }
-  23.2%,
-  27.3% {
-    opacity: 0.9;
+  21.1%,
+  28.9% {
+    opacity: 0.95;
   }
-  28.5%,
-  54.9% {
+  32.2%,
+  51.1% {
     opacity: 0;
-    background-position:
-      -20% -20%,
-      -40% -40%,
-      -20% -20%;
   }
-  55%,
-  55.2% {
+  54.4%,
+  62.2% {
+    opacity: 0.95;
+  }
+  65.6%,
+  84.4% {
     opacity: 0;
-    background-position:
-      120% 120%,
-      140% 140%,
-      120% 120%;
   }
-  56.2%,
-  60.3% {
-    opacity: 0.9;
+  87.8%,
+  95.6% {
+    opacity: 0.95;
   }
-  61.5%,
-  87.9% {
-    opacity: 0;
-    background-position:
-      -20% -20%,
-      -40% -40%,
-      -20% -20%;
-  }
-  88%,
-  88.2% {
-    opacity: 0;
-    background-position:
-      120% 120%,
-      140% 140%,
-      120% 120%;
-  }
-  89.2%,
-  93.3% {
-    opacity: 0.9;
-  }
-  94.5%,
+  98.9%,
   100% {
     opacity: 0;
-    background-position:
-      -20% -20%,
-      -40% -40%,
-      -20% -20%;
   }
 }
-/* Step switches, always under a cover hump. */
+@keyframes ks-spin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+@keyframes ks-spin-rev {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(-360deg);
+  }
+}
+/* Step switches, always under an opaque plate. */
 @keyframes ks-state-2 {
   0%,
   24.9% {
     opacity: 0;
   }
   25%,
-  57.9% {
+  58.2% {
     opacity: 1;
   }
-  58%,
+  58.3%,
   100% {
     opacity: 0;
   }
 }
 @keyframes ks-state-3 {
   0%,
-  57.9% {
+  58.2% {
     opacity: 0;
   }
-  58%,
-  90.9% {
+  58.3%,
+  91.6% {
     opacity: 1;
   }
-  91%,
+  91.7%,
   100% {
     opacity: 0;
   }
@@ -628,7 +602,7 @@ html {
     transform: translateY(0);
     filter: blur(0);
   }
-  24%,
+  25%,
   90% {
     opacity: 0;
     transform: translateY(-8px);
@@ -639,7 +613,7 @@ html {
     transform: translateY(8px);
     filter: blur(2px);
   }
-  95%,
+  96%,
   100% {
     opacity: 1;
     transform: translateY(0);
@@ -648,7 +622,7 @@ html {
 }
 @keyframes ks-v2 {
   0%,
-  21% {
+  22% {
     opacity: 0;
     transform: translateY(8px);
     filter: blur(2px);
@@ -659,7 +633,7 @@ html {
     transform: translateY(0);
     filter: blur(0);
   }
-  57%,
+  58%,
   100% {
     opacity: 0;
     transform: translateY(-8px);
@@ -668,18 +642,18 @@ html {
 }
 @keyframes ks-v3 {
   0%,
-  54% {
+  55% {
     opacity: 0;
     transform: translateY(8px);
     filter: blur(2px);
   }
   60%,
-  86% {
+  86.5% {
     opacity: 1;
     transform: translateY(0);
     filter: blur(0);
   }
-  90%,
+  91.5%,
   100% {
     opacity: 0;
     transform: translateY(-8px);
@@ -688,33 +662,33 @@ html {
 }
 @keyframes ks-blk-2 {
   0%,
-  21% {
+  23% {
     opacity: 0;
   }
-  26%,
-  54% {
+  27%,
+  55% {
     opacity: 1;
   }
-  58%,
+  59%,
   100% {
     opacity: 0;
   }
 }
 @keyframes ks-blk-3 {
   0%,
-  54% {
+  56% {
     opacity: 0;
   }
-  59%,
-  87% {
+  60%,
+  88% {
     opacity: 1;
   }
-  91%,
+  92%,
   100% {
     opacity: 0;
   }
 }
-/* Caption + decoration color timelines; switches sit under the covers.
+/* Caption + decoration color timelines; switches sit under the plate.
    Day paper wants dark text; mono/glacier papers want light text; the
    ink-colored decorations follow the kit ink itself. */
 @keyframes ks-caption-flip {
@@ -723,14 +697,14 @@ html {
     color: #6b6b74;
   }
   25%,
-  57.9% {
+  58.2% {
     color: #9d9da6;
   }
-  58%,
-  90.9% {
+  58.3%,
+  91.6% {
     color: #85a8bd;
   }
-  91%,
+  91.7%,
   100% {
     color: #6b6b74;
   }
@@ -741,14 +715,14 @@ html {
     color: #131316;
   }
   25%,
-  57.9% {
+  58.2% {
     color: #ffffff;
   }
-  58%,
-  90.9% {
+  58.3%,
+  91.6% {
     color: #90daff;
   }
-  91%,
+  91.7%,
   100% {
     color: #131316;
   }
@@ -757,36 +731,27 @@ html {
   background: #0a0a0c;
   opacity: 0;
 }
-.ks-shimmer {
+/* The aurora: two oversized blob layers, counter-rotating. Colors are
+   UI-only decoration (never engine output). */
+.ks-aurora-a,
+.ks-aurora-b {
+  position: absolute;
+  inset: -40%;
   opacity: 0;
-  background-image:
-    linear-gradient(
-      100deg,
-      transparent 30%,
-      rgb(125 211 252 / 0.25) 42%,
-      rgb(196 181 253 / 0.3) 50%,
-      rgb(249 168 212 / 0.25) 58%,
-      transparent 70%
-    ),
-    linear-gradient(
-      80deg,
-      transparent 35%,
-      rgb(252 211 77 / 0.18) 47%,
-      rgb(125 211 252 / 0.22) 53%,
-      transparent 65%
-    ),
-    linear-gradient(100deg, transparent 48%, rgb(255 255 255 / 0.5) 50%, transparent 52%);
-  background-size:
-    250% 250%,
-    250% 250%,
-    250% 250%;
-  background-repeat: no-repeat;
-  background-position:
-    120% 120%,
-    140% 140%,
-    120% 120%;
-  filter: blur(8px);
-  mix-blend-mode: screen;
+  filter: blur(18px);
+  will-change: transform, opacity;
+}
+.ks-aurora-a {
+  background:
+    radial-gradient(42% 42% at 22% 78%, rgb(52 211 153 / 0.34), transparent 70%),
+    radial-gradient(46% 46% at 84% 22%, rgb(217 70 239 / 0.3), transparent 72%),
+    radial-gradient(36% 36% at 74% 84%, rgb(56 189 248 / 0.24), transparent 70%);
+}
+.ks-aurora-b {
+  background:
+    radial-gradient(40% 40% at 56% 10%, rgb(251 191 36 / 0.26), transparent 70%),
+    radial-gradient(44% 44% at 14% 34%, rgb(167 139 250 / 0.28), transparent 72%),
+    radial-gradient(34% 34% at 88% 62%, rgb(244 114 182 / 0.22), transparent 70%);
 }
 .ks-state-2,
 .ks-state-3,
@@ -812,69 +777,80 @@ html {
 }
 @media (prefers-reduced-motion: no-preference) {
   .ks-cover {
-    animation: ks-cover 15s var(--motion-ease-out) infinite;
+    animation: ks-cover 18s var(--motion-ease-in-out) infinite;
   }
-  .ks-shimmer {
-    animation: ks-shimmer 15s var(--motion-ease-in-out) infinite;
+  .ks-aurora-a {
+    animation:
+      ks-aurora-op 18s var(--motion-ease-in-out) infinite,
+      ks-spin 18s linear infinite;
+  }
+  .ks-aurora-b {
+    animation:
+      ks-aurora-op 18s var(--motion-ease-in-out) infinite,
+      ks-spin-rev 18s linear infinite;
   }
   .ks-state-2 {
-    animation: ks-state-2 15s linear infinite;
+    animation: ks-state-2 18s linear infinite;
   }
   .ks-state-3 {
-    animation: ks-state-3 15s linear infinite;
+    animation: ks-state-3 18s linear infinite;
   }
   .ks-ch-v1 {
-    animation: ks-v1 15s cubic-bezier(0.34, 1.45, 0.64, 1) infinite;
+    animation: ks-v1 18s cubic-bezier(0.34, 1.45, 0.64, 1) infinite;
   }
   .ks-ch-v2 {
-    animation: ks-v2 15s cubic-bezier(0.34, 1.45, 0.64, 1) infinite;
+    animation: ks-v2 18s cubic-bezier(0.34, 1.45, 0.64, 1) infinite;
   }
   .ks-ch-v3 {
-    animation: ks-v3 15s cubic-bezier(0.34, 1.45, 0.64, 1) infinite;
+    animation: ks-v3 18s cubic-bezier(0.34, 1.45, 0.64, 1) infinite;
   }
   .ks-blk-2 {
-    animation: ks-blk-2 15s var(--motion-ease-in-out) infinite;
+    animation: ks-blk-2 18s var(--motion-ease-in-out) infinite;
   }
   .ks-blk-3 {
-    animation: ks-blk-3 15s var(--motion-ease-in-out) infinite;
+    animation: ks-blk-3 18s var(--motion-ease-in-out) infinite;
   }
   .ks-caption {
-    animation: ks-caption-flip 15s linear infinite;
+    animation: ks-caption-flip 18s linear infinite;
   }
   .ks-inkline {
-    animation: ks-inkline 15s linear infinite;
+    animation: ks-inkline 18s linear infinite;
   }
   .ks-m2 .ks-cover,
-  .ks-m2 .ks-shimmer,
+  .ks-m2 .ks-aurora-a,
+  .ks-m2 .ks-aurora-b,
   .ks-m2 .ks-state-2,
   .ks-m2 .ks-state-3,
   .ks-m2 .ks-caption,
   .ks-m2 .ks-inkline {
-    animation-delay: 0.1s;
+    animation-delay: 0.12s;
   }
   .ks-m3 .ks-cover,
-  .ks-m3 .ks-shimmer,
+  .ks-m3 .ks-aurora-a,
+  .ks-m3 .ks-aurora-b,
   .ks-m3 .ks-state-2,
   .ks-m3 .ks-state-3,
   .ks-m3 .ks-caption,
   .ks-m3 .ks-inkline {
-    animation-delay: 0.2s;
+    animation-delay: 0.24s;
   }
   .ks-m4 .ks-cover,
-  .ks-m4 .ks-shimmer,
+  .ks-m4 .ks-aurora-a,
+  .ks-m4 .ks-aurora-b,
   .ks-m4 .ks-state-2,
   .ks-m4 .ks-state-3,
   .ks-m4 .ks-caption,
   .ks-m4 .ks-inkline {
-    animation-delay: 0.3s;
+    animation-delay: 0.36s;
   }
   .ks-m5 .ks-cover,
-  .ks-m5 .ks-shimmer,
+  .ks-m5 .ks-aurora-a,
+  .ks-m5 .ks-aurora-b,
   .ks-m5 .ks-state-2,
   .ks-m5 .ks-state-3,
   .ks-m5 .ks-caption,
   .ks-m5 .ks-inkline {
-    animation-delay: 0.4s;
+    animation-delay: 0.48s;
   }
 }
 

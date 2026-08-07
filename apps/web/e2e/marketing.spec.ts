@@ -573,10 +573,12 @@ test.describe("marketing site", () => {
     await expect(section.getByText("Ember", { exact: true })).toBeVisible();
     await expect(section.getByText("attached codes", { exact: true })).toBeVisible();
     // Five print artifacts across varied marketing surfaces, each carrying
-    // three engine-render layers (day base + mono + glacier; the wave
-    // passes through, so no fourth wrap layer exists) = 15 svgs.
+    // three engine-render layers (day + mono + glacier) inside a [data-qr]
+    // wrapper = 15 engine svgs. Scoped to [data-qr] deliberately: bespoke
+    // decorations (the sticker's curved-text svg) are not engine renders
+    // and must not satisfy this count.
     await expect(section.locator("figure")).toHaveCount(5);
-    expect(await section.locator("figure svg").count()).toBe(15);
+    expect(await section.locator("figure [data-qr] svg").count()).toBe(15);
     await expect(section.getByText("qrcdn.com/menu", { exact: true })).toBeVisible();
     await expect(section.getByText("qrcdn.com/club", { exact: true })).toBeVisible();
   });

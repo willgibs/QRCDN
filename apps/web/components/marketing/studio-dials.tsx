@@ -30,15 +30,21 @@ import { cn } from "@/lib/utils";
  * pairs (85 inverted-pattern only, empirical decode 3/3 incl. the 35-char
  * worst case) and are never reachable through the dials.
  *
- * Crossfade mechanics: opacity-only, per C1's banked mask-geometry lesson
- * (position-based fronts misregister across different-sized siblings;
- * opacity has no geometry). The previous render sits under the new one,
- * which fades in via the stylesheet-only `sd-in` class (fill-mode
- * backwards so the per-mat stagger delay holds it transparent); the under
- * layer is removed on animation end. Reduced motion: no under layer is
- * ever created, the swap is instant. Served HTML carries no animation
- * class and no opacity:0 (the standing invariant): at SSR there is exactly
- * one layer per mat, at rest values.
+ * Transition (C2-R1, board redirect): the AURORA SWEEP — section 04's
+ * aurora identity (shared paint via the grouped ks/sdx aurora selectors
+ * in globals.css), staged directionally per mat. On a dial turn each mat
+ * mounts an FxOverlay: the dark plate sweeps in from the top-left corner
+ * behind a soft gradient front with the aurora riding inside it, the new
+ * render steps in and the paper transitions under full cover, and the
+ * whole overlay fades back out as one. The sweep mask is box-relative and
+ * per-mat, so C1's cross-box misregistration class cannot occur; overlay,
+ * reveal, and the delayed paper transition share one 1200ms duration and
+ * the wall's 90ms stagger. The previous render sits under the new one
+ * (`sdx-reveal` steps it visible at half-time) and is removed on
+ * animation end. Reduced motion: no overlay, no under layer, instant
+ * swap. Served HTML carries none of this machinery: at SSR there is
+ * exactly one layer per mat at rest values, no opacity:0 (standing
+ * invariant).
  */
 
 type DotStyle = (typeof DOT_STYLES)[number];
@@ -123,6 +129,32 @@ const MAT_PHYSICAL = [
 
 const STAGGER_MS = 90;
 
+/**
+ * One aurora-sweep run over a single mat. Mounted per dial turn (keyed by
+ * the run counter), removed when its wrapper animation ends. The children
+ * carry the same inline delay as the wrapper so aurora ramp and sweep
+ * stay in phase through the stagger.
+ */
+function FxOverlay({ delayMs }: { delayMs: number }) {
+  const [done, setDone] = useState(false);
+  const delay = { animationDelay: `${delayMs}ms` };
+  if (done) return null;
+  return (
+    <span
+      aria-hidden
+      className="sdx-fx pointer-events-none absolute inset-0 z-20 overflow-hidden rounded-[inherit]"
+      style={delay}
+      onAnimationEnd={(e) => {
+        if (e.target === e.currentTarget) setDone(true);
+      }}
+    >
+      <span className="sdx-plate absolute inset-0" />
+      <span className="sdx-aurora-a" style={delay} />
+      <span className="sdx-aurora-b" style={delay} />
+    </span>
+  );
+}
+
 function MatQr({ payload, style, delayMs }: { payload: string; style: QrStyle; delayMs: number }) {
   const { svg } = useMemo(() => renderPreview(payload, style), [payload, style]);
   const [prev, setPrev] = useState<{ svg: string; key: number } | null>(null);
@@ -145,7 +177,7 @@ function MatQr({ payload, style, delayMs }: { payload: string; style: QrStyle; d
       )}
       <div
         key={prev?.key ?? 0}
-        className={cn("relative", prev && "sd-in")}
+        className={cn("relative", prev && "sdx-reveal")}
         style={prev ? { animationDelay: `${delayMs}ms` } : undefined}
         onAnimationEnd={() => setPrev(null)}
         dangerouslySetInnerHTML={{ __html: svg }}
@@ -168,6 +200,10 @@ function DialLegend({ children }: { children: string }) {
 export function StudioDials() {
   const uid = useId();
   const [config, setConfig] = useState<{ dot: DotStyle; eye: EyeFrame; ink: string } | null>(null);
+  // Counts dial turns; each increment mounts a fresh keyed FxOverlay per
+  // mat (the aurora sweep). Never incremented under reduced motion, so
+  // the overlay is simply never created there.
+  const [fxRun, setFxRun] = useState(0);
 
   // Displayed dial values: the Ember starting kit until the first turn.
   const dot = config?.dot ?? "rounded";
@@ -176,6 +212,9 @@ export function StudioDials() {
 
   function apply(partial: Partial<{ dot: DotStyle; eye: EyeFrame; ink: string }>) {
     setConfig({ dot, eye, ink, ...partial });
+    if (!window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      setFxRun((n) => n + 1);
+    }
   }
 
   return (
@@ -273,18 +312,25 @@ export function StudioDials() {
             <figure
               key={mat.payload}
               className={cn(
-                "flex flex-col gap-2 rounded-xl p-3 shadow-xl shadow-black/50 ring-1 ring-white/10 motion-safe:transition-colors motion-safe:duration-500",
+                // Paper/caption colors flip UNDER the sweep: 450ms in plus
+                // the mat's own stagger lands inside the covered window
+                // (45-62% of the 1200ms overlay timeline).
+                "relative flex flex-col gap-2 rounded-xl p-3 shadow-xl shadow-black/50 ring-1 ring-white/10 motion-safe:transition-colors motion-safe:duration-300",
                 MAT_PHYSICAL[i],
               )}
-              style={{ backgroundColor: paper }}
+              style={{ backgroundColor: paper, transitionDelay: `${450 + i * STAGGER_MS}ms` }}
             >
               <MatQr payload={mat.payload} style={style} delayMs={i * STAGGER_MS} />
               <figcaption
-                className="whitespace-nowrap font-mono text-[10px] tracking-[0.06em] motion-safe:transition-colors motion-safe:duration-500"
-                style={{ color: CAPTION_ON_PAPER[paper] }}
+                className="whitespace-nowrap font-mono text-[10px] tracking-[0.06em] motion-safe:transition-colors motion-safe:duration-300"
+                style={{
+                  color: CAPTION_ON_PAPER[paper],
+                  transitionDelay: `${450 + i * STAGGER_MS}ms`,
+                }}
               >
                 {mat.label}
               </figcaption>
+              {fxRun > 0 && <FxOverlay key={fxRun} delayMs={i * STAGGER_MS} />}
             </figure>
           );
         })}

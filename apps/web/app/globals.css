@@ -732,22 +732,29 @@ html {
   opacity: 0;
 }
 /* The aurora: two oversized blob layers, counter-rotating. Colors are
-   UI-only decoration (never engine output). */
+   UI-only decoration (never engine output). The paint (plate hex, both
+   radial stacks, inset, blur) is SHARED with the studio dials' sweep
+   overlay (.sdx-*, P9.9-C2-R1) via these grouped selectors — one aurora
+   identity across both sections, two timelines. */
 .ks-aurora-a,
-.ks-aurora-b {
+.ks-aurora-b,
+.sdx-aurora-a,
+.sdx-aurora-b {
   position: absolute;
   inset: -40%;
   opacity: 0;
   filter: blur(18px);
   will-change: transform, opacity;
 }
-.ks-aurora-a {
+.ks-aurora-a,
+.sdx-aurora-a {
   background:
     radial-gradient(42% 42% at 22% 78%, rgb(52 211 153 / 0.34), transparent 70%),
     radial-gradient(46% 46% at 84% 22%, rgb(217 70 239 / 0.3), transparent 72%),
     radial-gradient(36% 36% at 74% 84%, rgb(56 189 248 / 0.24), transparent 70%);
 }
-.ks-aurora-b {
+.ks-aurora-b,
+.sdx-aurora-b {
   background:
     radial-gradient(40% 40% at 56% 10%, rgb(251 191 36 / 0.26), transparent 70%),
     radial-gradient(44% 44% at 14% 34%, rgb(167 139 250 / 0.28), transparent 72%),
@@ -980,26 +987,102 @@ html {
   }
 }
 
-/* Studio dials crossfade (P9.9-C2, studio-dials.tsx). Opacity-only per
-   C1's mask-geometry lesson: the new render fades in over the old one,
-   which is removed on animation end. `backwards` holds the incoming layer
-   transparent through its per-mat stagger delay (inline animation-delay).
-   The class is applied only client-side during a swap — served HTML
-   carries exactly one layer per mat and no opacity:0 (standing
-   invariant). */
-@keyframes sd-fade-in {
-  from {
+/* Studio dials: the aurora sweep (P9.9-C2-R1, board redirect on the plain
+   crossfade). Same aurora identity as the kit-sync theatre — plate hex
+   and both color-field stacks are shared with .ks-* via the grouped
+   selectors in that block — staged directionally per mat: the dark plate
+   sweeps in from the top-left corner behind a soft gradient front (a
+   mask-position timeline on the overlay wrapper; the mask is BOX-RELATIVE
+   and each mat carries its own overlay, so C1's cross-box misregistration
+   class cannot occur), the aurora rides inside the sweeping surface, the
+   render and paper swap under full cover (sdx-reveal's step + the mats'
+   delayed color transitions), and the whole overlay fades back out as one
+   ("faded all back in together"). One-shot 1200ms per mat + the wall's
+   90ms stagger, overlay and reveal sharing duration and delay so the
+   timelines cannot drift. The overlay exists only client-side during a
+   run: served HTML never carries it, and every opacity:0 lives here in
+   the stylesheet (standing invariant). Reduced motion: the island never
+   mounts the overlay and the swap is instant; display:none is the CSS
+   backstop. */
+/* Sweep positions are derived, not guessed (box 1u, mask 3u, offset =
+   -2p): the feather's leading edge enters the box exactly at p=117% and
+   full cover lands exactly at p=32.5%, so the front spends the WHOLE
+   0-45% window crossing. At 100%/0% naive endpoints the crossing
+   compressed into the first quarter and read as a flash (probed). */
+@keyframes sdx-fx {
+  0% {
+    mask-position: 117% 117%;
+    opacity: 1;
+  }
+  45%,
+  62% {
+    mask-position: 32.5% 32.5%;
+    opacity: 1;
+  }
+  100% {
+    mask-position: 32.5% 32.5%;
     opacity: 0;
   }
+}
+@keyframes sdx-aurora-in {
+  0% {
+    opacity: 0;
+  }
+  30%,
+  100% {
+    opacity: 0.95;
+  }
+}
+@keyframes sdx-drift {
   to {
+    transform: rotate(80deg);
+  }
+}
+@keyframes sdx-drift-rev {
+  to {
+    transform: rotate(-80deg);
+  }
+}
+@keyframes sdx-reveal {
+  0%,
+  49% {
+    opacity: 0;
+  }
+  50%,
+  100% {
     opacity: 1;
   }
 }
-.sd-in {
-  animation: sd-fade-in 380ms var(--motion-ease-out) backwards;
+.sdx-fx {
+  mask-image: linear-gradient(135deg, #000 55%, transparent 78%);
+  mask-size: 300% 300%;
+  mask-repeat: no-repeat;
+  /* Linear, not the ease-out token: an eased timeline compresses the
+     mask sweep into the first ~200ms (probed) and the front never reads.
+     The phases are shaped by the keyframe spacing instead. */
+  animation: sdx-fx 1200ms linear both;
+}
+.sdx-plate {
+  background: #0a0a0c;
+}
+.sdx-aurora-a {
+  animation:
+    sdx-aurora-in 1200ms linear both,
+    sdx-drift 1200ms linear both;
+}
+.sdx-aurora-b {
+  animation:
+    sdx-aurora-in 1200ms linear both,
+    sdx-drift-rev 1200ms linear both;
+}
+.sdx-reveal {
+  animation: sdx-reveal 1200ms linear both;
 }
 @media (prefers-reduced-motion: reduce) {
-  .sd-in {
+  .sdx-fx {
+    display: none;
+  }
+  .sdx-reveal {
     animation: none;
   }
 }

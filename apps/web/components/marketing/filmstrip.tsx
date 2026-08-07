@@ -268,7 +268,7 @@ function SetStation() {
       </StationArt>
       <StationMeta
         label="Design"
-        title="Design your style."
+        title="Design your style"
         note="Pick your ink, module shape and corner style once. That kit becomes your look."
       />
     </Station>
@@ -304,7 +304,7 @@ function PrintStation() {
       </StationArt>
       <StationMeta
         label="Create"
-        title="Create new codes."
+        title="Create new codes"
         note="Every code you make inherits the kit. Export SVG or PNG, no watermark, no limits on static codes."
       />
     </Station>
@@ -349,7 +349,7 @@ function TrackStation() {
       </StationArt>
       <StationMeta
         label="Track"
-        title="Track scan analytics."
+        title="Track scan analytics"
         note="Every scan by day, country, city, device and referrer. Rolled up daily, honest about bots."
       />
     </Station>
@@ -378,7 +378,7 @@ function RepointStation() {
       </StationArt>
       <StationMeta
         label="Update"
-        title="Update links anytime."
+        title="Update links anytime"
         note="Repoint a code after it is printed. The code on the wall never changes, only where it sends people."
       />
     </Station>

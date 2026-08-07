@@ -30,7 +30,7 @@ export function GuardrailsSection({ index }: { index: string }) {
       <SectionHeading
         eyebrow="Scannability"
         index={index}
-        title="Know it scans before you print it."
+        title="Know it scans before you print it"
         lede="The studio checks contrast, module shape and logo coverage as you design. Its limits are not guesswork: they are calibrated against real decode campaigns, and set below the point where anything actually failed."
         className="mb-10"
       />

@@ -82,7 +82,7 @@ export default function DynamicCodesFeaturePage() {
     <>
       <FeatureHero
         eyebrow="Dynamic codes"
-        title="Repoint anything you have printed."
+        title="Repoint anything you have printed"
         lede="A QRCDN code is a permanent short address with a destination you control: print it once, repoint it in seconds, and the printed thing never goes stale."
         mono="302 + no-store, never 301 · retarget live in seconds · ≤ 5 min worst case"
       />
@@ -90,7 +90,7 @@ export default function DynamicCodesFeaturePage() {
       {/* S1 — One address, two layers. */}
       <Section variant="split">
         <SectionHeading
-          title="One address, two layers."
+          title="One address, two layers"
           lede="The printed code encodes a permanent QRCDN address. The destination is a database row you can change. Scanners always travel address first, destination second, so the print never has to know where it ends up."
           className="mb-10"
         />
@@ -106,7 +106,7 @@ export default function DynamicCodesFeaturePage() {
           as-is; its own caption ("the printed code never changes") is
           already part of the component, per the deck's own note. */}
       <Section variant="showcase" surface="tint" divider="none">
-        <SectionHeading title="Retarget it yourself, right here." className="mb-10" />
+        <SectionHeading title="Retarget it yourself, right here" className="mb-10" />
         <SectionBody>
           <RetargetTheatre />
         </SectionBody>
@@ -118,7 +118,7 @@ export default function DynamicCodesFeaturePage() {
           sidebar stack. */}
       <Section variant="split" divider="none">
         <SectionHeading
-          title="Every state is a safe state."
+          title="Every state is a safe state"
           lede="Paused codes park visitors on a neutral page. Password-protected codes ask before they forward. Expired codes stop forwarding but keep resolving. Nothing ever 404s because you changed your mind."
           className="mb-10"
         />
@@ -138,7 +138,7 @@ export default function DynamicCodesFeaturePage() {
         <SectionBody className="flex flex-col items-center gap-6 text-center">
           <Eyebrow>Guarantee</Eyebrow>
           <h2 className="max-w-2xl text-h3 font-display font-semibold text-foreground">
-            The floor is the promise.
+            The floor is the promise
           </h2>
           <p className="max-w-2xl text-base text-muted-foreground">
             Downgrading from Pro pauses growth, never print: your codes go read-only and keep
@@ -161,7 +161,7 @@ export default function DynamicCodesFeaturePage() {
       {/* S5 — Plans and limits. Stack, honest table, no drama: plain text
           values, no marketing check-glyphs. */}
       <Section variant="stack" divider="none">
-        <SectionHeading title="What each plan holds." className="mb-10" />
+        <SectionHeading title="What each plan holds" className="mb-10" />
         <SectionBody className="max-w-2xl overflow-x-auto">
           <table className="w-full border-collapse text-sm">
             <thead>
@@ -196,7 +196,7 @@ export default function DynamicCodesFeaturePage() {
       <Section variant="split">
         <div className="grid gap-10 lg:grid-cols-[20rem_1fr] lg:gap-16">
           <SectionBody className="flex flex-col gap-4">
-            <SectionHeading eyebrow="Questions" title="Before you print." reveal={false} />
+            <SectionHeading eyebrow="Questions" title="Before you print" reveal={false} />
           </SectionBody>
           <SectionBody delay={0.15}>
             <FaqList items={FAQ_ITEMS} />
@@ -210,7 +210,7 @@ export default function DynamicCodesFeaturePage() {
           with "Create your first code in minutes." Passing this page's own
           head explicitly means the two surfaces can never again move each
           other by accident, which is what a shared default quietly does. */}
-      <ClosingSection title="Print something that can change its mind." />
+      <ClosingSection title="Print something that can change its mind" />
     </>
   );
 }

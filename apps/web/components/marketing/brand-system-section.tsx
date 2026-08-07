@@ -30,7 +30,7 @@ export function BrandSystemSection({
       <SectionHeading
         eyebrow="Brand system"
         index={index}
-        title="Every code syncs instantly."
+        title="Every code syncs instantly"
         lede="Set your kit once. Edit it anytime: every attached code re-renders in the same breath, from menu tents to ticket stubs."
         titleSize={titleSize}
         className="mb-4"

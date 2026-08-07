@@ -302,7 +302,7 @@ test.describe("marketing site", () => {
     // "Design one right now." (pre-T3a).
     const playgroundSection = page
       .locator("section")
-      .filter({ has: page.getByRole("heading", { name: "Customize your brand design." }) });
+      .filter({ has: page.getByRole("heading", { name: "Customize your brand design" }) });
     await expect(playgroundSection.getByRole("status")).toContainText(/scannable/i);
   });
 
@@ -310,7 +310,7 @@ test.describe("marketing site", () => {
     await page.goto("/");
     const playgroundSection = page
       .locator("section")
-      .filter({ has: page.getByRole("heading", { name: "Customize your brand design." }) });
+      .filter({ has: page.getByRole("heading", { name: "Customize your brand design" }) });
 
     // All 3 named presets render (text-based, not role-based — avoids
     // coupling the test to Radix ToggleGroup's exact internal role choice).
@@ -363,7 +363,7 @@ test.describe("marketing site", () => {
     await page.goto("/");
     const section = page
       .locator("section")
-      .filter({ has: page.getByRole("heading", { name: "Control who can visit." }) });
+      .filter({ has: page.getByRole("heading", { name: "Control who can visit" }) });
 
     // Password and expiry are Pro; pause deliberately is not, because
     // setCodePausedCore has no plan gate at all.
@@ -406,7 +406,7 @@ test.describe("marketing site", () => {
     await page.goto("/");
     const section = page
       .locator("section")
-      .filter({ has: page.getByRole("heading", { name: "Know it scans before you print it." }) });
+      .filter({ has: page.getByRole("heading", { name: "Know it scans before you print it" }) });
 
     // P9.7-V5 replaced GuardrailsPlot here. Its scatter was authored rather
     // than measured (the source record keeps only the campaign's aggregate
@@ -482,7 +482,7 @@ test.describe("marketing site", () => {
     await page.goto("/");
     const section = page
       .locator("section")
-      .filter({ has: page.getByRole("heading", { name: "Industry-leading features." }) });
+      .filter({ has: page.getByRole("heading", { name: "Industry-leading features" }) });
 
     // Review round 1 split the table into two DOM variants (mobile QRCDN-
     // first, desktop QRCDN-last), toggled via md:hidden / hidden md:block —
@@ -520,7 +520,7 @@ test.describe("marketing site", () => {
     await page.goto("/");
     const section = page
       .locator("section")
-      .filter({ has: page.getByRole("heading", { name: "Industry-leading features." }) });
+      .filter({ has: page.getByRole("heading", { name: "Industry-leading features" }) });
 
     const table = section.locator("table:visible");
     // Header index 0 is the blank corner cell above the row labels; index 1
@@ -533,7 +533,7 @@ test.describe("marketing site", () => {
     await page.goto("/");
     await expect(page.locator("#open-source")).toBeVisible();
     await expect(
-      page.locator("#open-source").getByRole("heading", { name: "Verify our platform yourself." }),
+      page.locator("#open-source").getByRole("heading", { name: "Verify our platform yourself" }),
     ).toBeVisible();
   });
 
@@ -541,7 +541,7 @@ test.describe("marketing site", () => {
     await page.goto("/");
     const section = page
       .locator("section")
-      .filter({ has: page.getByRole("heading", { name: "Our lifetime guarantee." }) });
+      .filter({ has: page.getByRole("heading", { name: "Our lifetime guarantee" }) });
 
     await expect(section.getByText("Free codes are never deactivated.")).toBeVisible();
     await expect(section.getByText("A downgrade makes codes read-only, never dead.")).toBeVisible();
@@ -552,15 +552,15 @@ test.describe("marketing site", () => {
 
   test("heads: the amended section heads are live (P9.7-V1 IA rewrite)", async ({ page }) => {
     await page.goto("/");
-    await expect(page.getByRole("heading", { name: "Customize your brand design." })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Customize your brand design" })).toBeVisible();
     // P9.9-C1: section 04 takes the stronger claim the P9.8 hard-sync
     // reversal made true (was "Every code starts from your kit.").
-    await expect(page.getByRole("heading", { name: "Every code syncs instantly." })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Every code syncs instantly" })).toBeVisible();
     await expect(
-      page.getByRole("heading", { name: "Update a destination anytime." }),
+      page.getByRole("heading", { name: "Update a destination anytime" }),
     ).toBeVisible();
     await expect(
-      page.getByRole("heading", { name: "Free to start, upgrade for more." }),
+      page.getByRole("heading", { name: "Free to start, upgrade for more" }),
     ).toBeVisible();
   });
 
@@ -572,15 +572,13 @@ test.describe("marketing site", () => {
     // The kit card (the control) and its identity.
     await expect(section.getByText("Ember", { exact: true })).toBeVisible();
     await expect(section.getByText("attached codes", { exact: true })).toBeVisible();
-    // Three real print artifacts, each a real engine render (an svg per
-    // kit state: day + mid + night = 9 total, P9.9-C1-R2c's two-beat loop).
-    await expect(section.locator("figure")).toHaveCount(3);
-    expect(await section.locator("figure svg").count()).toBe(9);
+    // Five print artifacts across varied marketing surfaces, each carrying
+    // three engine-render layers (day base + mono + glacier; the wave
+    // passes through, so no fourth wrap layer exists) = 15 svgs.
+    await expect(section.locator("figure")).toHaveCount(5);
+    expect(await section.locator("figure svg").count()).toBe(15);
     await expect(section.getByText("qrcdn.com/menu", { exact: true })).toBeVisible();
-    // The app's real save note, verbatim shape (kit-bar.tsx) — the moment
-    // the section exists to show. Present in the DOM regardless of where
-    // the CSS loop currently is (opacity is presentation, not presence).
-    await expect(section.getByText("Style applied to 3 attached codes.")).toBeAttached();
+    await expect(section.getByText("qrcdn.com/club", { exact: true })).toBeVisible();
   });
 
   test("hero h1: renders the v4 headline and never SSRs at opacity 0", async ({ page, request }) => {
@@ -615,7 +613,7 @@ test.describe("marketing site", () => {
     await page.goto("/");
     const bento = page
       .locator("section")
-      .filter({ has: page.getByRole("heading", { name: "Everything you need in one place." }) });
+      .filter({ has: page.getByRole("heading", { name: "Everything you need in one place" }) });
 
     // The bento replaced the hero's pillar strip, so it inherits the strip's
     // navigation contract: five links, each resolving to a real section id.
@@ -804,7 +802,7 @@ test.describe("marketing site", () => {
   }) => {
     await page.goto("/features/dynamic-codes");
     await expect(
-      page.getByRole("heading", { level: 1, name: "Repoint anything you have printed." }),
+      page.getByRole("heading", { level: 1, name: "Repoint anything you have printed" }),
     ).toBeVisible();
     // A section-body marker distinct from the hero: the RetargetTheatre
     // island (S2), the same reused component the landing's own #dynamic-
@@ -816,7 +814,7 @@ test.describe("marketing site", () => {
 
   test("features/dynamic-codes: honest plan table and FAQ render", async ({ page }) => {
     await page.goto("/features/dynamic-codes");
-    await expect(page.getByRole("heading", { name: "What each plan holds." })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "What each plan holds" })).toBeVisible();
     const table = page.getByRole("table");
     await expect(table.getByText(String(PLAN_LIMITS.free.dynamicCodes), { exact: true })).toBeVisible();
     await expect(table.getByText(String(PLAN_LIMITS.pro.dynamicCodes), { exact: true })).toBeVisible();
@@ -826,7 +824,7 @@ test.describe("marketing site", () => {
   test("features/analytics: renders the hero h1 and one section body marker", async ({ page }) => {
     await page.goto("/features/analytics");
     await expect(
-      page.getByRole("heading", { level: 1, name: "Every scan, counted honestly." }),
+      page.getByRole("heading", { level: 1, name: "Every scan, counted honestly" }),
     ).toBeVisible();
     // Section-body marker: DashboardWindow (S1), reused as-is from the
     // landing's own #analytics section.
@@ -835,7 +833,7 @@ test.describe("marketing site", () => {
 
   test("features/analytics: retention line and FAQ render from entitlements", async ({ page }) => {
     await page.goto("/features/analytics");
-    await expect(page.getByRole("heading", { name: "History that matches your plan." })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "History that matches your plan" })).toBeVisible();
     await expect(
       page.getByText(
         `Free keeps ${PLAN_LIMITS.free.analyticsRetentionDays} days of scan history`,
@@ -857,7 +855,7 @@ test.describe("marketing site", () => {
   }) => {
     await page.goto("/features/brand-studio");
     await expect(
-      page.getByRole("heading", { level: 1, name: "Design the code itself." }),
+      page.getByRole("heading", { level: 1, name: "Design the code itself" }),
     ).toBeVisible();
     // A section-body marker distinct from the hero: GuardrailsPlot (S3),
     // the same reused component the landing's own guardrails section
@@ -873,7 +871,7 @@ test.describe("marketing site", () => {
     page,
   }) => {
     await page.goto("/features/brand-studio");
-    await expect(page.getByRole("heading", { name: "What each plan holds." })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "What each plan holds" })).toBeVisible();
     const table = page.getByRole("table");
     await expect(table.getByText(String(PLAN_LIMITS.free.brandKits), { exact: true })).toBeVisible();
     await expect(table.getByText(String(PLAN_LIMITS.free.dynamicCodes), { exact: true })).toBeVisible();
@@ -891,7 +889,7 @@ test.describe("marketing site", () => {
   }) => {
     await page.goto("/features/access-controls");
     await expect(
-      page.getByRole("heading", { level: 1, name: "Decide who gets through." }),
+      page.getByRole("heading", { level: 1, name: "Decide who gets through" }),
     ).toBeVisible();
     // Section-body marker: StateCards' password card (S1, `only="password"`).
     await expect(page.getByText("This code is password-protected.")).toBeVisible();
@@ -920,7 +918,7 @@ test.describe("marketing site", () => {
     await expect(
       page.getByText(`4-${MAX_SLUG_LENGTH} chars · charset skips 0 O 1 I L U · reserved words blocked`),
     ).toBeVisible();
-    await expect(page.getByRole("heading", { name: "What each plan holds." })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "What each plan holds" })).toBeVisible();
     const table = page.getByRole("table");
     await expect(table.getByText("Included", { exact: true }).first()).toBeVisible();
     await expect(page.getByText("What if someone forgets the password?")).toBeVisible();
@@ -943,7 +941,7 @@ test.describe("marketing site", () => {
     await expect(
       page
         .locator("section")
-        .filter({ has: page.getByRole("heading", { name: "Control who can visit." }) })
+        .filter({ has: page.getByRole("heading", { name: "Control who can visit" }) })
         .getByRole("link", { name: "Explore access controls" }),
     ).toHaveAttribute("href", "/features/access-controls");
     // Analytics.
@@ -970,7 +968,7 @@ test.describe("marketing site", () => {
 
   test("changelog: renders the head/lede and every entry with its real date and tags", async ({ page }) => {
     await page.goto("/changelog");
-    await expect(page.getByRole("heading", { level: 1, name: "What changed, when." })).toBeVisible();
+    await expect(page.getByRole("heading", { level: 1, name: "What changed, when" })).toBeVisible();
     await expect(
       page.getByText("Real dates, real changes, written as they shipped. No backfilled marketing."),
     ).toBeVisible();
@@ -1139,7 +1137,7 @@ test.describe("marketing site", () => {
     page,
   }) => {
     await page.goto("/blog");
-    await expect(page.getByRole("heading", { level: 1, name: "How this actually works." })).toBeVisible();
+    await expect(page.getByRole("heading", { level: 1, name: "How this actually works" })).toBeVisible();
     for (const post of BLOG_POSTS) {
       await expect(page.getByRole("link", { name: post.title })).toHaveAttribute(
         "href",
@@ -1205,7 +1203,7 @@ test.describe("marketing site", () => {
 
   test("help index: every category renders with its real articles", async ({ page }) => {
     await page.goto("/help");
-    await expect(page.getByRole("heading", { level: 1, name: "Quick answers, not a maze." })).toBeVisible();
+    await expect(page.getByRole("heading", { level: 1, name: "Quick answers, not a maze" })).toBeVisible();
     for (const category of HELP_CATEGORIES) {
       await expect(page.getByRole("heading", { name: category })).toBeVisible();
     }

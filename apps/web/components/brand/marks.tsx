@@ -30,13 +30,15 @@ export function ModuleMark({ className }: { className?: string }) {
 }
 
 /**
- * Standard eyebrow: module mark + tracked mono caps. `index` (P9.5-T1b,
- * optional — existing call sites are unaffected) renders an ordinal ("01")
- * before the label, for `SectionHeading`'s numbered-section treatment;
- * muted further than the label itself so the number reads as a secondary
- * cue, not competing with it. No separator glyph between the ordinal and
- * the label — the flex `gap-2.5` plus the ordinal's own lighter tint
- * already reads as two distinct tokens; an early draft used an em dash
+ * Standard eyebrow: ordinal + tracked mono caps. The module-mark glyph left
+ * the eyebrow at P9.9-C1-R2e (board note: "cleaner") — the ordinal plus the
+ * tracked caps now carry the register alone; `MonoStrip` keeps its mark.
+ * `index` (P9.5-T1b, optional — existing call sites are unaffected) renders
+ * an ordinal ("01") before the label, for `SectionHeading`'s numbered-section
+ * treatment; muted further than the label itself so the number reads as a
+ * secondary cue, not competing with it. No separator glyph between the
+ * ordinal and the label — the flex `gap-2.5` plus the ordinal's own lighter
+ * tint already reads as two distinct tokens; an early draft used an em dash
  * here, which the P9.5-T3a no-em-dash copy rule (docs/guides/design-
  * system.md) caught before this prop had ever been exercised in
  * production (T3a is its first real consumer).
@@ -53,7 +55,7 @@ export function Eyebrow({
    *  `--muted-foreground` doesn't re-scope inside `surface="ink"`, so
    *  without this the eyebrow renders as the un-inverted grey and reads
    *  dimmer than everything around it. Same prop shape as `MonoStrip`'s
-   *  `tone`; `ModuleMark` stays accent violet in both tones. */
+   *  `tone`. */
   tone?: "default" | "ink";
 }) {
   return (
@@ -62,7 +64,6 @@ export function Eyebrow({
         tone === "ink" ? "text-ink-muted" : "text-muted-foreground"
       }`}
     >
-      <ModuleMark />
       {index && (
         <span className={tone === "ink" ? "text-ink-muted/70" : "text-muted-foreground/70"}>
           {index}

@@ -45,7 +45,7 @@ export function PricingTeaser({
       <SectionHeading
         eyebrow="Pricing"
         index={index}
-        title="Free to start, upgrade for more."
+        title="Free to start, upgrade for more"
         lede={
           <>
             $0 gets {PLAN_LIMITS.free.dynamicCodes} dynamic codes that never stop redirecting. $

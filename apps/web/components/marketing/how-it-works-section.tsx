@@ -54,7 +54,7 @@ export function HowItWorksSection({
       <SectionHeading
         eyebrow="How it works"
         index={index}
-        title="Make codes that last forever."
+        title="Make codes that last forever"
         titleSize={titleSize}
       />
 

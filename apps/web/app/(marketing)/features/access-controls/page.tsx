@@ -127,7 +127,7 @@ export default function AccessControlsFeaturePage() {
     <>
       <FeatureHero
         eyebrow="Access controls"
-        title="Decide who gets through."
+        title="Decide who gets through"
         lede="Passwords, expiry, pause, and vanity slugs: the controls around a code's destination, changed any time without touching the print."
         mono="controls live on the address, not the print"
       />
@@ -136,7 +136,7 @@ export default function AccessControlsFeaturePage() {
           `only` prop. TRUTH-GATE G2: variant A, see file header. */}
       <Section variant="split">
         <SectionHeading
-          title="Gate it."
+          title="Gate it"
           lede="Add a password and scanners meet a gate before they forward."
           className="mb-10"
         />
@@ -157,7 +157,7 @@ export default function AccessControlsFeaturePage() {
           header. */}
       <Section variant="split">
         <SectionHeading
-          title="Time-box it."
+          title="Time-box it"
           lede="Give a code an end date: set its expiry, and once it passes the code stops forwarding but keeps resolving to a safe page. Clear or extend that expiry and it picks up exactly where it left off, password and all."
           className="mb-10"
         />
@@ -172,7 +172,7 @@ export default function AccessControlsFeaturePage() {
           this one). TRUTH-GATE G3, see file header. */}
       <Section variant="split">
         <SectionHeading
-          title="Name it."
+          title="Name it"
           lede={`Vanity slugs put your words on the address: qrcdn.com/summer-menu instead of a random handle. Pick 4 to ${MAX_SLUG_LENGTH} characters from a set that skips the letters and digits a camera misreads: no 0, O, 1, I, L, or U.`}
           className="mb-10"
         />
@@ -187,7 +187,7 @@ export default function AccessControlsFeaturePage() {
       <Section variant="band" surface="tint">
         <SectionBody className="flex flex-col items-center gap-6 text-center">
           <Eyebrow>Guarantee</Eyebrow>
-          <h2 className="max-w-2xl text-h3 font-display font-semibold text-foreground">Pause it.</h2>
+          <h2 className="max-w-2xl text-h3 font-display font-semibold text-foreground">Pause it</h2>
           <p className="max-w-2xl text-base text-muted-foreground">
             Pause parks every scanner on a neutral page until you resume. It is a switch, not a
             deletion: nothing is lost, and the print stays honest.
@@ -201,7 +201,7 @@ export default function AccessControlsFeaturePage() {
 
       {/* S5 — Plans and limits. Stack, honest table, no drama. */}
       <Section variant="stack" divider="none">
-        <SectionHeading title="What each plan holds." className="mb-10" />
+        <SectionHeading title="What each plan holds" className="mb-10" />
         <SectionBody className="max-w-2xl overflow-x-auto">
           <table className="w-full border-collapse text-sm">
             <thead>
@@ -232,7 +232,7 @@ export default function AccessControlsFeaturePage() {
       <Section variant="split">
         <div className="grid gap-10 lg:grid-cols-[20rem_1fr] lg:gap-16">
           <SectionBody className="flex flex-col gap-4">
-            <SectionHeading eyebrow="Questions" title="Before you turn it on." reveal={false} />
+            <SectionHeading eyebrow="Questions" title="Before you turn it on" reveal={false} />
           </SectionBody>
           <SectionBody delay={0.15}>
             <FaqList items={FAQ_ITEMS} />
@@ -241,7 +241,7 @@ export default function AccessControlsFeaturePage() {
       </Section>
 
       {/* Closing CTA — deck head, evergreen lede/button/mono. */}
-      <ClosingSection title="Control the door, keep the print." />
+      <ClosingSection title="Control the door, keep the print" />
     </>
   );
 }

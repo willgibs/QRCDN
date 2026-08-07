@@ -78,7 +78,7 @@ export function AccessControlsSection({
       <SectionHeading
         eyebrow="Access controls"
         index={index}
-        title="Control who can visit."
+        title="Control who can visit"
         lede="Put a password on a code, give it an end date, or pause it outright. The printed code never changes. What changes is who gets through."
         titleSize={titleSize}
         className="mb-10"

@@ -21,7 +21,7 @@ export function OpenSourceSection({ index }: { index: string }) {
       <SectionHeading
         eyebrow="Open source"
         index={index}
-        title="Verify our platform yourself."
+        title="Verify our platform yourself"
         lede="The engine, the redirect worker, this site: MIT-licensed and public. Audit the privacy claims yourself. If we ever disappear, the path off is public. That's the point."
         className="mb-10"
       />

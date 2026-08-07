@@ -213,7 +213,7 @@ export function HighlightsSection({
       <SectionHeading
         eyebrow="Highlights"
         index={index}
-        title="Everything you need in one place."
+        title="Everything you need in one place"
         lede="Five pieces, one platform: design the code, mint it from a kit, repoint it after it prints, measure what it does, and drive all of it over an API."
         titleSize={titleSize}
         className="mb-10"

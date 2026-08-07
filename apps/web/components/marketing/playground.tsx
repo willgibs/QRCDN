@@ -616,7 +616,7 @@ export function Playground({
       <SectionHeading
         eyebrow="Design studio"
         index={index}
-        title="Customize your brand design."
+        title="Customize your brand design"
         lede={
           <>
             The real engine and the same scannability instrument the full studio runs on. Take it

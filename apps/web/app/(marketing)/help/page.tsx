@@ -22,7 +22,7 @@ export default function HelpIndexPage() {
       <SectionHeading
         eyebrow="Help"
         titleAs="h1"
-        title="Quick answers, not a maze."
+        title="Quick answers, not a maze"
         lede="Every article is one task, one path, under 350 words. If this doesn't cover it, hello@qrcdn.com reaches a person."
         reveal={false}
       />

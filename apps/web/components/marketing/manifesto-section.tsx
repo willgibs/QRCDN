@@ -40,7 +40,7 @@ export function ManifestoSection({
       <SectionHeading
         eyebrow="Trust & privacy"
         index={index}
-        title="Our lifetime guarantee."
+        title="Our lifetime guarantee"
         titleSize={titleSize}
         tone="ink"
       />

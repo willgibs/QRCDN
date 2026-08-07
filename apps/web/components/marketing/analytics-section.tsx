@@ -26,7 +26,7 @@ export function AnalyticsSection({
       <SectionHeading
         eyebrow="Analytics"
         index={index}
-        title="Track every scan globally."
+        title="Track every scan globally"
         lede="Every scan is a place and a moment. By day, country, city, device and referrer, rolled up daily and honest about bots."
         titleSize={titleSize}
         className="mb-10"

@@ -101,7 +101,7 @@ export default function BrandStudioFeaturePage() {
     <>
       <FeatureHero
         eyebrow="Brand studio"
-        title="Design the code itself."
+        title="Design the code itself"
         lede="A real design system for QR: module shapes, eye frames, ink, and logo knockout, all watched by a scannability instrument calibrated on real decode campaigns."
         mono="SVG + PNG export · instrument: live · engine: open source"
       />
@@ -110,7 +110,7 @@ export default function BrandStudioFeaturePage() {
           landing's section 04 (P9.9-C1). */}
       <Section variant="split">
         <SectionHeading
-          title="One kit, every artifact."
+          title="One kit, every artifact"
           lede="Set ink, paper, shapes, and logo once as a kit. Every code you mint inherits it, and every kit edit reaches every attached code: reprints always match the current brand."
           className="mb-10"
         />
@@ -129,7 +129,7 @@ export default function BrandStudioFeaturePage() {
           is dropped automatically (a page can't doorway-link to itself). */}
       <Section variant="showcase" surface="floor" divider="none">
         <SectionHeading
-          title="Try it, no account."
+          title="Try it, no account"
           lede="The exact engine and instrument from the studio, running on this page. Design something, download it, print it: static codes are free forever."
           className="mb-10"
         />
@@ -140,7 +140,7 @@ export default function BrandStudioFeaturePage() {
           reused as-is. TRUTH-GATE G1: warn-only variant, see file header. */}
       <Section variant="split" divider="none">
         <SectionHeading
-          title="The instrument says no before your printer does."
+          title="The instrument says no before your printer does"
           lede="Every control is bounded by decode-campaign data. When a combination risks the scan, the studio warns before you export, while you decide."
           className="mb-10"
         />
@@ -154,7 +154,7 @@ export default function BrandStudioFeaturePage() {
 
       {/* S4 — Plans and limits. Stack, honest table, no drama. */}
       <Section variant="stack">
-        <SectionHeading title="What each plan holds." className="mb-10" />
+        <SectionHeading title="What each plan holds" className="mb-10" />
         <SectionBody className="max-w-2xl overflow-x-auto">
           <table className="w-full border-collapse text-sm">
             <thead>
@@ -186,7 +186,7 @@ export default function BrandStudioFeaturePage() {
       <Section variant="split">
         <div className="grid gap-10 lg:grid-cols-[20rem_1fr] lg:gap-16">
           <SectionBody className="flex flex-col gap-4">
-            <SectionHeading eyebrow="Questions" title="Before you export." reveal={false} />
+            <SectionHeading eyebrow="Questions" title="Before you export" reveal={false} />
           </SectionBody>
           <SectionBody delay={0.15}>
             <FaqList items={FAQ_ITEMS} />
@@ -195,7 +195,7 @@ export default function BrandStudioFeaturePage() {
       </Section>
 
       {/* Closing CTA — deck head, evergreen lede/button/mono. */}
-      <ClosingSection title="Design a code worth printing." />
+      <ClosingSection title="Design a code worth printing" />
     </>
   );
 }

@@ -26,7 +26,7 @@ import { Section, SectionHeading, SectionBody } from "@/components/marketing/sec
  * per-page copy.
  */
 export function ClosingSection({
-  title = "Print something that can change its mind.",
+  title = "Print something that can change its mind",
   lede = "Start free. No card, no trial clock.",
   titleSize,
 }: {

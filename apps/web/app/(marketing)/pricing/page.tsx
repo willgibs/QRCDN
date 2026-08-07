@@ -177,7 +177,7 @@ export default function PricingPage() {
         <SectionHeading
           eyebrow="Pricing"
           titleAs="h1"
-          title="Two plans. Every number on the page."
+          title="Two plans. Every number on the page"
           lede={
             <>
               Free gets {PLAN_LIMITS.free.dynamicCodes} dynamic codes that never stop
@@ -197,7 +197,7 @@ export default function PricingPage() {
       <Section surface="tint" divider="none">
         <SectionHeading
           eyebrow="Compare"
-          title="Free and Pro, side by side."
+          title="Free and Pro, side by side"
           lede="Grouped the way the product works: codes, design, analytics, access, and API."
           className="mb-10"
         />
@@ -233,7 +233,7 @@ export default function PricingPage() {
           <SectionBody className="flex flex-col gap-4">
             <SectionHeading
               eyebrow="Questions"
-              title="Before you pick a plan."
+              title="Before you pick a plan"
               lede="Straight answers, starting with the one everyone actually asks first."
               reveal={false}
             />
@@ -257,7 +257,7 @@ export default function PricingPage() {
 
       {/* Closing, air rhythm. */}
       <Section variant="centered" rhythm="air" surface="tint">
-        <SectionHeading titleAs="h2" title="Start free. Upgrade when you print at scale." />
+        <SectionHeading titleAs="h2" title="Start free. Upgrade when you print at scale" />
 
         <SectionBody delay={0.15} className="mt-8 flex flex-col items-center">
           <Button

@@ -63,7 +63,7 @@ export default function BlogIndexPage() {
       <SectionHeading
         eyebrow="Blog"
         titleAs="h1"
-        title="How this actually works."
+        title="How this actually works"
         lede="Engineering write-ups, not press releases. Every claim traces to the source it came from."
         reveal={false}
         aside={

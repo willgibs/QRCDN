@@ -465,184 +465,213 @@ html {
   }
 }
 
-/* Kit-sync theatre (P9.9-C1; this is the C1-R2c two-beat cycle). The card
-   is a change between KIT STATES (no simulated app chrome), and the loop
-   now walks three states over 12s — day/leaf, day/rounded (the board's
-   "state between the two kits without the leaf module"), night/leaf —
-   so the sync story covers SHAPE and COLOR:
+/* Kit-sync theatre (P9.9-C1; the C1-R2e three-state cycle). The card is a
+   change between KIT STATES and the loop now walks THREE distinct creative
+   states over 15s, each its own look (board direction), returning to the
+   first with the same transition so the loop has NO visible wrap:
 
-     12-20%   BEAT 1, the eyes change: "leaf" pops out, "rounded" pops in
-              (per-character number-pop-in, 90ms stagger, bounce ease) and
-              each artifact's mid state SWEEPS across the code — a
-              soft-edged diagonal mask travelling top-left to bottom-right
-              (the "fluid transform": a real path morph between eye shapes
-              is Chromium-only, per the transitions skill's own caveat; the
-              sweep reads as the code re-rendering module by module and
-              works everywhere), 120ms stagger across the mats
-     40-50%   BEAT 2, the night flip: ink/paper hex values + swatches +
-              the identity chip flip, "rounded" pops out and "leaf"
-              returns, and the night state sweeps across each mat (paper
-              wash included) the same way
-     ~55%     the app's save note rises in after the last mat lands
-     97-100%  reset
+     state 1 "day":     #131316 ink / #ffffff paper / rounded 0.88 / leaf
+     state 2 "mono":    #ffffff ink / #18181b paper / square 1.00 / square
+     state 3 "glacier": #90daff ink / #04131d paper / circle 0.78 / circle
+
+   (Verification, per the C1 color protocol: day scores 100; mono and
+   glacier are inverted codes, instrument 85/inverted-warning, and BOTH
+   decode 3/3 empirically incl. the 35-char worst case at 17.7:1 and
+   12.2:1.)
+
+   Beats at 20-27% / 53-60% / 86-93%. The QR shift is a PASS-THROUGH WAVE:
+   each state layer's soft diagonal gradient mask travels one continuous
+   direction (bottom-right toward top-left and onward), so a state sweeps
+   IN behind the leading edge and later sweeps OUT behind the trailing
+   edge — the same front for every color pair (the board's fix for the
+   wipe only reading on light-to-dark), and the third beat sweeps glacier
+   away to reveal the day base underneath: the wrap is seamless because
+   0% and 100% render identical pixels. The mono layer silently drops
+   opacity at 63% while fully covered by glacier (never visible). Kit-card
+   property values ride ks-v1/v2/v3 per-character pop cycles (the slowed
+   number-pop-in, 90ms char stagger, the reference's bounce curve);
+   swatches/chips ride opacity-only ks-blk-2/3. Captions and the
+   ink-colored poster/loyalty decorations ride 4-segment color timelines.
 
    All opacity:0 declarations live HERE in the stylesheet (never inline in
    markup) so the whole-document served-HTML guard in marketing.spec.ts
-   stays true. Reduced motion: no loop; the honest final still (night
-   state + note; the mid state hides). Stagger rides animation-delay
-   (chars 0.09s steps; mats .ks-m2/.ks-m3 at 0.12/0.24s), phase-shifting
-   each element's whole 12s cycle. The bounce curve is the number-pop-in
-   reference's own. */
-@keyframes ks-out-b1 {
+   stays true. Reduced motion: no loop; the honest still is state 1 (a
+   cycle has no terminal state, so the resting truth is the day kit).
+   Stagger rides animation-delay (chars 0.09s steps; the five mats
+   .ks-m2...ks-m5 at 0.1s steps), phase-shifting whole 15s cycles. */
+@keyframes ks-v1 {
   0%,
-  12% {
+  20% {
     opacity: 1;
     transform: translateY(0);
     filter: blur(0);
   }
-  17%,
-  91% {
+  24%,
+  88% {
     opacity: 0;
     transform: translateY(-8px);
     filter: blur(2px);
   }
-  97%,
+  89% {
+    opacity: 0;
+    transform: translateY(8px);
+    filter: blur(2px);
+  }
+  93%,
   100% {
     opacity: 1;
     transform: translateY(0);
     filter: blur(0);
   }
 }
-@keyframes ks-mid {
+@keyframes ks-v2 {
   0%,
-  12% {
+  20% {
     opacity: 0;
     transform: translateY(8px);
     filter: blur(2px);
   }
-  18%,
-  40% {
+  27%,
+  53% {
     opacity: 1;
     transform: translateY(0);
     filter: blur(0);
   }
-  45%,
+  57%,
   100% {
     opacity: 0;
     transform: translateY(-8px);
     filter: blur(2px);
   }
 }
-@keyframes ks-out-b2 {
+@keyframes ks-v3 {
   0%,
-  40% {
+  53% {
+    opacity: 0;
+    transform: translateY(8px);
+    filter: blur(2px);
+  }
+  60%,
+  86% {
     opacity: 1;
     transform: translateY(0);
     filter: blur(0);
   }
-  45%,
-  91% {
+  90%,
+  100% {
     opacity: 0;
     transform: translateY(-8px);
     filter: blur(2px);
   }
-  97%,
-  100% {
-    opacity: 1;
-    transform: translateY(0);
-    filter: blur(0);
-  }
 }
-@keyframes ks-in-b2 {
+@keyframes ks-blk-2 {
   0%,
-  40% {
+  22% {
     opacity: 0;
-    transform: translateY(8px);
-    filter: blur(2px);
   }
-  47%,
-  91% {
+  27%,
+  55% {
     opacity: 1;
-    transform: translateY(0);
-    filter: blur(0);
   }
-  97%,
+  60%,
   100% {
     opacity: 0;
-    transform: translateY(8px);
-    filter: blur(2px);
   }
 }
-/* The sweep: a 220%-sized soft diagonal gradient mask whose position
-   travels from bottom-right (element fully under the transparent zone,
-   hidden) to top-left (fully under black, shown). The soft 45-55% stop
-   band IS the transformation front. */
+@keyframes ks-blk-3 {
+  0%,
+  55% {
+    opacity: 0;
+  }
+  60%,
+  88% {
+    opacity: 1;
+  }
+  93%,
+  100% {
+    opacity: 0;
+  }
+}
+/* The pass-through wave. Mask geometry: a 220%-sized 135deg gradient,
+   black leading half, soft 45-55% band as the front. Position 100% 100%
+   parks the element under the transparent tail (hidden); 0% 0% under the
+   black body (shown); -100% -100% pushes the tail across (hidden again,
+   same travel direction). */
 @keyframes ks-sweep-b {
   0%,
-  12% {
+  20% {
     mask-position: 100% 100%;
     -webkit-mask-position: 100% 100%;
+    opacity: 1;
   }
-  20%,
-  96% {
+  27%,
+  62% {
     mask-position: 0% 0%;
     -webkit-mask-position: 0% 0%;
+    opacity: 1;
   }
-  97%,
+  63%,
   100% {
-    mask-position: 100% 100%;
-    -webkit-mask-position: 100% 100%;
+    mask-position: 0% 0%;
+    -webkit-mask-position: 0% 0%;
+    opacity: 0;
   }
 }
 @keyframes ks-sweep-c {
   0%,
-  40% {
+  53% {
     mask-position: 100% 100%;
     -webkit-mask-position: 100% 100%;
   }
-  50%,
-  96% {
+  60%,
+  86% {
     mask-position: 0% 0%;
     -webkit-mask-position: 0% 0%;
   }
-  97%,
+  93%,
   100% {
-    mask-position: 100% 100%;
-    -webkit-mask-position: 100% 100%;
+    mask-position: -100% -100%;
+    -webkit-mask-position: -100% -100%;
   }
 }
-@keyframes ks-note-in {
-  0%,
-  50% {
-    opacity: 0;
-    transform: translateY(6px);
-    filter: blur(3px);
-  }
-  56%,
-  91% {
-    opacity: 1;
-    transform: translateY(0);
-    filter: blur(0);
-  }
-  97%,
-  100% {
-    opacity: 0;
-  }
-}
-/* Artifact label color rides the paper flip: #6b6b74 on white paper,
-   #9d9da6 once the mat turns #18181b (the night-kit shift, beat 2). */
+/* Caption + decoration color timelines: day paper wants dark text; both
+   dark papers want light text (mono a warm grey, glacier a cool one);
+   the ink-colored decorations (poster wordmark, loyalty name) follow the
+   kit ink itself. */
 @keyframes ks-caption-flip {
   0%,
-  42% {
+  22% {
     color: #6b6b74;
   }
-  50%,
-  91% {
+  27%,
+  55% {
     color: #9d9da6;
   }
-  97%,
+  60%,
+  88% {
+    color: #85a8bd;
+  }
+  93%,
   100% {
     color: #6b6b74;
+  }
+}
+@keyframes ks-inkline {
+  0%,
+  22% {
+    color: #131316;
+  }
+  27%,
+  55% {
+    color: #ffffff;
+  }
+  60%,
+  88% {
+    color: #90daff;
+  }
+  93%,
+  100% {
+    color: #131316;
   }
 }
 .ks-sweep {
@@ -652,73 +681,80 @@ html {
   -webkit-mask-size: 220% 220%;
   mask-repeat: no-repeat;
   -webkit-mask-repeat: no-repeat;
-  mask-position: 0% 0%;
-  -webkit-mask-position: 0% 0%;
+  mask-position: 100% 100%;
+  -webkit-mask-position: 100% 100%;
 }
-.ks-note,
-.ks-in-b2,
-.ks-ch-in-b2 {
+.ks-ch-v1 {
   opacity: 1;
 }
-.ks-ch-out-b1,
-.ks-ch-mid,
-.ks-ch-out-b2 {
+.ks-ch-v2,
+.ks-ch-v3,
+.ks-blk-2,
+.ks-blk-3 {
   opacity: 0;
 }
-.ks-ch-out-b1,
-.ks-ch-mid,
-.ks-ch-in-b2,
-.ks-ch-out-b2 {
+.ks-ch-v1,
+.ks-ch-v2,
+.ks-ch-v3 {
   display: inline-block;
 }
 .ks-caption {
-  color: #9d9da6;
+  color: #6b6b74;
+}
+.ks-inkline {
+  color: #131316;
 }
 @media (prefers-reduced-motion: no-preference) {
-  .ks-ch-out-b1 {
-    opacity: 1;
-    animation: ks-out-b1 12s var(--motion-ease-in-out) infinite;
+  .ks-ch-v1 {
+    animation: ks-v1 15s cubic-bezier(0.34, 1.45, 0.64, 1) infinite;
   }
-  .ks-ch-mid {
-    opacity: 0;
-    animation: ks-mid 12s cubic-bezier(0.34, 1.45, 0.64, 1) infinite;
+  .ks-ch-v2 {
+    animation: ks-v2 15s cubic-bezier(0.34, 1.45, 0.64, 1) infinite;
   }
-  .ks-ch-in-b2 {
-    opacity: 0;
-    animation: ks-in-b2 12s cubic-bezier(0.34, 1.45, 0.64, 1) infinite;
+  .ks-ch-v3 {
+    animation: ks-v3 15s cubic-bezier(0.34, 1.45, 0.64, 1) infinite;
   }
-  .ks-ch-out-b2 {
-    opacity: 1;
-    animation: ks-out-b2 12s var(--motion-ease-in-out) infinite;
+  .ks-blk-2 {
+    animation: ks-blk-2 15s var(--motion-ease-in-out) infinite;
   }
-  .ks-in-b2 {
-    opacity: 0;
-    animation: ks-in-b2 12s var(--motion-ease-out) infinite;
+  .ks-blk-3 {
+    animation: ks-blk-3 15s var(--motion-ease-in-out) infinite;
   }
   .ks-sweep-b {
-    animation: ks-sweep-b 12s var(--motion-ease-in-out) infinite;
+    animation: ks-sweep-b 15s var(--motion-ease-in-out) infinite;
   }
   .ks-sweep-c {
-    animation: ks-sweep-c 12s var(--motion-ease-in-out) infinite;
-  }
-  .ks-note {
-    opacity: 0;
-    animation: ks-note-in 12s var(--motion-ease-out) infinite;
-    animation-delay: 0.24s;
+    animation: ks-sweep-c 15s var(--motion-ease-in-out) infinite;
   }
   .ks-caption {
-    color: #6b6b74;
-    animation: ks-caption-flip 12s var(--motion-ease-in-out) infinite;
+    animation: ks-caption-flip 15s var(--motion-ease-in-out) infinite;
+  }
+  .ks-inkline {
+    animation: ks-inkline 15s var(--motion-ease-in-out) infinite;
   }
   .ks-m2 .ks-sweep-b,
   .ks-m2 .ks-sweep-c,
-  .ks-m2 .ks-caption {
-    animation-delay: 0.12s;
+  .ks-m2 .ks-caption,
+  .ks-m2 .ks-inkline {
+    animation-delay: 0.1s;
   }
   .ks-m3 .ks-sweep-b,
   .ks-m3 .ks-sweep-c,
-  .ks-m3 .ks-caption {
-    animation-delay: 0.24s;
+  .ks-m3 .ks-caption,
+  .ks-m3 .ks-inkline {
+    animation-delay: 0.2s;
+  }
+  .ks-m4 .ks-sweep-b,
+  .ks-m4 .ks-sweep-c,
+  .ks-m4 .ks-caption,
+  .ks-m4 .ks-inkline {
+    animation-delay: 0.3s;
+  }
+  .ks-m5 .ks-sweep-b,
+  .ks-m5 .ks-sweep-c,
+  .ks-m5 .ks-caption,
+  .ks-m5 .ks-inkline {
+    animation-delay: 0.4s;
   }
 }
 

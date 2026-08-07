@@ -34,7 +34,7 @@ export function DynamicCodesSection({
       <SectionHeading
         eyebrow="Dynamic links"
         index={index}
-        title="Update a destination anytime."
+        title="Update a destination anytime"
         lede="A QRCDN code is a permanent address. Retarget it in seconds and the printed code never changes."
         titleSize={titleSize}
       />

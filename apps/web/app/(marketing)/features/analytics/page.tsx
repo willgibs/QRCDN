@@ -62,7 +62,7 @@ export default function AnalyticsFeaturePage() {
     <>
       <FeatureHero
         eyebrow="Scan analytics"
-        title="Every scan, counted honestly."
+        title="Every scan, counted honestly"
         lede="Daily rollups by country, city, device, and referrer, with a live today count. Hashed at the door: raw IP addresses are never stored."
         mono="sha256(ip + daily rotating salt) → raw IPs never stored"
       />
@@ -72,7 +72,7 @@ export default function AnalyticsFeaturePage() {
           section uses. */}
       <Section variant="showcase" surface="floor" divider="none">
         <SectionHeading
-          title="What you see."
+          title="What you see"
           lede="One window per code: the scan curve, totals, today so far, and breakdowns by country, device, and referrer."
           className="mb-10"
         />
@@ -87,7 +87,7 @@ export default function AnalyticsFeaturePage() {
       {/* S2 — How counting works. */}
       <Section variant="split" divider="none">
         <SectionHeading
-          title="How counting works."
+          title="How counting works"
           lede="The redirect layer logs each scan at the edge. An hourly job rolls logs into daily counts per code, and the dashboard reads those rollups: fast to load, boring to break. The today tile reads the live edge count."
           className="mb-10"
         />
@@ -103,7 +103,7 @@ export default function AnalyticsFeaturePage() {
       {/* S3 — Privacy is the design, not a setting. */}
       <Section variant="split">
         <SectionHeading
-          title="Privacy is the design, not a setting."
+          title="Privacy is the design, not a setting"
           lede="We never store a raw IP address. Each scan is hashed with a salt that rotates daily, so we can count unique visitors within a day but cannot trace anyone across days, and neither can anyone who ever reads our database."
           className="mb-10"
         />
@@ -130,7 +130,7 @@ export default function AnalyticsFeaturePage() {
         <SectionBody className="flex flex-col items-center gap-6 text-center">
           <Eyebrow>Retention</Eyebrow>
           <h2 className="max-w-2xl text-h3 font-display font-semibold text-foreground">
-            History that matches your plan.
+            History that matches your plan
           </h2>
           <p className="max-w-2xl text-base text-muted-foreground">
             Free keeps {PLAN_LIMITS.free.analyticsRetentionDays} days of scan history,
@@ -146,7 +146,7 @@ export default function AnalyticsFeaturePage() {
       <Section variant="split" divider="none">
         <div className="grid gap-10 lg:grid-cols-[20rem_1fr] lg:gap-16">
           <SectionBody className="flex flex-col gap-4">
-            <SectionHeading eyebrow="Questions" title="Before you trust the numbers." reveal={false} />
+            <SectionHeading eyebrow="Questions" title="Before you trust the numbers" reveal={false} />
           </SectionBody>
           <SectionBody delay={0.15}>
             <FaqList items={FAQ_ITEMS} />
@@ -157,7 +157,7 @@ export default function AnalyticsFeaturePage() {
       {/* Closing CTA — the deck's own head differs from the landing's
           ClosingSection default, so this overrides `title` only; lede,
           button, and mono sign-off stay the shared evergreen copy. */}
-      <ClosingSection title="Know what your print is doing." />
+      <ClosingSection title="Know what your print is doing" />
     </>
   );
 }

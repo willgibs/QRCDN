@@ -198,7 +198,7 @@ export function ComparisonSection({ index }: { index: string }) {
       <SectionHeading
         eyebrow="Comparison"
         index={index}
-        title="Industry-leading features."
+        title="Industry-leading features"
         lede="The whole feature set, including what everyone offers. Where we lead is marked, and every row is something you can go and check."
         className="mb-10"
       />

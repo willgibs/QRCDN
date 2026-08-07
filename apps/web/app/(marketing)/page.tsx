@@ -106,7 +106,7 @@ export default function HomePage() {
           four feature pages), so a landing copy change can never silently
           rewrite a feature page's closing heading through the shared
           component default. */}
-      <ClosingSection title="Create your first code in minutes." titleSize="h2-lg" />
+      <ClosingSection title="Create your first code in minutes" titleSize="h2-lg" />
     </>
   );
 }

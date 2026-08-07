@@ -47,7 +47,7 @@ export default function ChangelogPage() {
       <SectionHeading
         eyebrow="Changelog"
         titleAs="h1"
-        title="What changed, when."
+        title="What changed, when"
         lede="Real dates, real changes, written as they shipped. No backfilled marketing."
         reveal={false}
         aside={

@@ -27,7 +27,7 @@ export function ApiSection({
       <SectionHeading
         eyebrow="API"
         index={index}
-        title="Automate with our API."
+        title="Automate with our API"
         lede="Create, retarget, pause, measure: the whole surface, owner-scoped to a key."
         titleSize={titleSize}
         className="mb-10"

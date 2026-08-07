@@ -1,5 +1,6 @@
 import { renderQr } from "@qrcdn/qr-engine";
 import { parseQrStyle } from "@qrcdn/shared";
+import { ModuleMark } from "@/components/brand/marks";
 import { cn } from "@/lib/utils";
 
 /**
@@ -92,52 +93,82 @@ function PaperSwatch({ className }: { className?: string }) {
 export function KitSyncTheatre() {
   return (
     <div className="grid items-start gap-8 md:grid-cols-[15rem_1fr] md:gap-10">
-      {/* The control: the kit card. Decorative demo, not a form — the Save
-          affordance is a styled div, never a button. */}
+      {/* The control: the kit card, polished at C1-R2 (board note: "the
+          studio demo UI could be polished") to read as the real studio's
+          kit surface in miniature: ModuleMark identity tinted by the kit's
+          own ink (the kit-bar convention), mono hex VALUES that visibly
+          swap at the edit beat, the full style row set, an "Unsaved
+          changes" state hint, and a right-aligned save the size the app
+          actually uses. Decorative demo, not a form — the Save affordance
+          is a styled div, never a button. */}
       <div className="rounded-2xl border border-border/70 bg-card/60 p-5 text-sm">
-        <p className="mb-4 flex items-center gap-2.5 font-medium text-foreground">
-          <span className="relative inline-flex size-4" aria-hidden>
-            <PaperSwatch className="absolute inset-0 bg-[#131316]" />
-            <PaperSwatch className="ks-after absolute inset-0 bg-[#cff5ff]" />
+        <p className="mb-3 flex items-center gap-2.5 font-medium text-foreground">
+          {/* The kit identity in miniature: the ink-tinted ModuleMark on its
+              own paper chip (a dark ink on a dark UI card would vanish
+              without the chip), both flipping at the edit beat. */}
+          <span className="relative inline-flex size-5" aria-hidden>
+            <span className="absolute inset-0 flex items-center justify-center rounded-[5px] border border-white/25 bg-white">
+              <ModuleMark className="size-3 text-[#131316]" />
+            </span>
+            <span className="ks-edit absolute inset-0 flex items-center justify-center rounded-[5px] border border-white/25 bg-[#18181b]">
+              <ModuleMark className="size-3 text-[#cff5ff]" />
+            </span>
           </span>
-          Ember
+          <span>Ember</span>
+          <span className="ml-auto font-mono text-[0.58rem] uppercase tracking-[0.14em] text-muted-foreground">
+            kit
+          </span>
         </p>
-        <dl className="font-mono text-[0.68rem] text-muted-foreground">
-          {(
-            [
-              [
-                "ink",
-                <span key="v" className="relative inline-flex size-4 align-middle">
-                  <PaperSwatch className="absolute inset-0 bg-[#131316]" />
-                  <PaperSwatch className="ks-after absolute inset-0 bg-[#cff5ff]" />
-                </span>,
-              ],
-              [
-                "paper",
-                <span key="v" className="relative inline-flex size-4 align-middle">
-                  <PaperSwatch className="absolute inset-0 bg-white" />
-                  <PaperSwatch className="ks-after absolute inset-0 bg-[#18181b]" />
-                </span>,
-              ],
-              ["modules", <span key="v">rounded · 0.88</span>],
-              ["eyes", <span key="v">leaf</span>],
-              ["attached codes", <span key="v">3</span>],
-            ] as const
-          ).map(([term, value]) => (
-            <div
-              key={term}
-              className="flex items-center justify-between border-t border-border/60 py-2 first:border-t-0"
-            >
-              <dt>{term}</dt>
-              <dd>{value}</dd>
-            </div>
-          ))}
+        <dl className="font-mono text-[0.66rem] text-muted-foreground">
+          <div className="flex items-center justify-between gap-2 border-t border-border/60 py-2">
+            <dt>ink</dt>
+            <dd className="flex items-center gap-1.5 text-foreground/80">
+              <span className="relative inline-flex h-[1em] w-[7ch]" aria-hidden={false}>
+                <span className="ks-edit-before absolute inset-0 text-right">#131316</span>
+                <span className="ks-edit absolute inset-0 text-right">#cff5ff</span>
+              </span>
+              <span className="relative inline-flex size-3.5">
+                <PaperSwatch className="absolute inset-0 size-3.5 bg-[#131316]" />
+                <PaperSwatch className="ks-edit absolute inset-0 size-3.5 bg-[#cff5ff]" />
+              </span>
+            </dd>
+          </div>
+          <div className="flex items-center justify-between gap-2 border-t border-border/60 py-2">
+            <dt>paper</dt>
+            <dd className="flex items-center gap-1.5 text-foreground/80">
+              <span className="relative inline-flex h-[1em] w-[7ch]" aria-hidden={false}>
+                <span className="ks-edit-before absolute inset-0 text-right">#ffffff</span>
+                <span className="ks-edit absolute inset-0 text-right">#18181b</span>
+              </span>
+              <span className="relative inline-flex size-3.5">
+                <PaperSwatch className="absolute inset-0 size-3.5 bg-white" />
+                <PaperSwatch className="ks-edit absolute inset-0 size-3.5 bg-[#18181b]" />
+              </span>
+            </dd>
+          </div>
+          <div className="flex items-center justify-between border-t border-border/60 py-2">
+            <dt>modules</dt>
+            <dd>rounded · 0.88</dd>
+          </div>
+          <div className="flex items-center justify-between border-t border-border/60 py-2">
+            <dt>eyes</dt>
+            <dd>leaf</dd>
+          </div>
+          <div className="flex items-center justify-between border-t border-border/60 py-2">
+            <dt>attached codes</dt>
+            <dd>3</dd>
+          </div>
         </dl>
-        <div
-          aria-hidden
-          className="ks-save mt-4 rounded-lg bg-primary py-2 text-center text-[0.78rem] font-semibold text-primary-foreground"
-        >
-          Save changes
+        <div className="mt-3 flex items-center justify-between gap-3">
+          <p className="ks-dirty font-mono text-[0.6rem] text-muted-foreground" aria-hidden>
+            Unsaved changes
+          </p>
+          <div
+            aria-hidden
+            className="ks-save rounded-lg bg-primary px-3.5 py-1.5 text-[0.72rem] font-semibold text-primary-foreground"
+          >
+            Save changes
+          </div>
         </div>
       </div>
 
@@ -154,6 +185,10 @@ export function KitSyncTheatre() {
                 "relative m-0 flex flex-col gap-2 rounded-xl p-3.5",
                 "bg-white shadow-[0_22px_44px_-20px_rgb(0_0_0/0.8),0_5px_14px_-7px_rgb(0_0_0/0.55)]",
                 artifact.rotate,
+                // the ripple: mats 2 and 3 phase-shift their whole cycle
+                // (globals.css `.ks-m2/.ks-m3` animation-delay)
+                i === 1 && "ks-m2",
+                i === 2 && "ks-m3",
               )}
             >
               {/* after-state paper wash over the whole mat */}

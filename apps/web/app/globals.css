@@ -465,53 +465,127 @@ html {
   }
 }
 
-/* Kit-sync theatre (P9.9-C1, board pick "B with A's physicality"): the
-   brand-system section's one looping scene. A 9s cycle: the kit card's
-   Save pulses, the paper swatch and all three print artifacts cross-fade
-   white -> #f45b05 together, the app's real save note fades in, then the
-   loop resets. All opacity:0 declarations live HERE in the stylesheet
-   (never inline in markup) so the whole-document served-HTML guard in
-   marketing.spec.ts stays true. Reduced motion: the loop never runs and
-   the synced after-state + note simply show (the honest still: the edit
-   already propagated). Timeline anatomy: 0-38% before-state, 40-44% the
-   save pulse, 46% onward after-state + note, 96-100% reset fade. */
-@keyframes ks-swap {
+/* Kit-sync theatre (P9.9-C1; timeline rebuilt at C1-R2 as the
+   board-picked "ripple"): the brand-system section's one looping scene,
+   telling the REAL product flow in a 9s cycle:
+
+     18-22%   EDIT: the kit card's ink/paper swatches + hex values swap
+              (blurred text swap) and the "Unsaved changes" hint appears
+     40-43%   SAVE: the button presses (fast out, the user's action)
+     46%+     RIPPLE: the three artifacts re-render left to right, 120ms
+              stagger, each a blur-bridged crossfade with a 0.985 settle
+              (an unmasked crossfade reads as two objects overlapping;
+              blur bridges them into one object transforming)
+     ~56%     the app's save note rises in, blurred, after the last mat
+     97-100%  reset
+
+   All opacity:0 declarations live HERE in the stylesheet (never inline in
+   markup) so the whole-document served-HTML guard in marketing.spec.ts
+   stays true. Reduced motion: no loop; the honest synced still (after
+   state + note, no dirty hint). Stagger rides animation-delay on the
+   .ks-m2/.ks-m3 mats, which phase-shifts their whole 9s cycle by
+   0.12/0.24s: exactly the ripple. */
+@keyframes ks-edit-in {
   0%,
-  42% {
+  18% {
     opacity: 0;
+    transform: translateY(4px);
+    filter: blur(2px);
   }
-  50%,
-  92% {
+  23%,
+  91% {
     opacity: 1;
+    transform: translateY(0);
+    filter: blur(0);
   }
-  98%,
+  97%,
   100% {
     opacity: 0;
   }
 }
-@keyframes ks-save-pulse {
+@keyframes ks-edit-out {
+  0%,
+  18% {
+    opacity: 1;
+    transform: translateY(0);
+    filter: blur(0);
+  }
+  23%,
+  91% {
+    opacity: 0;
+    transform: translateY(-4px);
+    filter: blur(2px);
+  }
+  97%,
+  100% {
+    opacity: 1;
+  }
+}
+@keyframes ks-dirty {
+  0%,
+  20% {
+    opacity: 0;
+  }
+  25%,
+  40% {
+    opacity: 1;
+  }
+  45%,
+  100% {
+    opacity: 0;
+  }
+}
+@keyframes ks-save-press {
   0%,
   40% {
     transform: scale(1);
   }
-  43% {
+  41.5% {
     transform: scale(0.95);
   }
-  47%,
+  44%,
   100% {
     transform: scale(1);
   }
 }
-@keyframes ks-note-in {
+@keyframes ks-swap {
   0%,
-  48% {
+  46% {
     opacity: 0;
+    filter: blur(2.5px);
+    transform: scale(0.985);
+  }
+  51% {
+    opacity: 0.75;
+    filter: blur(2px);
   }
   56%,
-  92% {
+  91% {
     opacity: 1;
+    filter: blur(0);
+    transform: scale(1);
   }
-  98%,
+  97%,
+  100% {
+    opacity: 0;
+    filter: blur(0);
+    transform: scale(0.985);
+  }
+}
+@keyframes ks-note-in {
+  0%,
+  56% {
+    opacity: 0;
+    transform: translateY(6px);
+    filter: blur(3px);
+  }
+  62%,
+  91% {
+    opacity: 1;
+    transform: translateY(0);
+    filter: blur(0);
+  }
+  97%,
   100% {
     opacity: 0;
   }
@@ -520,26 +594,45 @@ html {
    #9d9da6 once the mat turns #18181b (the night-kit shift). */
 @keyframes ks-caption-flip {
   0%,
-  42% {
+  48% {
     color: #6b6b74;
   }
-  50%,
-  92% {
+  56%,
+  91% {
     color: #9d9da6;
   }
-  98%,
+  97%,
   100% {
     color: #6b6b74;
   }
 }
 .ks-after,
-.ks-note {
+.ks-note,
+.ks-edit {
   opacity: 1;
+}
+.ks-edit-before,
+.ks-dirty {
+  opacity: 0;
 }
 .ks-caption {
   color: #9d9da6;
 }
 @media (prefers-reduced-motion: no-preference) {
+  .ks-edit {
+    opacity: 0;
+    animation: ks-edit-in 9s var(--motion-ease-out) infinite;
+  }
+  .ks-edit-before {
+    opacity: 1;
+    animation: ks-edit-out 9s var(--motion-ease-out) infinite;
+  }
+  .ks-dirty {
+    animation: ks-dirty 9s var(--motion-ease-out) infinite;
+  }
+  .ks-save {
+    animation: ks-save-press 9s var(--motion-ease-out) infinite;
+  }
   .ks-after {
     opacity: 0;
     animation: ks-swap 9s var(--motion-ease-in-out) infinite;
@@ -547,13 +640,19 @@ html {
   .ks-note {
     opacity: 0;
     animation: ks-note-in 9s var(--motion-ease-out) infinite;
-  }
-  .ks-save {
-    animation: ks-save-pulse 9s var(--motion-ease-out) infinite;
+    animation-delay: 0.24s;
   }
   .ks-caption {
     color: #6b6b74;
     animation: ks-caption-flip 9s var(--motion-ease-in-out) infinite;
+  }
+  .ks-m2 .ks-after,
+  .ks-m2 .ks-caption {
+    animation-delay: 0.12s;
+  }
+  .ks-m3 .ks-after,
+  .ks-m3 .ks-caption {
+    animation-delay: 0.24s;
   }
 }
 

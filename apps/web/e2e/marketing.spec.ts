@@ -573,9 +573,9 @@ test.describe("marketing site", () => {
     await expect(section.getByText("Ember", { exact: true })).toBeVisible();
     await expect(section.getByText("attached codes", { exact: true })).toBeVisible();
     // Three real print artifacts, each a real engine render (an svg per
-    // state, before + after = 6 total).
+    // kit state: day + mid + night = 9 total, P9.9-C1-R2c's two-beat loop).
     await expect(section.locator("figure")).toHaveCount(3);
-    expect(await section.locator("figure svg").count()).toBe(6);
+    expect(await section.locator("figure svg").count()).toBe(9);
     await expect(section.getByText("qrcdn.com/menu", { exact: true })).toBeVisible();
     // The app's real save note, verbatim shape (kit-bar.tsx) — the moment
     // the section exists to show. Present in the DOM regardless of where

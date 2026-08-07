@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { Hero } from "@/components/marketing/hero";
 import { HighlightsSection } from "@/components/marketing/highlights-section";
 import { HowItWorksSection } from "@/components/marketing/how-it-works-section";
-import { Playground } from "@/components/marketing/playground";
+import { StudioSection } from "@/components/marketing/studio-section";
 import { BrandSystemSection } from "@/components/marketing/brand-system-section";
 import { DynamicCodesSection } from "@/components/marketing/dynamic-codes-section";
 import { AccessControlsSection } from "@/components/marketing/access-controls-section";
@@ -91,7 +91,7 @@ export default function HomePage() {
       <Hero />
       <HighlightsSection index="01" titleSize="h2-lg" />
       <HowItWorksSection index="02" titleSize="h2-lg" />
-      <Playground index="03" titleSize="h2-lg" />
+      <StudioSection index="03" titleSize="h2-lg" />
       <BrandSystemSection index="04" titleSize="h2-lg" />
       <DynamicCodesSection index="05" titleSize="h2-lg" />
       <AccessControlsSection index="06" titleSize="h2-lg" />

@@ -291,26 +291,23 @@ test.describe("marketing site", () => {
     ).toBeVisible();
   });
 
-  test("landing playground opens scannable (print-truth default, d2af287)", async ({ page }) => {
-    await page.goto("/");
-    // Scoped to the Playground section specifically — P9.5-T3b's
-    // RetargetTheatre (section 04) also renders a role="status" region (its
-    // destination readout), so an unscoped role query would match more than
-    // one element and trip Playwright's strict mode. Heading text is the
-    // Copy deck v3 head, heads-v4 amendment (P9.5-T3c): "Try the studio
-    // right here." — was "Design it here. It's yours." (T3a), before that
-    // "Design one right now." (pre-T3a).
+  // P9.9-C2: both playground interaction tests retargeted from "/" to
+  // /features/brand-studio — the full Playground island's sole remaining
+  // home after the landing's 03 restage (StudioSection/StudioDials has its
+  // own test below). Section located by the feature page's own S2 heading.
+  test("playground opens scannable (print-truth default, d2af287)", async ({ page }) => {
+    await page.goto("/features/brand-studio");
     const playgroundSection = page
       .locator("section")
-      .filter({ has: page.getByRole("heading", { name: "Customize your brand design" }) });
+      .filter({ has: page.getByRole("heading", { name: "Try it, no account" }) });
     await expect(playgroundSection.getByRole("status")).toContainText(/scannable/i);
   });
 
   test("playground preset shelf: renders 3 presets and applies one", async ({ page }) => {
-    await page.goto("/");
+    await page.goto("/features/brand-studio");
     const playgroundSection = page
       .locator("section")
-      .filter({ has: page.getByRole("heading", { name: "Customize your brand design" }) });
+      .filter({ has: page.getByRole("heading", { name: "Try it, no account" }) });
 
     // All 3 named presets render (text-based, not role-based — avoids
     // coupling the test to Radix ToggleGroup's exact internal role choice).
@@ -552,7 +549,9 @@ test.describe("marketing site", () => {
 
   test("heads: the amended section heads are live (P9.7-V1 IA rewrite)", async ({ page }) => {
     await page.goto("/");
-    await expect(page.getByRole("heading", { name: "Customize your brand design" })).toBeVisible();
+    // P9.9-C2: 03 restaged — the historic pre-T3a head returns with the
+    // dials body (was "Customize your brand design").
+    await expect(page.getByRole("heading", { name: "Design one right now" })).toBeVisible();
     // P9.9-C1: section 04 takes the stronger claim the P9.8 hard-sync
     // reversal made true (was "Every code starts from your kit.").
     await expect(page.getByRole("heading", { name: "Every code syncs instantly" })).toBeVisible();
@@ -579,6 +578,30 @@ test.describe("marketing site", () => {
     expect(await section.locator("figure [data-qr] svg").count()).toBe(9);
     await expect(section.getByText("qrcdn.com/menu", { exact: true })).toBeVisible();
     await expect(section.getByText("qrcdn.com/events", { exact: true })).toBeVisible();
+  });
+
+  test("studio dials: the wall converges on a dial turn (P9.9-C2)", async ({ page }) => {
+    await page.goto("/");
+    const section = page.locator("#studio");
+    // Four floating mats, one engine render each, resting in a RANGE of
+    // four different kits (two white-paper, two inverted showpieces).
+    await expect(section.locator("figure")).toHaveCount(4);
+    expect(await section.locator("figure [data-qr] svg").count()).toBe(4);
+    // The CTA is the /studio product doorway, carrying that page's promise.
+    await expect(section.getByRole("link", { name: "Open the studio" })).toHaveAttribute(
+      "href",
+      "/studio",
+    );
+    await expect(section.getByText("free · no account · no watermark")).toBeVisible();
+    // Turn the ink dial to teal: the whole wall adopts the config — the
+    // poster mat's inverted rest paper (#18181b) converges to white. The
+    // 500ms paper transition settles inside toHaveCSS's auto-retry.
+    const poster = section.locator("figure").filter({ hasText: "qrcdn.com/gallery" });
+    await expect(poster).toHaveCSS("background-color", "rgb(24, 24, 27)");
+    await section.locator('label:has(input[value="#0f766e"])').click();
+    await expect(section.getByRole("radio", { name: "#0f766e ink" })).toBeChecked();
+    await expect(poster).toHaveCSS("background-color", "rgb(255, 255, 255)");
+    await expect(section.getByText("every mat follows your pick")).toBeVisible();
   });
 
   test("hero h1: renders the v4 headline and never SSRs at opacity 0", async ({ page, request }) => {
@@ -948,14 +971,9 @@ test.describe("marketing site", () => {
     await expect(
       page.locator("#analytics").getByRole("link", { name: "Explore analytics" }),
     ).toHaveAttribute("href", "/features/analytics");
-    // The studio and brand-system sections both link to
-    // the SAME /features/brand-studio page with identical link text
-    // (BRAND_STUDIO_DOORWAY_ENABLED flips true for both call sites this
-    // unit) — scoped per-section (#studio / #brand-system) since an
-    // unscoped locator would strict-mode-violate across both matches.
-    await expect(
-      page.locator("#studio").getByRole("link", { name: "Explore the brand studio" }),
-    ).toHaveAttribute("href", "/features/brand-studio");
+    // P9.9-C2: the brand-studio doorway is down to ONE call site (section
+    // 04). The restaged #studio section closes on the /studio product CTA
+    // instead — asserted in the studio-dials test, not here.
     await expect(
       page.locator("#brand-system").getByRole("link", { name: "Explore the brand studio" }),
     ).toHaveAttribute("href", "/features/brand-studio");

@@ -980,6 +980,30 @@ html {
   }
 }
 
+/* Studio dials crossfade (P9.9-C2, studio-dials.tsx). Opacity-only per
+   C1's mask-geometry lesson: the new render fades in over the old one,
+   which is removed on animation end. `backwards` holds the incoming layer
+   transparent through its per-mat stagger delay (inline animation-delay).
+   The class is applied only client-side during a swap — served HTML
+   carries exactly one layer per mat and no opacity:0 (standing
+   invariant). */
+@keyframes sd-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+.sd-in {
+  animation: sd-fade-in 380ms var(--motion-ease-out) backwards;
+}
+@media (prefers-reduced-motion: reduce) {
+  .sd-in {
+    animation: none;
+  }
+}
+
 /* Scan-network trace animation (hero artwork). The dash segment is the
    "energy packet" travelling the active path. */
 @keyframes qr-flow {

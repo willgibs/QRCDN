@@ -1,7 +1,6 @@
 "use client";
 
 import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
-import type { ComponentProps } from "react";
 import Link from "next/link";
 import { Check, ChevronDown, Loader2 } from "lucide-react";
 import { useReducedMotion } from "motion/react";
@@ -24,39 +23,34 @@ import { downloadBlob, exportFilename, rasterizeSvgToPng } from "@/lib/export";
 import { brandQrStyles } from "@/lib/brand-qr";
 import { PREVIEW_PAYLOAD_DEFAULT, renderPreview } from "@/lib/preview";
 import { inkHexFromStyle } from "@/lib/qr-style-derive";
-import { BRAND_STUDIO_DOORWAY_ENABLED } from "@/lib/marketing-flags";
-import { Section, SectionHeading, SectionBody } from "@/components/marketing/section";
+import { SectionBody } from "@/components/marketing/section";
 import { MonoStrip } from "@/components/marketing/mono-strip";
-import { LearnMoreLink } from "@/components/marketing/learn-more-link";
 import { cn } from "@/lib/utils";
 
 /**
- * The anonymous landing playground (P9-U2) — "Design one right now,"
- * upgraded from components/explore/studio-slice.tsx's fixed-payload,
- * hand-rolled color swatches into the real Studio primitives: `ColorField`
- * (react-colorful picker, components/studio/color-controls.tsx),
- * `ArtifactStage` (the marketing staging rig — never `TiltStage`, which
- * docs/guides/design-system.md reserves for the authenticated studio),
- * `ScannabilityChip` fed a real `ScannabilityReport` + `RenderResult.version`
- * via `renderPreview` (lib/preview.ts, the error-safe wrapper — a visitor's
- * payload can overflow QR capacity, unlike studio-slice's fixed demo
- * string), and real SVG/PNG downloads (lib/export.ts). No account, no
- * server round-trip: everything here runs client-side against the same
+ * The anonymous full playground (P9-U2) — born as the landing's "Design
+ * one right now," upgraded from components/explore/studio-slice.tsx's
+ * fixed-payload, hand-rolled color swatches into the real Studio
+ * primitives: `ColorField` (react-colorful picker,
+ * components/studio/color-controls.tsx), `ArtifactStage` (the marketing
+ * staging rig — never `TiltStage`, which docs/guides/design-system.md
+ * reserves for the authenticated studio), `ScannabilityChip` fed a real
+ * `ScannabilityReport` + `RenderResult.version` via `renderPreview`
+ * (lib/preview.ts, the error-safe wrapper — a visitor's payload can
+ * overflow QR capacity, unlike studio-slice's fixed demo string), and
+ * real SVG/PNG downloads (lib/export.ts). No account, no server
+ * round-trip: everything here runs client-side against the same
  * `@qrcdn/qr-engine` the API and Studio use.
  *
- * `embedded` (P9.5-T-F2, additive — the landing's own `<Playground />` call
- * omits it and keeps today's byte-identical behavior, own `<Section
- * id="studio">` wrapper/heading/closing doorway included): unlike every
- * other component this unit reuses (the section-04 body, GuardrailsPlot,
- * StateCards), Playground is the one that already bakes in its own full
- * `Section`/`SectionHeading` — the T-F2 deck's "Playground island reused
- * as-is" still needs `/features/brand-studio` to supply its OWN S2 head/
- * lede ("Try it, no account.") rather than Playground's landing-specific
- * one ("Try the studio right here."). `embedded=true` skips the outer
- * `Section`/`SectionHeading` and the closing `LearnMoreLink` (a page
- * cannot doorway-link to itself) but keeps every interactive control, the
- * preset shelf, and the closing `MonoStrip` exactly as the landing renders
- * them — same client component, same bundle, zero forked logic.
+ * P9.9-C2: the landing branch is gone. The landing's 03 slot now renders
+ * `StudioSection`/`StudioDials` (the board's merged exploration pick, a
+ * far lighter island — the round's jitter lever), and this component's
+ * sole consumer is /features/brand-studio, which supplies its own section
+ * wrapper and heading ("Try it, no account"). The former `embedded` prop,
+ * its `Section`/`SectionHeading` wrapper, and the closing
+ * /features/brand-studio doorway (a page cannot doorway-link to itself,
+ * and the landing copy now lives on section 04 alone) were deleted with
+ * that branch — the body below is exactly what `embedded=true` rendered.
  */
 
 /**
@@ -256,15 +250,7 @@ function ContrastMeter({ worstContrast }: { worstContrast: number }) {
   );
 }
 
-export function Playground({
-  embedded = false,
-  index,
-  titleSize,
-}: {
-  embedded?: boolean;
-  index?: string;
-  titleSize?: ComponentProps<typeof SectionHeading>["titleSize"];
-} = {}) {
+export function Playground() {
   const [payload, setPayload] = useState(PREVIEW_PAYLOAD_DEFAULT);
   const [dotStyle, setDotStyle] = useState<(typeof DOT_STYLES)[number]>(DEFAULT_STYLE.dots.style);
   const [eyeFrame, setEyeFrame] = useState<(typeof EYE_FRAMES)[number]>(DEFAULT_STYLE.eyes.frame);
@@ -410,7 +396,7 @@ export function Playground({
   const payloadId = useId();
   const canExport = !renderError;
 
-  const body = (
+  return (
     <>
       <SectionBody className="mb-6 flex flex-wrap items-center gap-3">
         <span className="font-mono text-[11px] uppercase tracking-[0.2em] text-muted-foreground">
@@ -602,38 +588,7 @@ export function Playground({
 
       <SectionBody delay={0.15} className="mt-8 flex flex-col items-start gap-4">
         <MonoStrip>SVG + PNG export · instrument: live · engine: open source</MonoStrip>
-        {!embedded && BRAND_STUDIO_DOORWAY_ENABLED && (
-          <LearnMoreLink href="/features/brand-studio">Explore the brand studio</LearnMoreLink>
-        )}
       </SectionBody>
     </>
-  );
-
-  if (embedded) return body;
-
-  return (
-    <Section id="studio" variant="showcase" surface="floor" divider="none">
-      <SectionHeading
-        eyebrow="Design studio"
-        index={index}
-        title="Customize your brand design"
-        lede={
-          <>
-            The real engine and the same scannability instrument the full studio runs on. Take it
-            further at{" "}
-            <Link
-              href="/studio"
-              className="underline decoration-muted-foreground/40 underline-offset-4 transition-colors hover:text-foreground"
-            >
-              /studio
-            </Link>
-            , free.
-          </>
-        }
-        titleSize={titleSize}
-        className="mb-10"
-      />
-      {body}
-    </Section>
   );
 }

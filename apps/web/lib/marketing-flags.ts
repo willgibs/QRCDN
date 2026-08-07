@@ -15,13 +15,17 @@
 // everything" -> /pricing) were never gated by this file.
 //
 // P9.5-T-F2: /features/brand-studio and /features/access-controls both
-// shipped this unit, so BRAND_STUDIO_DOORWAY_ENABLED flips true (its two
-// call sites — playground.tsx section 02, brand-system-section.tsx section
-// 03 — per the T-F2 deck) and a new ACCESS_CONTROLS_DOORWAY_ENABLED lands
-// true for the one natural slot the spec found (dynamic-codes-section.tsx
-// section 04, beside the existing dynamic-codes doorway — that section's
-// own state-cards already depict the password gate and the expired-code
-// row this new page expands on).
+// shipped this unit, so BRAND_STUDIO_DOORWAY_ENABLED flips true and a new
+// ACCESS_CONTROLS_DOORWAY_ENABLED lands true for the one natural slot the
+// spec found (dynamic-codes-section.tsx, beside the existing dynamic-codes
+// doorway — that section's own state-cards already depict the password
+// gate and the expired-code row this new page expands on).
+//
+// P9.9-C2: BRAND_STUDIO_DOORWAY_ENABLED is down to ONE call site,
+// brand-system-section.tsx (section 04). The playground's copy retired
+// with its landing branch: the restaged section 03 closes on the /studio
+// CTA instead (studio-section.tsx), which is a product page, not a
+// feature-depth page, and was never gated by this file.
 export const DYNAMIC_CODES_DOORWAY_ENABLED = true;
 export const ANALYTICS_DOORWAY_ENABLED = true;
 export const BRAND_STUDIO_DOORWAY_ENABLED = true;

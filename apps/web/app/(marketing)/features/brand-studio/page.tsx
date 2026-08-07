@@ -133,7 +133,7 @@ export default function BrandStudioFeaturePage() {
           lede="The exact engine and instrument from the studio, running on this page. Design something, download it, print it: static codes are free forever."
           className="mb-10"
         />
-        <Playground embedded />
+        <Playground />
       </Section>
 
       {/* S3 — The instrument says no before your printer does. GuardrailsPlot

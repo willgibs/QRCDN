@@ -5,6 +5,7 @@ import { Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Eyebrow } from "@/components/brand/magic";
 import { Section, SectionHeading, SectionBody } from "@/components/marketing/section";
+import { ComparisonSheet } from "@/components/marketing/comparison-sheet";
 import { MonoStrip } from "@/components/marketing/mono-strip";
 import { PricingFaq } from "@/components/marketing/pricing-faq";
 import { PricingPlans } from "@/components/marketing/pricing-plans";
@@ -204,6 +205,27 @@ export default function PricingPage() {
 
         <SectionBody>
           <PricingMatrix />
+        </SectionBody>
+      </Section>
+
+      {/* The full comparison sheet (P9.9-C3): the landing section 10's
+          "full sheet, on pricing" doorway lands here. Every note and
+          receipt visible; the landing shows the curated cut. Surface stays
+          default so the sheet's mobile edge fade (from-background) tells
+          the truth about the surface it sits on (the C0 gradient lesson). */}
+      <Section id="compare" divider="none">
+        <SectionHeading
+          eyebrow="Comparison"
+          title="The full sheet"
+          lede="Every row from the landing table and the rest of the feature set, graded against the category by one rule. Receipts visible, nothing behind a hover."
+          className="mb-10"
+        />
+
+        <SectionBody>
+          <ComparisonSheet />
+          <p className="mt-4 text-xs text-muted-foreground">
+            Category patterns, not claims about any specific vendor.
+          </p>
         </SectionBody>
       </Section>
 

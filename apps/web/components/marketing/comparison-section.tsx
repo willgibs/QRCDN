@@ -1,191 +1,217 @@
+import { parseQrStyle } from "@qrcdn/shared";
+import { ModuleMark } from "@/components/brand/marks";
+import { GlyphChip, type ChipTone } from "@/components/marketing/comparison-chips";
 import { Section, SectionHeading, SectionBody } from "@/components/marketing/section";
-import { ANNUAL_MONTHLY_EQUIV_USD } from "@/lib/pricing";
+import {
+  COMPARISON_COLUMNS,
+  DESKTOP_COLUMN_ORDER,
+  GLYPH_LABEL,
+  LANDING_ROWS,
+  MOBILE_COLUMN_ORDER,
+  QRCDN_INDEX,
+  leaderIndex,
+  type ComparisonRow,
+} from "@/lib/comparison";
+import { renderPreview } from "@/lib/preview";
 import { cn } from "@/lib/utils";
 
 /**
- * 08 — Comparison (P9.5-T3c, new section). Archetype columns (never a named
- * vendor, per the board's own lock — docs/STATUS.md's P9.5 open note: "open
- * source approved... archetype comparison now, named-vendor pages post-
- * launch"). Cell content is deck-verbatim; the deck's own dash notation
- * ("— ✕ (trial traps common) · ✕ ...") is table notation, not rendered
- * copy, so it's expressed here as real `<table>` markup instead. Plain
- * `<table>` (not the vendored `components/ui/table.tsx`, which ships
- * `"use client"`) — this section is a hard "zero client JS" requirement,
- * same reasoning /developers' own Errors table already follows.
+ * 10 — Comparison (P9.9-C3 full rebuild): the board's "lit bench". The
+ * data moved to lib/comparison.ts (one source for this section AND
+ * /pricing#compare's full sheet); this file is pure staging.
  *
- * Glyph color stays restrained rather than a traffic-light red/amber/green
- * matrix: every glyph/note in the three competitor columns reads muted
- * regardless of shape (✓/✕/~/prose), and only the QRCDN column carries the
- * primary tint — the "QRCDN wins every row" claim is the whole point of
- * this table, so accent belongs to the column, not scattered per-glyph.
+ * The three-round board arc that shaped it: round 1 fixed the content (the
+ * old five-row table couldn't honor its own lede; now the full set is
+ * graded by one symmetric rule, enterprise's honest wins included), round
+ * 2 picked the chip-matrix treatment, round 3 cut the landing to twelve
+ * rows and moved comprehensiveness to the pricing sheet. Board edits
+ * applied verbatim: no "leads" badges (the lifted row + the filled chip IS
+ * the mark), terse row labels with the full claim on hover, bare chips
+ * with every note on hover, chips and any text centered on one
+ * unbreakable line.
  *
- * Review round 1: two table variants, not one reordered via CSS. A native
- * `<table>`'s columns don't participate in flex/grid `order` (that layout
- * mode doesn't apply to table-cell boxes), so "QRCDN first on mobile, last
- * on desktop" needs the DOM itself to differ — `ComparisonTable` takes a
- * `columnOrder` and both call sites pull from the same ROWS/COLUMNS data,
- * so there's no risk of the two variants' CONTENT drifting apart, only
- * their column arrangement. `md:hidden` / `hidden md:block` picks exactly
- * one at a time (verified: only the visible one is in the accessibility
- * tree, since `display:none` elements are always excluded from it — a
- * `table:visible` Playwright locator is what the e2e suite uses to target
- * "whichever one is actually showing" without needing extra markup).
+ * Hover mechanics (zero client JS): `.cmp-tip` bubbles are pure CSS on a
+ * `data-tip` attribute (globals.css), gated to hover-capable pointers.
+ * Screen readers get the identical text as sr-only spans, and every note
+ * is VISIBLE on /pricing#compare, so no reader is hover-dependent. The
+ * dotted row-label underline is the affordance the board asked back.
+ *
+ * The bench: the table sits on a lit panel (`.cmp-panel`) with three of
+ * the studio's paper mats tucked BEHIND it (z-0 vs the panel's z-10),
+ * peeking out top-right and bottom-left. The mats are real engine renders
+ * on white, server-rendered at build time (this section stays out of the
+ * client chunk graph entirely); all three inks are instrument-certified
+ * 100 on white (C2's 48-combo sweep, scratchpad verify-c2-dials.ts).
+ * Decor hides below lg. If the board tires of the mats, deleting
+ * DECOR_MATS reverts the section to the quiet-panel look (round-3 I) with
+ * no other change.
+ *
+ * Zero client JS is this section's defining trait (P9.5-T3c, reaffirmed
+ * every round): plain <table> markup, plain <a> links (next/link ships
+ * "use client" internally and would put a client boundary in this
+ * section's module graph). Two DOM tables, one data source: a native
+ * table's columns can't be reordered by CSS, so mobile (QRCDN column
+ * first) and desktop (QRCDN last) each render their own <table> and
+ * `md:hidden`/`hidden md:block` picks exactly one — the e2e suite targets
+ * `table:visible` (P9.5 precedent).
+ *
+ * NOTE for grep archaeology: the phrase "use client" in this doc comment
+ * is the reason a directive-grep once false-flagged this file as a client
+ * island (recorded C3 scope correction). There is no directive here.
  */
 
-type Tone = "neutral" | "qrcdn";
+const WHITE = "#ffffff";
 
-interface ComparisonCell {
-  glyph?: "✓" | "✕" | "~";
-  note: string;
+// Same curated pairings the studio dials and presets ship (module size
+// follows the shape, pupil follows the frame).
+function matSvg(payload: string, dot: "square" | "rounded" | "circle", ink: string): string {
+  const sizeRatio = dot === "square" ? 1 : dot === "rounded" ? 0.88 : 0.78;
+  const frame = dot;
+  const pupil = dot === "square" ? "square" : dot === "rounded" ? "rounded" : "dot";
+  const style = parseQrStyle({
+    v: 1,
+    dots: { style: dot, sizeRatio },
+    eyes: { frame, pupil, color: null },
+    fill: { type: "solid", color: ink },
+    background: { transparent: false, color: WHITE },
+  });
+  return renderPreview(payload, style).svg;
 }
 
-interface ComparisonRow {
-  label: string;
-  cells: [ComparisonCell, ComparisonCell, ComparisonCell, ComparisonCell];
+// All three inks instrument-certified 100 on white (C2 sweep). Payloads
+// are anonymous studio play, distinct from section 04's Ember cast.
+const DECOR_MATS = [
+  {
+    label: "qrcdn.com/rsvp",
+    svg: matSvg("HTTPS://QRCDN.COM/RSVP", "square", "#1e3a8a"),
+    className: "right-2 -top-14 w-28 rotate-3",
+  },
+  {
+    label: "qrcdn.com/hello",
+    svg: matSvg("HTTPS://QRCDN.COM/HELLO", "rounded", "#131316"),
+    className: "-bottom-14 left-6 w-28 -rotate-3",
+  },
+  {
+    label: "qrcdn.com/menu",
+    svg: matSvg("HTTPS://QRCDN.COM/MENU", "circle", "#0f766e"),
+    className: "-bottom-12 left-40 w-20 rotate-2",
+  },
+] as const;
+
+function cellHover(row: ComparisonRow, colIndex: number): string | undefined {
+  const cell = row.cells[colIndex];
+  if (!cell.note) return undefined;
+  const isLeader = leaderIndex(row) === colIndex;
+  if (isLeader && row.receipt && row.receipt !== cell.note) {
+    return `${cell.note}: ${row.receipt}`;
+  }
+  return cell.note;
 }
 
-const COLUMNS = ["Free QR generators", "Link-shortener add-ons", "Enterprise QR platforms", "QRCDN"] as const;
-const QRCDN_INDEX = COLUMNS.length - 1;
-
-// Desktop keeps the deck's own column order (QRCDN last, the "and here's
-// us" beat). Mobile leads with QRCDN — review round 1: the elevated column
-// is the whole point of the table, and it must be visible without
-// scrolling on a narrow viewport; the three archetype columns still follow
-// it, in their original relative order, in the scrollable region.
-const DESKTOP_COLUMN_ORDER = [0, 1, 2, 3] as const;
-const MOBILE_COLUMN_ORDER = [3, 0, 1, 2] as const;
-
-const ROWS: ComparisonRow[] = [
-  {
-    label: "Printed codes survive a downgrade",
-    cells: [
-      { glyph: "✕", note: "trial traps common" },
-      { glyph: "✕", note: "link plans lapse" },
-      { glyph: "~", note: "contract-dependent" },
-      { glyph: "✓", note: "never deactivated" },
-    ],
-  },
-  {
-    label: "Source code public",
-    cells: [
-      { glyph: "✕", note: "" },
-      { glyph: "✕", note: "" },
-      { glyph: "✕", note: "" },
-      { glyph: "✓", note: "MIT" },
-    ],
-  },
-  {
-    label: "Raw IPs stored",
-    cells: [
-      { note: "often" },
-      { note: "yes (click tracking)" },
-      { note: "varies" },
-      { glyph: "✕", note: "never" },
-    ],
-  },
-  {
-    label: "Scannability enforced by an instrument",
-    cells: [
-      { glyph: "✕", note: "" },
-      { glyph: "✕", note: "" },
-      { glyph: "✕", note: "" },
-      { glyph: "✓", note: "calibrated on real decodes" },
-    ],
-  },
-  {
-    label: "Price on the page",
-    cells: [
-      { glyph: "✓", note: "until the trap" },
-      { glyph: "✓", note: "" },
-      { note: "quote form" },
-      { glyph: "✓", note: `$0 / $${ANNUAL_MONTHLY_EQUIV_USD}/mo annual` },
-    ],
-  },
-];
-
-function Cell({
-  cell,
-  colIndex,
-  lastRow,
-}: {
-  cell: ComparisonCell;
-  colIndex: number;
-  lastRow: boolean;
-}) {
-  const tone: Tone = colIndex === QRCDN_INDEX ? "qrcdn" : "neutral";
-  return (
-    <td
-      className={cn(
-        "border-t border-border/60 px-4 py-3 align-top text-sm",
-        tone === "qrcdn" &&
-          "bg-primary/[0.04] text-foreground ring-1 ring-inset ring-primary/15 dark:bg-primary/[0.07]",
-        tone === "neutral" && "text-muted-foreground",
-        tone === "qrcdn" && lastRow && "rounded-b-xl",
-      )}
-    >
-      <span className="flex flex-wrap items-baseline gap-1.5">
-        {cell.glyph && (
-          <span
-            aria-hidden
-            className={cn("font-semibold", tone === "qrcdn" ? "text-primary" : "text-muted-foreground/70")}
-          >
-            {cell.glyph}
-          </span>
-        )}
-        {cell.note && <span>{cell.note}</span>}
+function RowLabel({ row }: { row: ComparisonRow }) {
+  const inner = (
+    <>
+      <span className="underline decoration-primary/50 decoration-dotted underline-offset-4">
+        {row.label}
       </span>
-    </td>
+      <span className="sr-only">, {row.detail}</span>
+    </>
+  );
+  const shared = "cmp-tip whitespace-nowrap text-sm font-medium text-foreground";
+  return row.href ? (
+    <a href={row.href} data-tip={row.detail} className={shared}>
+      {inner}
+    </a>
+  ) : (
+    <span data-tip={row.detail} className={shared}>
+      {inner}
+    </span>
   );
 }
 
-function ComparisonTable({ columnOrder }: { columnOrder: readonly number[] }) {
+function LanderRow({ row, columnOrder }: { row: ComparisonRow; columnOrder: readonly number[] }) {
+  const leader = leaderIndex(row);
   return (
-    <table className="w-full min-w-[640px] border-collapse text-left">
+    <tr
+      data-kind={row.kind}
+      className={cn(
+        "border-t border-foreground/[0.08]",
+        row.kind !== "parity" && "bg-foreground/[0.04]",
+      )}
+    >
+      <th scope="row" className="px-4 py-3 text-left align-middle">
+        <RowLabel row={row} />
+      </th>
+      {columnOrder.map((colIndex) => {
+        const cell = row.cells[colIndex];
+        const isQrcdn = colIndex === QRCDN_INDEX;
+        const tone: ChipTone =
+          leader === colIndex ? (isQrcdn ? "lead" : "gaplead") : isQrcdn ? "qrcdn" : "field";
+        const hover = cellHover(row, colIndex);
+        return (
+          <td
+            key={colIndex}
+            data-cell={isQrcdn ? "qrcdn" : undefined}
+            className={cn(
+              "px-3 py-3 text-center align-middle",
+              isQrcdn && "border-x border-primary/15 bg-primary/[0.06]",
+            )}
+          >
+            <span
+              className={cn("inline-flex items-center whitespace-nowrap", hover && "cmp-tip")}
+              data-tip={hover}
+            >
+              <GlyphChip glyph={cell.glyph} tone={tone} />
+              <span className="sr-only">
+                {GLYPH_LABEL[cell.glyph]}
+                {hover ? `, ${hover}` : ""}
+              </span>
+            </span>
+          </td>
+        );
+      })}
+    </tr>
+  );
+}
+
+function LanderTable({ columnOrder }: { columnOrder: readonly number[] }) {
+  return (
+    <table className="w-full min-w-[600px] border-collapse">
+      <caption className="sr-only">Feature comparison across the industry</caption>
       <thead>
         <tr>
-          <th
-            scope="col"
-            className="px-4 py-3 text-xs font-medium uppercase tracking-wide text-muted-foreground"
-          >
-            &nbsp;
+          <th scope="col" className="px-4 pb-3 pt-4 text-left">
+            <span className="sr-only">Feature</span>
           </th>
           {columnOrder.map((colIndex) => {
             const isQrcdn = colIndex === QRCDN_INDEX;
             return (
               <th
-                key={COLUMNS[colIndex]}
+                key={COMPARISON_COLUMNS[colIndex]}
                 scope="col"
                 className={cn(
-                  "px-4 py-3 text-sm font-semibold",
+                  "whitespace-nowrap px-3 pb-3 pt-4 text-center text-[0.8rem] font-semibold",
                   isQrcdn
-                    ? "rounded-t-xl bg-primary/[0.04] text-primary ring-1 ring-inset ring-primary/15 dark:bg-primary/[0.07]"
+                    ? "border-x border-primary/15 bg-primary/[0.06] text-primary"
                     : "text-foreground",
                 )}
               >
-                {COLUMNS[colIndex]}
+                {isQrcdn ? (
+                  <span className="inline-flex items-center gap-2">
+                    <ModuleMark className="size-2.5" />
+                    {COMPARISON_COLUMNS[colIndex]}
+                  </span>
+                ) : (
+                  COMPARISON_COLUMNS[colIndex]
+                )}
               </th>
             );
           })}
         </tr>
       </thead>
       <tbody>
-        {ROWS.map((row, rowIndex) => (
-          <tr key={row.label}>
-            <th
-              scope="row"
-              className="border-t border-border/60 px-4 py-3 text-left align-top text-sm font-medium text-foreground"
-            >
-              {row.label}
-            </th>
-            {columnOrder.map((colIndex) => (
-              <Cell
-                key={`${row.label}-${COLUMNS[colIndex]}`}
-                cell={row.cells[colIndex]}
-                colIndex={colIndex}
-                lastRow={rowIndex === ROWS.length - 1}
-              />
-            ))}
-          </tr>
+        {LANDING_ROWS.map((row) => (
+          <LanderRow key={row.id} row={row} columnOrder={columnOrder} />
         ))}
       </tbody>
     </table>
@@ -204,36 +230,55 @@ export function ComparisonSection({ index }: { index: string }) {
       />
 
       <SectionBody>
-        {/* Mobile (<md): QRCDN first, so the elevated column reads without
-            scrolling; the three archetype columns follow in the scrollable
-            region. A static gradient hints there's more to scroll — no
-            scroll-position tracking (this section stays zero client JS), so
-            it's a permanent hint rather than one that fades once you're at
-            the end; "subtle" by design, not a claim of exact scroll state. */}
-        <div className="relative md:hidden">
-          <div className="overflow-x-auto rounded-2xl border border-border/60">
-            <ComparisonTable columnOrder={MOBILE_COLUMN_ORDER} />
+        <div className="relative">
+          {/* The print run resting behind the bench: decorative, hidden
+              from AT and from small viewports. Deleting this block (and
+              DECOR_MATS) is the sanctioned revert to the quiet panel. */}
+          <div aria-hidden data-decor className="hidden lg:block">
+            {DECOR_MATS.map((mat) => (
+              <div
+                key={mat.label}
+                className={cn(
+                  "absolute z-0 rounded-lg bg-white p-2 pb-1.5 shadow-[0_16px_34px_-14px_rgba(0,0,0,0.85)] ring-1 ring-black/10",
+                  mat.className,
+                )}
+              >
+                <div dangerouslySetInnerHTML={{ __html: mat.svg }} />
+                <span className="mt-1 block font-mono text-[0.5rem] tracking-wide text-[#6b6b74]">
+                  {mat.label}
+                </span>
+              </div>
+            ))}
           </div>
-          <div
-            aria-hidden
-            // from-background, not -tint: this section renders on the
-            // default surface (surface="tint" was a stale carryover from an
-            // earlier surface assignment).
-            className="pointer-events-none absolute inset-y-0 right-0 w-10 rounded-r-2xl bg-gradient-to-l from-background to-transparent"
-          />
+
+          <div className="cmp-panel cmp-clip">
+            {/* Mobile (<md): QRCDN column first; a static fade hints at the
+                horizontal scroll (permanent by design: zero client JS means
+                no scroll-position tracking). */}
+            <div className="relative md:hidden">
+              <div className="overflow-x-auto">
+                <LanderTable columnOrder={MOBILE_COLUMN_ORDER} />
+              </div>
+              <div aria-hidden className="cmp-fade pointer-events-none absolute inset-y-0 right-0 w-10" />
+            </div>
+            {/* Desktop (md+): the deck's order, QRCDN last. */}
+            <div className="hidden overflow-x-auto md:block">
+              <LanderTable columnOrder={DESKTOP_COLUMN_ORDER} />
+            </div>
+          </div>
         </div>
 
-        {/* Desktop (md+): the deck's own column order, QRCDN last. Kept
-            scrollable too (defensive — a narrow desktop window shouldn't
-            force the page itself to scroll sideways), just without the
-            mobile-only fade hint. */}
-        <div className="hidden overflow-x-auto rounded-2xl border border-border/60 md:block">
-          <ComparisonTable columnOrder={DESKTOP_COLUMN_ORDER} />
+        <div className="mt-6 flex flex-wrap items-baseline justify-between gap-3 lg:mt-20">
+          <p className="text-xs text-muted-foreground">
+            Category patterns, not claims about any specific vendor.
+          </p>
+          <a
+            href="/pricing#compare"
+            className="font-mono text-xs tracking-wide text-primary transition-colors hover:text-primary/80"
+          >
+            the full sheet, on pricing →
+          </a>
         </div>
-
-        <p className="mt-4 text-xs text-muted-foreground">
-          Category patterns, not claims about any specific vendor.
-        </p>
       </SectionBody>
     </Section>
   );

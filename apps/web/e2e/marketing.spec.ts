@@ -6,6 +6,7 @@ import { CHANGELOG_ENTRIES } from "../lib/changelog";
 import { BLOG_POSTS } from "../lib/blog";
 import { HELP_ARTICLES, HELP_CATEGORIES } from "../lib/help";
 import { MAX_SLUG_LENGTH } from "../lib/slug";
+import { COMPARISON_BANDS, COMPARISON_ROWS, LANDING_ROWS } from "../lib/comparison";
 import { LOGO_EFFECTIVE_ERROR, LOGO_EFFECTIVE_WARN } from "@qrcdn/qr-engine";
 
 // Relative imports only in e2e/ (no "@/" — see env.ts's header note).
@@ -174,7 +175,14 @@ test.describe("marketing site", () => {
     // eventual visibility/focusability check on an already-unique
     // locator, not strict-mode's match COUNT) — an unscoped page-wide
     // getByText now strict-mode-violates on those two bands specifically.
-    const table = page.getByRole("table");
+    // P9.9-C3: /pricing now carries THREE tables (this matrix plus the full
+    // comparison sheet's two DOM variants at #compare), and "Design &
+    // export" is a band name in BOTH tables — scope to the matrix's own
+    // section before touching band text.
+    const table = page
+      .locator("section")
+      .filter({ has: page.getByRole("heading", { name: "Free and Pro, side by side" }) })
+      .getByRole("table");
     for (const band of [
       "Codes & limits",
       "Design & export",
@@ -475,25 +483,21 @@ test.describe("marketing site", () => {
     await expect(section.getByRole("tab", { name: "Create" })).toHaveAttribute("aria-selected", "false");
   });
 
-  test("comparison: renders 4 columns and the load-bearing footnote", async ({ page }) => {
+  test("comparison: the landing cut on the lit bench (P9.9-C3)", async ({ page }) => {
     await page.goto("/");
     const section = page
       .locator("section")
       .filter({ has: page.getByRole("heading", { name: "Industry-leading features" }) });
 
-    // Review round 1 split the table into two DOM variants (mobile QRCDN-
-    // first, desktop QRCDN-last), toggled via md:hidden / hidden md:block —
-    // `:visible` picks whichever one the current viewport is actually
-    // showing (desktop, at this suite's default viewport) rather than
-    // matching both and strict-mode-violating.
+    // Two DOM tables from one data source (mobile QRCDN-first, desktop
+    // QRCDN-last, toggled via md:hidden / hidden md:block) — pinned as a
+    // count, then `:visible` picks whichever one this viewport shows
+    // (desktop here) rather than matching both and strict-mode-violating.
+    await expect(section.locator("table")).toHaveCount(2);
     const table = section.locator("table:visible");
     // 4 real columns + 1 blank corner cell above the row labels.
     await expect(table.locator("thead th")).toHaveCount(5);
-    for (const column of [
-      "Free QR generators",
-      "Link-shortener add-ons",
-      "Enterprise QR platforms",
-    ]) {
+    for (const column of ["Free generators", "Shortener add-ons", "Enterprise platforms"]) {
       await expect(table.getByText(column, { exact: true })).toBeVisible();
     }
     // "QRCDN" as a regex, not a string literal — lib/e2e-safety.test.ts's
@@ -503,10 +507,61 @@ test.describe("marketing site", () => {
     // needing an allowlist entry for a false positive (same reasoning as
     // the /PATCH/ regex above).
     await expect(table.getByText(/^QRCDN$/)).toBeVisible();
-    // Footnote is never omitted — deck copy verbatim.
+
+    // The 12-row cut with the agreed grading census — every count derived
+    // from the same module the section renders (lib/comparison.ts), so a
+    // future row change keeps these pins honest instead of stale.
+    await expect(table.locator("tbody tr")).toHaveCount(LANDING_ROWS.length);
+    await expect(table.locator('tbody tr[data-kind="lead"]')).toHaveCount(
+      LANDING_ROWS.filter((row) => row.kind === "lead").length,
+    );
+    await expect(table.locator('tbody tr[data-kind="gap"]')).toHaveCount(
+      LANDING_ROWS.filter((row) => row.kind === "gap").length,
+    );
+
+    // Board edits: terse labels and bare chips, with every note riding a
+    // data-tip attribute (pure-CSS hover bubble) plus an sr-only twin. The
+    // instrument row's label carries the full claim.
+    await expect(
+      table.locator('[data-tip*="calibrated on real decodes"]').first(),
+    ).toBeVisible();
+
+    // The bench decor: three server-rendered engine mats, aria-hidden and
+    // lg-only, tucked behind the panel (z-0 vs the panel's z-10).
+    await expect(section.locator("[data-decor] svg")).toHaveCount(3);
+
+    // Footnote is never omitted — deck copy verbatim — and the doorway to
+    // the comprehensive surface is a real link, not a promise.
     await expect(
       section.getByText("Category patterns, not claims about any specific vendor."),
     ).toBeVisible();
+    await expect(
+      section.getByRole("link", { name: "the full sheet, on pricing →" }),
+    ).toHaveAttribute("href", "/pricing#compare");
+  });
+
+  test("pricing: the full comparison sheet at #compare (P9.9-C3)", async ({ page }) => {
+    await page.goto("/pricing#compare");
+    const section = page.locator("section#compare");
+    await expect(section.getByRole("heading", { name: "The full sheet" })).toBeVisible();
+
+    const table = section.locator("table:visible");
+    // One tbody per band, every band populated — structure and counts
+    // derived from lib/comparison.ts, the same module the sheet renders.
+    await expect(table.locator("tbody")).toHaveCount(COMPARISON_BANDS.length);
+    for (const band of COMPARISON_BANDS) {
+      const slug = band.name.toLowerCase().replace(/[^a-z]+/g, "-").replace(/^-|-$/g, "");
+      // +1: the band's own rowgroup header row.
+      await expect(table.locator(`tbody[data-band="${slug}"] tr`)).toHaveCount(
+        band.rows.length + 1,
+      );
+    }
+    await expect(table.locator("tbody tr[data-kind]")).toHaveCount(COMPARISON_ROWS.length);
+
+    // The sheet is the no-hover-needed surface: receipts and notes are
+    // visible text here, including the gap band's honest concession.
+    await expect(table.getByText("read the engine yourself")).toBeVisible();
+    await expect(table.getByText("built for teams, SSO at contract tier")).toBeVisible();
   });
 
   test("comparison: the elevated column leads the mobile order", async ({ page }) => {

@@ -1127,3 +1127,110 @@ html {
     opacity: 0.5;
   }
 }
+
+/* Comparison instrument (P9.9-C3): section 10's lit bench panel and the
+   /pricing#compare full sheet. Zero client JS by construction: the panel
+   is paint, the tooltips are pure CSS on server markup.
+
+   .cmp-panel: the bench the landing table sits on. Base plate is the
+   popover token (one step lighter than the page), topped with a soft
+   overhead-light gradient; the second shadow is the primary under-glow,
+   deliberately faint (one-loud-thing rule: the accent's loud moment here
+   is the filled lead chips, not the furniture). */
+.cmp-panel {
+  position: relative;
+  z-index: 10;
+  overflow: hidden;
+  border-radius: 1rem;
+  border: 1px solid color-mix(in oklab, var(--foreground) 10%, transparent);
+  background:
+    linear-gradient(
+      180deg,
+      color-mix(in oklab, var(--foreground) 4.5%, transparent),
+      color-mix(in oklab, var(--foreground) 1.5%, transparent) 34%,
+      transparent 70%
+    ),
+    var(--popover);
+  box-shadow:
+    0 18px 50px -20px oklch(0 0 0 / 70%),
+    0 34px 90px -38px color-mix(in oklab, var(--primary) 40%, transparent);
+}
+
+/* Mobile scroll hint inside the panel: fades to the PANEL plate, not the
+   page background (the C0 gradient lesson, one surface deeper). */
+.cmp-fade {
+  background: linear-gradient(to left, var(--popover), transparent);
+}
+
+/* Hover tooltips. Gated to real pointers: on touch there is no hover, and
+   every note is visible in full on /pricing#compare (the sheet is the
+   no-hover-needed surface the landing links to). Screen readers get the
+   same text as sr-only spans regardless of this block. */
+@media (hover: hover) and (pointer: fine) {
+  .cmp-tip {
+    position: relative;
+  }
+  .cmp-tip::after {
+    content: attr(data-tip);
+    position: absolute;
+    left: 50%;
+    bottom: calc(100% + 0.5rem);
+    transform: translate(-50%, 4px);
+    width: max-content;
+    max-width: 15rem;
+    white-space: normal;
+    text-align: left;
+    font-size: 0.72rem;
+    font-weight: 400;
+    letter-spacing: normal;
+    line-height: 1.45;
+    color: var(--popover-foreground);
+    background: oklch(0.23 0.006 280);
+    border: 1px solid color-mix(in oklab, var(--foreground) 14%, transparent);
+    border-radius: 0.5rem;
+    padding: 0.4rem 0.6rem;
+    box-shadow: 0 10px 30px -10px oklch(0 0 0 / 70%);
+    opacity: 0;
+    pointer-events: none;
+    transition:
+      opacity 150ms var(--motion-ease-out),
+      transform 150ms var(--motion-ease-out);
+    z-index: 40;
+  }
+  .cmp-tip:hover::after {
+    opacity: 1;
+    transform: translate(-50%, 0);
+  }
+  /* Both comparison wrappers clip (rounded corners / overflow-x-auto), so
+     the first two rows' bubbles flip below to stay inside the clip. */
+  .cmp-clip tbody:first-of-type tr:nth-child(-n + 2) .cmp-tip::after {
+    bottom: auto;
+    top: calc(100% + 0.5rem);
+    transform: translate(-50%, -4px);
+  }
+  .cmp-clip tbody:first-of-type tr:nth-child(-n + 2) .cmp-tip:hover::after {
+    transform: translate(-50%, 0);
+  }
+  /* Edge columns: pin bubbles inside the horizontal clip. */
+  .cmp-clip th .cmp-tip::after {
+    left: 0;
+    right: auto;
+    transform: translate(0, 4px);
+  }
+  .cmp-clip th .cmp-tip:hover::after {
+    transform: translate(0, 0);
+  }
+  .cmp-clip td:last-child .cmp-tip::after {
+    left: auto;
+    right: 0;
+    transform: translate(0, 4px);
+  }
+  .cmp-clip td:last-child .cmp-tip:hover::after {
+    transform: translate(0, 0);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .cmp-tip::after {
+    transition: none;
+  }
+}

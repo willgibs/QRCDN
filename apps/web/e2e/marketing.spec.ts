@@ -122,9 +122,10 @@ test.describe("marketing site", () => {
 
   test("nav CTA: Start free lands on /login", async ({ page }) => {
     await page.goto("/");
-    // Scoped to the page's one <header> (role=banner) — the landing page
-    // repeats "Start free" in several sections (hero, playground, pricing
-    // teaser); the nav's is the one this test means.
+    // Scoped to the page's one <header> (role=banner) — "Start free"
+    // repeats in later sections (pricing teaser et al.; the hero's CTA row
+    // retired at P9.10-D1 in favor of the URL form); the nav's is the one
+    // this test means.
     await page.getByRole("banner").getByRole("link", { name: "Start free" }).click();
     await expect(page).toHaveURL(/\/login$/);
   });
@@ -685,6 +686,37 @@ test.describe("marketing site", () => {
     await page.goto("/");
     const h1Text = await page.locator("h1").first().textContent();
     expect(h1Text?.replace(/\s+/g, " ").trim()).toMatch(/The modern\s*QR platform\.?/);
+  });
+
+  test("hero: the aurora URL form seeds the studio, the docs doorway stands, three real mats (P9.10-D1)", async ({
+    page,
+  }) => {
+    await page.goto("/");
+    const hero = page.locator("header").filter({ has: page.getByRole("heading", { level: 1 }) });
+
+    // The old CTA row is retired — its jobs moved into the input (create)
+    // and the LearnMoreLink doorway (the API), per the D1 board pick.
+    await expect(hero.getByRole("link", { name: "Start building" })).toHaveCount(0);
+    await expect(hero.getByRole("link", { name: "See the API" })).toHaveCount(0);
+    const docs = hero.getByRole("link", { name: "Read the API docs" });
+    await expect(docs).toHaveAttribute("href", "/developers");
+
+    // Three engine renders on paper mats (QR solidity rule: real
+    // renderPreview output server-side, so the SVGs are in the DOM with
+    // no client JS involved).
+    await expect(hero.locator(".hero-paper svg")).toHaveCount(3);
+
+    // The honest-input contract: typing a URL and submitting is a real
+    // GET form to /studio, and the studio seeds it into the Destination
+    // field (app/studio/page.tsx reads ?url=, StudioShell prefills).
+    const form = hero.locator("form");
+    await expect(form).toHaveAttribute("action", "/studio");
+    await form.getByRole("textbox", { name: /destination url/i }).fill("https://example.com/menu");
+    await form.getByRole("button", { name: "Make it" }).click();
+    await expect(page).toHaveURL(/\/studio\?url=https%3A%2F%2Fexample\.com%2Fmenu/);
+    await expect(page.getByLabel("Destination", { exact: true })).toHaveValue(
+      "https://example.com/menu",
+    );
   });
 
   test("highlights bento: five cards, each anchored to its deep section (P9.7-V2)", async ({

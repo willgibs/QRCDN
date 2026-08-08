@@ -18,7 +18,20 @@ export const metadata: Metadata = {
     "Design a styled QR code and download it as SVG or PNG, free. No account, no watermark. A free account adds brand kits, dynamic codes you can retarget after printing, and scan analytics.",
 };
 
-export default async function StudioPage() {
+export default async function StudioPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ url?: string | string[] }>;
+}) {
+  // P9.10-D1: the landing hero's URL form submits here as GET /studio?url=…
+  // — seed the Destination field so the input does what it says. http(s)
+  // only and length-capped: this is a prefill, not an open redirect or a
+  // storage write, but there is no reason to carry junk into the field.
+  const { url } = await searchParams;
+  const rawSeed = typeof url === "string" ? url.trim() : undefined;
+  const initialPayload =
+    rawSeed && /^https?:\/\/\S+$/i.test(rawSeed) && rawSeed.length <= 2048 ? rawSeed : undefined;
+
   const supabase = await createClient();
   const { data } = await supabase.auth.getClaims();
 
@@ -26,7 +39,9 @@ export default async function StudioPage() {
   // anonymous rail can do (design controls, payload, SVG/PNG export) runs
   // client-side against the same engine — no persistence, nothing to guard.
   if (!data?.claims) {
-    return <StudioShell initialKits={[]} plan="free" userId={null} anonymous />;
+    return (
+      <StudioShell initialKits={[]} plan="free" userId={null} anonymous initialPayload={initialPayload} />
+    );
   }
 
   const userId = data.claims.sub;
@@ -45,5 +60,12 @@ export default async function StudioPage() {
   const { data: profile } = await supabase.from("profiles").select("plan").eq("id", userId).single();
   const plan = (profile?.plan as Plan | undefined) ?? "free";
 
-  return <StudioShell initialKits={(kits ?? []) as BrandKit[]} plan={plan} userId={userId} />;
+  return (
+    <StudioShell
+      initialKits={(kits ?? []) as BrandKit[]}
+      plan={plan}
+      userId={userId}
+      initialPayload={initialPayload}
+    />
+  );
 }

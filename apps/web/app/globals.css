@@ -93,9 +93,9 @@
 @theme {
   /* ---- Fluid spacing ---- */
   --spacing-gutter: clamp(1.25rem, 1rem + 1.11vw, 2rem); /* 20 → 32 over 360–1440 */
-  --spacing-section-tight: clamp(2.125rem, 1.3rem + 3.61vw, 4.5rem); /* 34 → 72 over 360–1440 */
-  --spacing-section: clamp(3rem, 1.83rem + 5.19vw, 6.5rem); /* 48 → 104 over 360–1440 */
-  --spacing-section-air: clamp(4.5rem, 2.75rem + 7.78vw, 9.75rem); /* 72 → 156 over 360–1440 */
+  --spacing-section-tight: clamp(2.125rem, 1.167rem + 4.26vw, 5rem); /* 34 → 80 over 360–1440 (D1 rhythm bump: was 34 → 72) */
+  --spacing-section: clamp(3rem, 1.5rem + 6.67vw, 7.5rem); /* 48 → 120 over 360–1440 (D1 rhythm bump: was 48 → 104) */
+  --spacing-section-air: clamp(4.5rem, 2.333rem + 9.63vw, 11rem); /* 72 → 176 over 360–1440 (D1 rhythm bump: was 72 → 156) */
   --spacing-block: clamp(2rem, 1.5rem + 2.22vw, 3.5rem); /* 32 → 56 over 360–1440 */
 
   /* ---- Containers — fixed measures, not fluid: a text/content measure
@@ -116,19 +116,24 @@
      generated `text-<name>` utility alongside font-size, so one class
      sets all three together instead of three utilities that can drift
      out of sync across call sites. ---- */
-  --text-display: clamp(3rem, 2.04rem + 4.26vw, 5.875rem); /* 48 → 94 over 360–1440 (P9.5-T3a type bump: was 44 → 88; resolves ≈3.08rem at 390, +6.8% at 1440) */
+  /* Ladder v2 (P9.10 D1, D0 note 10): every heading step's ceiling bumps
+     10-18% — "punchier, more bold... right now they kind of just blend
+     in" — floors hold (mobile was already tight), slopes recomputed for
+     the same 360-1440 window. Paired with the section-rhythm bump below
+     so scale + breathing room build the eye-bounce hierarchy together. */
+  --text-display: clamp(3rem, 1.833rem + 5.19vw, 6.5rem); /* 48 → 104 over 360–1440 (v2: was 48 → 94) */
   --text-display--line-height: 1;
   --text-display--letter-spacing: -0.035em;
-  --text-h1: clamp(2.25rem, 1.75rem + 2.22vw, 3.75rem); /* 36 → 60 over 360–1440 */
+  --text-h1: clamp(2.25rem, 1.583rem + 2.96vw, 4.25rem); /* 36 → 68 over 360–1440 (v2: was 36 → 60) */
   --text-h1--line-height: 1.05;
   --text-h1--letter-spacing: -0.03em;
-  --text-h2: clamp(1.875rem, 1.58rem + 1.3vw, 2.75rem); /* 30 → 44 over 360–1440 */
+  --text-h2: clamp(1.875rem, 1.458rem + 1.85vw, 3.125rem); /* 30 → 50 over 360–1440 (v2: was 30 → 44) */
   --text-h2--line-height: 1.1;
   --text-h2--letter-spacing: -0.025em;
-  --text-h2-lg: clamp(2rem, 1.583rem + 1.85vw, 3.25rem); /* 32 → 52 over 360–1440 (P9.9-C0 heading ladder: the landing's "Normal" register between h2 and h1; quiet sections keep --text-h2, the one Loud section takes --text-h1) */
+  --text-h2-lg: clamp(2rem, 1.417rem + 2.59vw, 3.75rem); /* 32 → 60 over 360–1440 (v2: was 32 → 52; P9.9-C0 heading ladder: the landing's "Normal" register between h2 and h1; quiet sections keep --text-h2, the one Loud section takes --text-h1) */
   --text-h2-lg--line-height: 1.08;
   --text-h2-lg--letter-spacing: -0.027em;
-  --text-h3: clamp(1.375rem, 1.29rem + 0.37vw, 1.625rem); /* 22 → 26 over 360–1440 */
+  --text-h3: clamp(1.375rem, 1.229rem + 0.65vw, 1.8125rem); /* 22 → 29 over 360–1440 (v2: was 22 → 26) */
   --text-h3--line-height: 1.2;
   --text-h3--letter-spacing: -0.015em;
   --text-lede: clamp(1.0625rem, 1.02rem + 0.19vw, 1.1875rem); /* 17 → 19 over 360–1440 (P9.5-T3a type bump: was 17 → 20; floor unchanged, ceiling gentled since --text-display grew instead) */
@@ -159,6 +164,13 @@
   --duration-fast: 200ms;
   --duration-normal: 300ms;
   --duration-slow: 500ms;
+  /* Spring pair (P9.10 D1) — extracted from the transitions.dev
+     card-stack-hover demo the board pointed at: the out-bounce carries a
+     hard overshoot (1.84), the return a gentler one (1.5), so a spread
+     reads eager and the settle reads soft. Asymmetric by design; consumed
+     by the hero fan's load fan-out and hover breathe. */
+  --motion-ease-spring-out: cubic-bezier(0.31, 1.84, 0.64, 1);
+  --motion-ease-spring-back: cubic-bezier(0.34, 1.5, 0.64, 1);
 
   --background: oklch(1 0 0);
   --foreground: oklch(0.15 0.004 280);
@@ -166,19 +178,24 @@
   --card-foreground: oklch(0.15 0.004 280);
   --popover: oklch(1 0 0);
   --popover-foreground: oklch(0.15 0.004 280);
-  --primary: oklch(0.51 0.23 268);
+  /* P9.10 D1 (D13 as amended, 2026-08-08): the base goes MONOCHROME —
+     ink-register primary, neutral accent tints, hue-free ring. Color now
+     enters through two doors only: the aurora family (the kiss, see the
+     hero block at the end of this file) and contextual accents that own
+     their moment (--dest-*, charts 2-5). */
+  --primary: oklch(0.21 0.005 280);
   --primary-foreground: oklch(0.99 0 0);
   --secondary: oklch(0.96 0.003 280);
   --secondary-foreground: oklch(0.22 0.004 280);
   --muted: oklch(0.96 0.003 280);
   --muted-foreground: oklch(0.52 0.005 280);
-  --accent: oklch(0.94 0.02 268);
-  --accent-foreground: oklch(0.35 0.12 268);
+  --accent: oklch(0.945 0.003 280);
+  --accent-foreground: oklch(0.32 0.006 280);
   --destructive: oklch(0.577 0.245 27.325);
   --border: oklch(0.92 0.002 280);
   --input: oklch(0.92 0.002 280);
-  --ring: oklch(0.51 0.23 268);
-  --chart-1: oklch(0.51 0.23 268);
+  --ring: oklch(0.21 0.005 280);
+  --chart-1: oklch(0.28 0.006 280);
   --chart-2: oklch(0.62 0.15 230);
   --chart-3: oklch(0.42 0.12 285);
   --chart-4: oklch(0.7 0.1 200);
@@ -209,11 +226,14 @@
      ScanNetwork chips/traces and the <md OrbitStage). UI chrome (buttons,
      links, focus rings, the accent gradient) stays single-accent violet
      per D13 — these four never appear outside destination identity.
-     --dest-1 IS --primary (violet is always "destination one," the first
-     demo chip); 2-4 are new hues, hand-picked to stay legible at the same
-     lightness/chroma register as --primary in both modes. See
+     --dest-1 WAS --primary (violet as "destination one"); since the D13
+     monochrome amendment (P9.10 D1) --primary is ink, so dest-1 pins the
+     old violet as a literal — destination identity is exactly the kind of
+     contextual accent the amendment preserves, and it must not follow the
+     UI accent to grey. 2-4 are hand-picked to stay legible at the same
+     lightness/chroma register in both modes. See
      docs/guides/design-system.md's destination-palette amendment. */
-  --dest-1: var(--primary);
+  --dest-1: oklch(0.51 0.23 268);
   --dest-2: oklch(0.62 0.14 78); /* amber */
   --dest-3: oklch(0.55 0.12 195); /* teal */
   --dest-4: oklch(0.58 0.15 350); /* rose */
@@ -238,12 +258,12 @@
   --code-punctuation: color-mix(in oklch, var(--foreground) 45%, var(--muted-foreground) 55%);
   --sidebar: oklch(0.985 0 0);
   --sidebar-foreground: oklch(0.15 0.004 280);
-  --sidebar-primary: oklch(0.51 0.23 268);
+  --sidebar-primary: oklch(0.21 0.005 280);
   --sidebar-primary-foreground: oklch(0.99 0 0);
   --sidebar-accent: oklch(0.96 0.003 280);
   --sidebar-accent-foreground: oklch(0.22 0.004 280);
   --sidebar-border: oklch(0.92 0.002 280);
-  --sidebar-ring: oklch(0.51 0.23 268);
+  --sidebar-ring: oklch(0.21 0.005 280);
 }
 
 .dark {
@@ -253,19 +273,23 @@
   --card-foreground: oklch(0.96 0.002 280);
   --popover: oklch(0.17 0.005 280);
   --popover-foreground: oklch(0.96 0.002 280);
-  --primary: oklch(0.62 0.21 268);
-  --primary-foreground: oklch(0.99 0 0);
+  /* D13 as amended (P9.10 D1): dark-mode primary is the near-white CTA
+     ink — on the near-black field, the white budget reserves this register
+     for headings, buttons, and QR paper, so the CTA IS one of the page's
+     few true whites. Ink-on-white button text follows. */
+  --primary: oklch(0.96 0.002 280);
+  --primary-foreground: oklch(0.17 0.004 280);
   --secondary: oklch(0.21 0.005 280);
   --secondary-foreground: oklch(0.92 0.002 280);
   --muted: oklch(0.21 0.005 280);
   --muted-foreground: oklch(0.62 0.006 280);
-  --accent: oklch(0.24 0.04 268);
-  --accent-foreground: oklch(0.85 0.07 268);
+  --accent: oklch(0.23 0.005 280);
+  --accent-foreground: oklch(0.88 0.003 280);
   --destructive: oklch(0.704 0.191 22.216);
   --border: oklch(1 0 0 / 9%);
   --input: oklch(1 0 0 / 13%);
-  --ring: oklch(0.62 0.21 268);
-  --chart-1: oklch(0.62 0.21 268);
+  --ring: oklch(0.96 0.002 280);
+  --chart-1: oklch(0.9 0.003 280);
   --chart-2: oklch(0.68 0.14 230);
   --chart-3: oklch(0.52 0.12 285);
   --chart-4: oklch(0.74 0.1 200);
@@ -282,9 +306,11 @@
   --surface-ink: oklch(0.07 0.006 280);
   --qr-fg: #ececf1;
   --qr-bg: #101013;
-  /* Destination-identity hues, dark-mode values (P9.5-T3a) — --dest-1
-     follows --primary automatically (redeclared above); 2-4 lift in
-     lightness the same way --primary itself does light->dark. */
+  /* Destination-identity hues, dark-mode values (P9.5-T3a; D13 amendment
+     rider) — dest-1 no longer follows --primary (which is now ink): it
+     carries the lifted violet literal so destination identity keeps its
+     four real hues; 2-4 lift in lightness the same way. */
+  --dest-1: oklch(0.62 0.21 268);
   --dest-2: oklch(0.76 0.13 80);
   --dest-3: oklch(0.70 0.12 195);
   --dest-4: oklch(0.72 0.13 350);
@@ -302,12 +328,12 @@
   --code-punctuation: color-mix(in oklch, var(--foreground) 45%, var(--muted-foreground) 55%);
   --sidebar: oklch(0.17 0.005 280);
   --sidebar-foreground: oklch(0.96 0.002 280);
-  --sidebar-primary: oklch(0.62 0.21 268);
-  --sidebar-primary-foreground: oklch(0.99 0 0);
+  --sidebar-primary: oklch(0.96 0.002 280);
+  --sidebar-primary-foreground: oklch(0.17 0.004 280);
   --sidebar-accent: oklch(0.21 0.005 280);
   --sidebar-accent-foreground: oklch(0.92 0.002 280);
   --sidebar-border: oklch(1 0 0 / 9%);
-  --sidebar-ring: oklch(0.62 0.21 268);
+  --sidebar-ring: oklch(0.96 0.002 280);
 }
 
 @layer base {
@@ -1231,6 +1257,420 @@ html {
 }
 @media (prefers-reduced-motion: reduce) {
   .cmp-tip::after {
+    transition: none;
+  }
+}
+
+/* ============================================================
+   P9.10 D1 — the hero (V2 "floating run") + the aurora edge.
+   Board-picked 2026-08-08 from the D1 R3 frames; motion springs
+   extracted from the transitions.dev card-stack-hover demo the
+   board referenced (asymmetric out/back pair, individual
+   translate/rotate properties so hover stays interruptible).
+   The aurora edge is the marketing kiss: 1-in-3 sections at
+   most (this page: the hero input; the closing CTA is the only
+   other candidate). Zero JS — every entrance is a mount
+   animation in the hero-enter tradition (backwards fill, no
+   opacity:0 ever served as markup), and the scroll never
+   retriggers it.
+   ============================================================ */
+
+:root {
+  /* Aurora hues — the beam family's paint. UI-only tokens: never wired
+     into qr-engine output (exported QR assets stay sRGB-hex-only). */
+  --au-1: oklch(0.8 0.16 160);
+  --au-2: oklch(0.7 0.2 330);
+  --au-3: oklch(0.78 0.13 230);
+  --au-4: oklch(0.82 0.14 80);
+  --au-5: oklch(0.72 0.16 300);
+}
+
+/* Registered so the conic start angles interpolate as real angles —
+   without @property the keyframes snap instead of sweeping. */
+@property --beam-a {
+  syntax: "<angle>";
+  initial-value: 0deg;
+  inherits: false;
+}
+@property --beam-b {
+  syntax: "<angle>";
+  initial-value: 180deg;
+  inherits: false;
+}
+
+/* ---- the aurora edge (AuroraPulse in the design-system inventory):
+   a 1px mask-composite hairline carrying two counter-drifting conic
+   arcs on eased alternate loops (the wavy motion, not a mechanical
+   spin) plus a slow linear hue clock; ::after is the blurred bleed
+   twin. hue keyframes REPLACE filter wholesale, so the bleed variant
+   carries its blur inside its own keyframes. ---- */
+.aurora-edge {
+  position: relative;
+  isolation: isolate;
+}
+.aurora-edge::before,
+.aurora-edge::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background:
+    conic-gradient(
+      from var(--beam-a),
+      transparent 0deg,
+      var(--au-1) 40deg,
+      transparent 95deg,
+      var(--au-3) 150deg,
+      transparent 205deg,
+      var(--au-2) 265deg,
+      transparent 320deg
+    ),
+    conic-gradient(
+      from var(--beam-b),
+      transparent 0deg,
+      var(--au-4) 55deg,
+      transparent 110deg,
+      var(--au-5) 230deg,
+      transparent 290deg
+    );
+}
+.aurora-edge::before {
+  padding: 1px;
+  -webkit-mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  mask-composite: exclude;
+  z-index: 1;
+  animation:
+    beam-a 9s var(--motion-ease-in-out) infinite alternate,
+    beam-b 13s var(--motion-ease-in-out) infinite alternate-reverse,
+    beam-hue 21s linear infinite;
+}
+.aurora-edge::after {
+  z-index: -1;
+  inset: -2px;
+  opacity: 0.4;
+  animation:
+    beam-a 9s var(--motion-ease-in-out) infinite alternate,
+    beam-b 13s var(--motion-ease-in-out) infinite alternate-reverse,
+    beam-hue-blur 21s linear infinite;
+}
+.aurora-edge > * {
+  position: relative;
+  z-index: 2;
+}
+.aurora-breathe::after {
+  animation:
+    beam-a 9s var(--motion-ease-in-out) infinite alternate,
+    beam-b 13s var(--motion-ease-in-out) infinite alternate-reverse,
+    beam-hue-blur 21s linear infinite,
+    beam-breathe 4.5s var(--motion-ease-in-out) infinite alternate;
+}
+@keyframes beam-a {
+  from {
+    --beam-a: -60deg;
+  }
+  to {
+    --beam-a: 240deg;
+  }
+}
+@keyframes beam-b {
+  from {
+    --beam-b: 300deg;
+  }
+  to {
+    --beam-b: 30deg;
+  }
+}
+@keyframes beam-hue {
+  from {
+    filter: hue-rotate(0deg);
+  }
+  to {
+    filter: hue-rotate(360deg);
+  }
+}
+@keyframes beam-hue-blur {
+  from {
+    filter: blur(14px) hue-rotate(0deg);
+  }
+  to {
+    filter: blur(14px) hue-rotate(360deg);
+  }
+}
+@keyframes beam-breathe {
+  from {
+    opacity: 0.22;
+  }
+  to {
+    opacity: 0.5;
+  }
+}
+
+/* ---- the hero URL input: the page's highest-intent moment. Board
+   note (D1 R3 review): the field itself stays DARKER than the panel
+   register so the placeholder never fights the bleed. ---- */
+.hero-input {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  width: 100%;
+  max-width: 27rem;
+  border-radius: 0.875rem;
+  background: oklch(0.145 0.004 280);
+  padding: 0.55rem 0.55rem 0.55rem 1.1rem;
+  text-align: left;
+}
+.hero-input input {
+  flex: 1;
+  min-width: 0;
+  background: transparent;
+  border: 0;
+  outline: none;
+  font-size: 1rem;
+  color: var(--foreground);
+}
+.hero-input input::placeholder {
+  color: oklch(1 0 0 / 34%);
+}
+.hero-input:focus-within {
+  outline: 2px solid var(--ring);
+  outline-offset: 3px;
+}
+
+/* Ignite: the input arrives unlit, the stroke fades up at 2.15s and the
+   bleed follows — the lights come on only after the objects exist. The
+   ignite keyframes are appended LAST in each list so they win during
+   their own run, then hand back to the loops. */
+.hero-input.aurora-edge::before {
+  animation:
+    beam-a 9s var(--motion-ease-in-out) infinite alternate,
+    beam-b 13s var(--motion-ease-in-out) infinite alternate-reverse,
+    beam-hue 21s linear infinite,
+    hero-beam-in 700ms var(--motion-ease-out) 2150ms backwards;
+}
+.hero-input.aurora-breathe::after {
+  animation:
+    beam-a 9s var(--motion-ease-in-out) infinite alternate,
+    beam-b 13s var(--motion-ease-in-out) infinite alternate-reverse,
+    beam-hue-blur 21s linear infinite,
+    beam-breathe 4.5s var(--motion-ease-in-out) infinite alternate,
+    hero-beam-in-bleed 900ms var(--motion-ease-out) 2150ms backwards;
+}
+@keyframes hero-beam-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@keyframes hero-beam-in-bleed {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 0.4;
+  }
+}
+
+/* ---- the load choreography (D1 R3, board-approved): a beat of dark
+   field first, then claim -> sub -> input arriving unlit -> the run
+   dealing out -> the beam lighting -> the glow blooming last. Same
+   mechanism as hero-enter (mount animation, backwards fill); slower
+   and staged because this entrance is meant to be SEEN. ---- */
+@keyframes hero-rise-soft {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+    filter: blur(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+    filter: blur(0);
+  }
+}
+.hero-stage {
+  animation: hero-rise-soft 950ms var(--motion-ease-out) backwards;
+}
+.hero-stage-1 {
+  animation-delay: 350ms;
+}
+.hero-stage-2 {
+  animation-delay: 560ms;
+}
+.hero-stage-3 {
+  animation-delay: 800ms;
+}
+
+/* ---- the fan: three real engine mats. Pose lives in per-mat custom
+   properties consumed by BOTH the resting rule and the shared fan-out
+   keyframes; explicit -1/-2/-3 classes, never nth-child (the R2/R3
+   off-by-one family is structurally banned). Layering: .hero-mat
+   carries pose + spring hover, .hero-paper carries the float — the
+   one-shot entrance and the infinite drift never share an element,
+   and the entrance uses backwards fill only, so after it ends the
+   hover transition owns translate/rotate again. ---- */
+.hero-fan-zone {
+  --fan-scale: 0.62;
+  position: relative;
+  height: calc(17.5rem * var(--fan-scale));
+}
+@media (min-width: 640px) {
+  .hero-fan-zone {
+    --fan-scale: 0.8;
+  }
+}
+@media (min-width: 1024px) {
+  .hero-fan-zone {
+    --fan-scale: 1;
+  }
+}
+.hero-fan {
+  position: absolute;
+  left: 50%;
+  top: 0;
+  translate: -50% 0;
+  scale: var(--fan-scale);
+  transform-origin: 50% 0;
+  width: 40rem;
+  max-width: none;
+  height: 17.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.hero-glow {
+  position: absolute;
+  inset: -12% -16% -20% -16%;
+  filter: blur(34px);
+  opacity: 0.4;
+  pointer-events: none;
+  background:
+    radial-gradient(45% 50% at 34% 74%, var(--au-2), transparent 70%),
+    radial-gradient(48% 45% at 70% 30%, var(--au-1), transparent 72%);
+  animation: hero-glow-in 1400ms var(--motion-ease-out) 2050ms backwards;
+}
+@keyframes hero-glow-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 0.4;
+  }
+}
+.hero-mat {
+  position: absolute;
+  width: 12.6rem;
+  translate: var(--mx) var(--my);
+  rotate: var(--mrot);
+  animation: hero-fan-out 1050ms var(--motion-ease-out) 1150ms backwards;
+  transition:
+    translate 360ms var(--motion-ease-spring-back),
+    rotate 360ms var(--motion-ease-spring-back);
+}
+.hero-mat-1 {
+  --mx: -9.3rem;
+  --my: 0.7rem;
+  --mrot: -9deg;
+  --dx: -1.1rem;
+  --drot: -2.5deg;
+  z-index: 1;
+}
+.hero-mat-2 {
+  --mx: 0rem;
+  --my: 0rem;
+  --mrot: -1deg;
+  z-index: 3;
+  width: 14rem;
+}
+.hero-mat-3 {
+  --mx: 9.3rem;
+  --my: 0.9rem;
+  --mrot: 8deg;
+  --dx: 1.1rem;
+  --drot: 2.5deg;
+  z-index: 2;
+}
+/* Rise as one stack (0-44%, house ease via the animation's own timing),
+   then spring open to the fan (44-100% on the out-bounce). */
+@keyframes hero-fan-out {
+  0% {
+    opacity: 0;
+    translate: 0rem calc(var(--my) + 1.8rem);
+    rotate: 0deg;
+  }
+  44% {
+    opacity: 1;
+    translate: 0rem var(--my);
+    rotate: 0deg;
+    animation-timing-function: var(--motion-ease-spring-out);
+  }
+  100% {
+    opacity: 1;
+    translate: var(--mx) var(--my);
+    rotate: var(--mrot);
+  }
+}
+/* Hover: the outside mats breathe out on the hard spring and settle
+   back on the soft one (the card-stack asymmetry). Hover-capable fine
+   pointers only, and only when motion is welcome. */
+@media (hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference) {
+  .hero-fan:hover .hero-mat {
+    translate: calc(var(--mx) + var(--dx, 0rem)) var(--my);
+    rotate: calc(var(--mrot) + var(--drot, 0deg));
+    transition:
+      translate 410ms var(--motion-ease-spring-out),
+      rotate 410ms var(--motion-ease-spring-out);
+  }
+}
+.hero-paper {
+  background: #fff;
+  border-radius: 11px;
+  padding: 0.5rem;
+  box-shadow:
+    0 2px 6px -2px oklch(0 0 0 / 55%),
+    0 34px 80px -24px oklch(0 0 0 / 90%);
+}
+.hero-paper svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  border-radius: 5px;
+}
+@keyframes hero-paper-float {
+  from {
+    transform: translateY(2px) rotate(0.25deg);
+  }
+  to {
+    transform: translateY(-5px) rotate(-0.3deg);
+  }
+}
+.hero-mat-1 .hero-paper {
+  animation: hero-paper-float 8.5s var(--motion-ease-in-out) -1.2s infinite alternate;
+}
+.hero-mat-2 .hero-paper {
+  animation: hero-paper-float 9.6s var(--motion-ease-in-out) -4s infinite alternate;
+}
+.hero-mat-3 .hero-paper {
+  animation: hero-paper-float 10.4s var(--motion-ease-in-out) -7s infinite alternate;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hero-stage,
+  .hero-mat,
+  .hero-paper,
+  .hero-glow,
+  .aurora-edge::before,
+  .aurora-edge::after {
+    animation: none !important;
+  }
+  .hero-mat {
     transition: none;
   }
 }

@@ -7,9 +7,12 @@
 export function HeroBackdrop() {
   return (
     <div aria-hidden className="pointer-events-none absolute inset-0 overflow-hidden">
-      {/* accent glow behind the headline */}
+      {/* overhead light behind the headline — since the D13 monochrome
+          amendment --primary is near-white ink, so this is now a soft
+          neutral wash, not an accent: the hero's only color is the aurora
+          kiss on the input, and this must stay quiet under it (P9.10-D1) */}
       <div
-        className="absolute left-1/2 top-[-14rem] h-[36rem] w-[64rem] -translate-x-1/2 rounded-full opacity-25 blur-3xl dark:opacity-35"
+        className="absolute left-1/2 top-[-14rem] h-[36rem] w-[64rem] -translate-x-1/2 rounded-full opacity-[0.05] blur-3xl dark:opacity-[0.08]"
         style={{
           background:
             "radial-gradient(closest-side, var(--primary) 0%, transparent 70%)",

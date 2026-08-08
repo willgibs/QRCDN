@@ -55,6 +55,7 @@ export function StudioShell({
   plan,
   userId,
   anonymous = false,
+  initialPayload,
 }: {
   initialKits: BrandKit[];
   /** P9.8-B2: creation (and its Pro-locks) left the studio for /codes — the
@@ -71,6 +72,11 @@ export function StudioShell({
    *  kit bar and the rail's /codes link become the page's two account
    *  incentives instead. */
   anonymous?: boolean;
+  /** P9.10-D1: the landing hero's URL form lands here as /studio?url=…
+   *  (validated server-side in app/studio/page.tsx). A seeded value fills
+   *  the Destination field exactly as if typed — the empty-by-default
+   *  R3 decision below governs only the unseeded first paint. */
+  initialPayload?: string;
 }) {
   const [kits, setKits] = useState<BrandKit[]>(initialKits);
   const [activeKitId, setActiveKitId] = useState<string | null>(initialKits[0]?.id ?? null);
@@ -84,7 +90,7 @@ export function StudioShell({
   // bound every kit must survive (P9.8-B3, lib/preview.ts has the full
   // derivation). Exports are a different matter: they encode a REAL link or
   // nothing — the rail disables them while this is empty.
-  const [payload, setPayload] = useState("");
+  const [payload, setPayload] = useState(initialPayload ?? "");
   // The raw File behind a not-yet-persisted style.logo.assetId — kept only
   // so the kit bar's create/save actions can upload it to the brand-logos
   // bucket as the durable source (deliverable #2). Cleared once that upload

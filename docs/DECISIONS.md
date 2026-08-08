@@ -247,6 +247,23 @@ Layer 0 primitives + Layer 1 semantic vars (shadcn names verbatim + `--surface-s
 Layer 2 `@theme inline` written once. Semantic *names* frozen; explorations change
 *values* only. After direction pick: collapse winner into `:root`/`.dark`, delete rest.
 
+*Amended at P9.10-D1 (2026-08-08, board-approved at the D0 direction review):*
+the "single violet-blue accent" palette strategy is superseded by **monochrome
+base + aurora kiss + contextual accents**. The base UI (primary, ring, accent
+tints, chart-1, sidebar) is monochrome ink/near-white — hierarchy comes from
+scale, space, and weight; on the dark field, pure white is a budgeted material
+reserved for headings, buttons/CTAs, and QR paper. Color enters through exactly
+two doors: (1) the **aurora family** (`--au-1..5` + the `.aurora-edge` beam), a
+design kiss attached to the page's highest-intent moments — at most 1 in 3
+marketing sections, intermittent in-app; and (2) **contextual accents** that own
+their moment and never join the system palette (`--dest-1..4` destination
+identity — dest-1 now pins the old violet as a literal — charts 2-5,
+destructive). Token *names* stay frozen per the original entry; this amendment
+is a value-layer repaint plus one additive family (`--au-*`, the spring easing
+pair). Type ladder v2 (+10-18% heading ceilings) and the section-rhythm bump
+land in the same unit (D0 note 10). Full direction record:
+`qrcdn-internal/phases/p9.10-d-design-pass.md`.
+
 ## D14 — Pricing (product, approved 2026-07-21)
 
 Free: unlimited static + studio, 3 dynamic codes forever (unlimited scans, retargeting

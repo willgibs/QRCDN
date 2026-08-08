@@ -1,95 +1,107 @@
-import Link from "next/link";
-import { ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { HeroBackdrop } from "@/components/brand/backdrop";
-import { AccentText } from "@/components/brand/accent-text";
-import { ScanNetwork } from "./scan-network";
+import { LearnMoreLink } from "./learn-more-link";
+import { parseQrStyle } from "@qrcdn/shared";
+import { renderPreview } from "@/lib/preview";
 
 /**
- * Landing hero (P9-U2, rebuilt v4 at P9.5-T3a) — the v4.2 hero bones
- * (docs/guides/design-system.md's codified quality floor), harvested-for-
- * pattern into the marketing tree. The inline nav row from
- * components/explore/hero.tsx is dropped entirely: `SiteNav` (mounted by
- * app/(marketing)/layout.tsx) replaces it, and the explore nav's links
- * were dead anyway.
+ * Landing hero, P9.10-D1 "the floating run" (board-picked V2 from the D1
+ * R3 exploration, claude.ai/code/artifact/a68b2ad0-adb5-45d2-aebe-5f33dc0c70e9).
+ * The v4 copy recipe stands untouched — "The modern" / "QR platform" over
+ * the lede — but everything below it is new:
  *
- * P9.5-T3a: copy is the board-locked v4 recipe (copy deck v3's HERO
- * block, round 3/final notes) — no eyebrow, "The modern" / "QR platform."
- * two-line H1 with `AccentText` on line two, and a rewritten sub. H1/sub
- * now render at the fluid `text-display`/`text-lede` scale (globals.css's
- * type-bump amendment) instead of static Tailwind breakpoint classes, so
- * `text-display`'s own paired line-height/letter-spacing supersede the
- * old hand-tuned `leading-[1.05] tracking-tighter`. (The pillar strip that
- * once closed the hero as a fourth staggered element was removed at
- * P9.7-V2 — the Highlights bento directly below took over its
- * table-of-contents job.)
- *
- * P9.5-T1a: the h1/sub/CTA row entrance moved off `Reveal` (motion/react
- * `whileInView`) onto the plain-CSS `hero-enter` utility (globals.css,
- * beside `qr-flow`). `Reveal`'s SSR markup ships `opacity:0` on whatever it
- * wraps — fine for below-the-fold sections that only need to look right
- * once an IntersectionObserver fires, wrong for the h1, which is the LCP
- * candidate: a slow or absent hydration left it invisible at first paint.
- * `hero-enter` is pure CSS (`animation-fill-mode: backwards` + staggered
- * `animation-delay` classes), so it runs the instant the stylesheet loads,
- * no JS required, and the served HTML never carries a static `opacity:0`
- * anywhere on or above the h1. `ScanNetwork` keeps its own (below-the-fold,
- * client-island) entrance untouched; `HeroBackdrop` is presentational and
- * renders straight from the server.
- *
- * Board round 5 (folded into P9.5-T3b): the accent line's trailing period
- * ("QR platform." → "QR platform") is dropped as a copy call, and the
- * pillar strip is hidden below `md` (it was pushing `ScanNetwork`/
- * `OrbitStage` down, and the board wants the orbit stage higher above the
- * fold on mobile) — unchanged at `md` and up. See `qr-tile.tsx` and
- * `destination-hues.ts` for this same round's other two fixes (QR fill
- * ratio; iOS Safari color-mix/SVG-paint hardening for the orbit's active
- * chip), both shared by every stage this component renders.
+ * - The CTA row is replaced by the page's highest-intent moment: a real
+ *   URL form carrying the aurora edge (the marketing kiss; the hero is
+ *   one of at most 1-in-3 sections that ever gets it). Submitting lands
+ *   on /studio with the typed URL seeded into the payload field
+ *   (app/studio/page.tsx reads ?url=), so the input does exactly what it
+ *   says. "See the API"'s job moved to the quiet LearnMoreLink beneath.
+ * - ScanNetwork/OrbitStage retire from this surface (feature heroes still
+ *   compose them). The artwork is now three REAL engine renders — the
+ *   same certified pairs the C2 instrument scored at 100 (espresso
+ *   #131316, cobalt #1e3a8a, teal #0f766e on white) — dealt out as a fan
+ *   of floating print mats over a steady aurora under-glow. QR solidity
+ *   rule: no hand-authored patterns, ever; these are renderPreview()
+ *   output, server-rendered, deterministic.
+ * - The load is choreographed (globals.css hero-stage / hero-fan-out):
+ *   a beat of dark field, claim, sub, input arriving unlit, the run
+ *   rising as one stack and springing open, the beam igniting, the glow
+ *   blooming last. Pure CSS mount animations in the hero-enter tradition:
+ *   backwards fill only, so served markup never carries opacity:0 (the
+ *   whole-document e2e sweep) and the h1 stays the honest LCP candidate.
+ * - Hover breathes the outside mats out on the extracted card-stack
+ *   spring pair; reduced motion gets a still, fully-visible hero.
  */
+
+const HERO_PAYLOAD = "HTTPS://WWW.QRCDN.COM";
+
+function matSvg(dot: "square" | "rounded" | "circle", sizeRatio: number, eyeFrame: string, eyePupil: string, ink: string): string {
+  const style = parseQrStyle({
+    v: 1,
+    dots: { style: dot, sizeRatio },
+    eyes: { frame: eyeFrame, pupil: eyePupil, color: null },
+    fill: { type: "solid", color: ink },
+    background: { transparent: false, color: "#ffffff" },
+  });
+  return renderPreview(HERO_PAYLOAD, style).svg;
+}
+
+const HERO_MATS = [
+  { cls: "hero-mat-1", svg: matSvg("square", 1, "square", "square", "#1e3a8a") },
+  { cls: "hero-mat-2", svg: matSvg("rounded", 0.88, "rounded", "rounded", "#131316") },
+  { cls: "hero-mat-3", svg: matSvg("circle", 0.78, "circle", "dot", "#0f766e") },
+] as const;
+
 export function Hero() {
   return (
     <header className="relative overflow-hidden">
       <HeroBackdrop />
 
       <div className="relative mx-auto flex max-w-3xl flex-col items-center gap-6 px-6 pt-16 text-center sm:pt-20 lg:pt-24">
-        <h1 className="hero-enter hero-enter-1 font-display text-display font-semibold text-foreground text-balance">
+        <h1 className="hero-stage hero-stage-1 font-display text-display font-semibold text-foreground text-balance">
           <span className="block">The modern</span>
-          <span className="block">
-            <AccentText>QR platform</AccentText>
-          </span>
+          <span className="block">QR platform</span>
         </h1>
 
-        <p className="hero-enter hero-enter-2 max-w-xl text-lede text-muted-foreground">
+        <p className="hero-stage hero-stage-2 max-w-xl text-lede text-muted-foreground">
           The full stack behind a printed code: brand studio, links that
           never die, scan analytics, and an API. Open source, MIT.
         </p>
 
-        <div className="hero-enter hero-enter-3 flex flex-wrap items-center justify-center gap-3">
-          <Button
-            asChild
-            size="lg"
-            className="group h-12 gap-3 rounded-full py-1.5 pl-6 pr-1.5 text-base shadow-lg shadow-primary/25"
-          >
-            <Link href="/login">
-              Start building
-              <span className="flex size-9 items-center justify-center rounded-full bg-primary-foreground/15 transition-transform duration-200 ease-(--motion-ease-out) group-hover:translate-x-0.5">
-                <ArrowRight className="size-4" />
-              </span>
-            </Link>
-          </Button>
-          <Button
-            asChild
-            size="lg"
-            variant="ghost"
-            className="h-12 rounded-full px-5 text-base text-muted-foreground hover:text-foreground"
-          >
-            <Link href="/developers">See the API</Link>
-          </Button>
+        <div className="hero-stage hero-stage-3 flex w-full flex-col items-center gap-4">
+          <form action="/studio" method="get" className="hero-input aurora-edge aurora-breathe">
+            <span aria-hidden className="font-mono text-sm text-muted-foreground">
+              @
+            </span>
+            <input
+              type="url"
+              name="url"
+              placeholder="https://your-link.com"
+              aria-label="Destination URL for your first code"
+              autoComplete="off"
+              spellCheck={false}
+            />
+            <Button type="submit" size="sm" className="rounded-[9px] px-3.5">
+              Make it
+            </Button>
+          </form>
+          <LearnMoreLink href="/developers">Read the API docs</LearnMoreLink>
         </div>
       </div>
 
-      <div className="relative mx-auto max-w-6xl px-6 pb-14 pt-8 sm:pt-10">
-        <ScanNetwork />
+      <div className="relative mx-auto max-w-6xl px-6 pb-16 pt-10 sm:pt-12">
+        <div aria-hidden className="hero-fan-zone">
+          <div className="hero-fan">
+            <div className="hero-glow" />
+            {HERO_MATS.map((mat) => (
+              <div key={mat.cls} className={`hero-mat ${mat.cls}`}>
+                {/* deterministic server-rendered engine SVG, same pattern as
+                    comparison-section's decor mats */}
+                <div className="hero-paper" dangerouslySetInnerHTML={{ __html: mat.svg }} />
+              </div>
+            ))}
+          </div>
+        </div>
       </div>
     </header>
   );

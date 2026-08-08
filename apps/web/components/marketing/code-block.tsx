@@ -18,11 +18,17 @@ export async function CodeBlock({
   lang,
   title,
   className,
+  copy = true,
 }: {
   code: string;
   lang: CodeLang;
   title?: string;
   className?: string;
+  /** `false` drops the CopyButton island (P9.10-D2, additive — every
+   *  existing call site keeps today's button). The landing's 09 ledger
+   *  passes false so the section ships ZERO client JS; /developers, the
+   *  copy surface, keeps its buttons. */
+  copy?: boolean;
 }) {
   const html = await highlight(code, lang);
 
@@ -39,9 +45,12 @@ export async function CodeBlock({
         </div>
       )}
       <div className="relative">
-        <CopyButton code={code} className="absolute right-2 top-2" />
+        {copy && <CopyButton code={code} className="absolute right-2 top-2" />}
         <div
-          className="overflow-x-auto p-4 pr-12 font-mono text-code [&_pre]:m-0"
+          className={cn(
+            "overflow-x-auto p-4 font-mono text-code [&_pre]:m-0",
+            copy && "pr-12",
+          )}
           dangerouslySetInnerHTML={{ __html: html }}
         />
       </div>

@@ -237,25 +237,26 @@
   --dest-2: oklch(0.62 0.14 78); /* amber */
   --dest-3: oklch(0.55 0.12 195); /* teal */
   --dest-4: oklch(0.58 0.15 350); /* rose */
-  /* Shiki code-block palette (P9.5-T1b) — near-monochrome, one accent.
-     fg/bg alias --foreground/--muted directly (stay in sync automatically).
-     comment/punctuation/number/property are color-mix blends of
-     foreground->muted-foreground so both modes derive correctly from one
-     formula; keyword is the brand accent, function a lower-chroma tint of
-     it (same "single accent, reused at intensities" rule as the rest of
-     the brand — no second hue); string is its own literal oklch (a
-     desaturated teal-slate, hand-tuned per mode for contrast against
-     --code-bg). These are UI-only tokens — never wired into qr-engine
+  /* Shiki code-block palette — VERCEL's, by board directive (P9.10-D2:
+     "code syntax highlighting, same theme as Vercel"). Values extracted
+     2026-08-08 from vercel.com/geist/code-block's SERVED CSS (their
+     token rules -> ds-* scale), not eyeballed: text/JSON-keys/punctuation
+     ds-gray-1000, comment ds-gray-900, string+number ds-green-900,
+     keyword ds-pink-900 (JSON null routes here), function ds-purple-900.
+     This block carries the ds-* LIGHT values; .dark carries the dark
+     ones. Doctrine: the palette is a CONTEXTUAL ACCENT family (D13 as
+     amended — same standing as --dest-*): scoped to code content, never
+     a base-palette member. UI-only tokens — never wired into qr-engine
      (exported QR assets stay sRGB-hex-only, CLAUDE.md hard rule). */
   --code-bg: var(--muted);
-  --code-fg: var(--foreground);
-  --code-comment: color-mix(in oklch, var(--foreground) 55%, var(--muted-foreground) 45%);
-  --code-keyword: var(--primary);
-  --code-string: oklch(0.46 0.05 205);
-  --code-number: color-mix(in oklch, var(--foreground) 80%, var(--muted-foreground) 20%);
-  --code-function: color-mix(in oklch, var(--primary) 65%, var(--foreground) 35%);
-  --code-property: color-mix(in oklch, var(--foreground) 80%, var(--muted-foreground) 20%);
-  --code-punctuation: color-mix(in oklch, var(--foreground) 45%, var(--muted-foreground) 55%);
+  --code-fg: #171717;
+  --code-comment: #4d4d4d;
+  --code-keyword: #c41562;
+  --code-string: #107d32;
+  --code-number: #107d32;
+  --code-function: #7c00c9;
+  --code-property: #171717;
+  --code-punctuation: #171717;
   --sidebar: oklch(0.985 0 0);
   --sidebar-foreground: oklch(0.15 0.004 280);
   --sidebar-primary: oklch(0.21 0.005 280);
@@ -314,18 +315,21 @@
   --dest-2: oklch(0.76 0.13 80);
   --dest-3: oklch(0.70 0.12 195);
   --dest-4: oklch(0.72 0.13 350);
-  /* Shiki code-block palette — same formulas as :root; they resolve
-     differently here because --foreground/--muted-foreground/--primary
-     already do. See the :root block above for the full rationale. */
-  --code-bg: var(--muted);
-  --code-fg: var(--foreground);
-  --code-comment: color-mix(in oklch, var(--foreground) 55%, var(--muted-foreground) 45%);
-  --code-keyword: var(--primary);
-  --code-string: oklch(0.75 0.06 205);
-  --code-number: color-mix(in oklch, var(--foreground) 80%, var(--muted-foreground) 20%);
-  --code-function: color-mix(in oklch, var(--primary) 65%, var(--foreground) 35%);
-  --code-property: color-mix(in oklch, var(--foreground) 80%, var(--muted-foreground) 20%);
-  --code-punctuation: color-mix(in oklch, var(--foreground) 45%, var(--muted-foreground) 55%);
+  /* Shiki code-block palette — Vercel's ds-* DARK values (see the :root
+     block for provenance + the contextual-accent doctrine note). The
+     pane ground goes RECESSED (below --background, not the raised
+     --muted) per the board-approved D2 frames: code reads as a well the
+     verbs sit in, and the D2 spec plate's green status dot borrows
+     --code-string so the section carries exactly one green. */
+  --code-bg: oklch(0.115 0.004 280);
+  --code-fg: #ededed;
+  --code-comment: #a0a0a0;
+  --code-keyword: #ff518d;
+  --code-string: #00ca52;
+  --code-number: #00ca52;
+  --code-function: #c472fb;
+  --code-property: #ededed;
+  --code-punctuation: #ededed;
   --sidebar: oklch(0.17 0.005 280);
   --sidebar-foreground: oklch(0.96 0.002 280);
   --sidebar-primary: oklch(0.96 0.002 280);
@@ -400,12 +404,17 @@ html {
 }
 
 /* variant="split" real layout (P9.7-U1) — gated behind the `splitRail` opt-in
-   prop (`data-split="rail"`) IN ADDITION to `data-variant="split"`, so the
-   four sections that already declare `variant="split"` today (03 brand-
-   system, 05 guardrails, 07 api, 09 open-source — none of which pass
-   `splitRail`) keep rendering exactly as before: plain stacked children,
-   no grid, at every viewport. Below `md` this rule doesn't apply at all,
-   so a `splitRail` section also just stacks there, unchanged.
+   prop (`data-split="rail"`) IN ADDITION to `data-variant="split"`, so
+   sections that declare `variant="split"` without the opt-in keep
+   rendering as plain stacked children, no grid, at every viewport.
+   (Ordinals here rotted once already — sections renumber; no enumerated
+   list.) Still zero `splitRail` consumers as of P9.10-D2: 09's rebuilt
+   rail wants a FULL-WIDTH heading above a two-column body, and this
+   primitive stickies the heading column itself — so 09 composes its own
+   grid with the same track spec (see api-section.tsx) rather than
+   claiming an opt-in whose geometry it doesn't use. Below `md` this rule
+   doesn't apply at all, so a `splitRail` section also just stacks there,
+   unchanged.
 
    `> div:last-child` targets Section's own inner frame div without adding
    a new attribute to it (which would show up on every Section's rendered
@@ -1671,6 +1680,96 @@ html {
     animation: none !important;
   }
   .hero-mat {
+    transition: none;
+  }
+}
+
+/* ============================================================ */
+/* P9.10 D2 — the constant print (section 09) + the lit stroke  */
+/* Board-picked A-R2, 2026-08-08. The API section rebuilt as a  */
+/* sticky print rail + a native-details verb ledger: the tabs   */
+/* island's successor is no island at all.                      */
+/* ============================================================ */
+
+/* The lit stroke (D0 note 3, FIRST CONSUMERS here: 09's method chips,
+   spec plate, code panes, feature tiles): a hairline that is itself a
+   gradient — lit from above, white 25% feathering to 5% — drawn as a
+   mask-composite ring so it costs no layout and honors border-radius.
+   This is the monochrome-control counterpart of .aurora-edge's colored
+   ring; same mechanism, no color. */
+.lit-stroke {
+  position: relative;
+}
+.lit-stroke::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1px;
+  background: linear-gradient(oklch(1 0 0 / 25%), oklch(1 0 0 / 5%));
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  mask-composite: exclude;
+  pointer-events: none;
+}
+
+/* 09's verb ledger: five native <details name="api-verbs"> accordions —
+   exclusive open via the name group, POST server-rendered open, zero
+   client JS. The open/close height tween rides ::details-content +
+   interpolate-size where the browser has them (Chromium today) and is
+   instant elsewhere — a deliberate, scoped layout animation (the
+   accordion pattern IS a height change; 300ms, open/close only, never
+   scroll-linked), the same shape as transitions-dev's accordion. */
+.api-ledger {
+  interpolate-size: allow-keywords;
+}
+.api-verb {
+  border-radius: 14px;
+  background: oklch(1 0 0 / 4%);
+  transition: background-color var(--duration-fast) var(--motion-ease-out);
+}
+.api-verb:hover {
+  background: oklch(1 0 0 / 6%);
+}
+.api-verb > summary {
+  list-style: none;
+  cursor: pointer;
+}
+.api-verb > summary::-webkit-details-marker {
+  display: none;
+}
+.api-verb > summary:focus-visible {
+  outline: 1px solid oklch(1 0 0 / 45%);
+  outline-offset: 2px;
+  border-radius: 14px;
+}
+.api-chev {
+  transition: transform var(--duration-fast) var(--motion-ease-out);
+}
+.api-verb[open] .api-chev {
+  transform: scaleY(-1);
+}
+/* the one-line receipt is redundant while its verb is open */
+.api-verb[open] .api-fact {
+  display: none;
+}
+.api-verb::details-content {
+  block-size: 0;
+  overflow-y: clip;
+  transition:
+    content-visibility var(--duration-normal) allow-discrete,
+    block-size var(--duration-normal) var(--motion-ease-out);
+}
+.api-verb[open]::details-content {
+  block-size: auto;
+}
+@media (prefers-reduced-motion: reduce) {
+  .api-verb,
+  .api-chev {
+    transition: none;
+  }
+  .api-verb::details-content {
     transition: none;
   }
 }

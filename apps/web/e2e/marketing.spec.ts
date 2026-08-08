@@ -463,25 +463,50 @@ test.describe("marketing site", () => {
     ).toBeVisible();
   });
 
-  test("API console: clicking a tab switches the visible pane", async ({ page }) => {
+  test("09 the constant print: five accordion verbs, the mat never dies (P9.10-D2)", async ({ page }) => {
     await page.goto("/");
     const section = page.locator("#api");
+    await expect(section).toHaveCount(1);
 
-    // Create is the default pane (POST /codes).
-    await expect(section.getByRole("tabpanel", { name: "Create" })).toBeVisible();
-    await expect(section.getByRole("tabpanel", { name: "Create" })).toContainText("POST");
+    // The tabs island retired to native details/summary — zero tab
+    // semantics remain in the section.
+    await expect(section.getByRole("tab")).toHaveCount(0);
 
-    await section.getByRole("tab", { name: "Retarget" }).click();
-    const retargetPanel = section.getByRole("tabpanel", { name: "Retarget" });
-    await expect(retargetPanel).toBeVisible();
-    // Regex, not a string literal — lib/e2e-safety.test.ts's static scan
-    // flags any hardcoded uppercase run inside e2e/'s SLUG_CHARSET as a
-    // potential real-slug literal; "PATCH" is an HTTP method, not a slug,
-    // but a regex literal is exempt by construction (never a value sent
-    // anywhere) rather than needing an allowlist entry for a false positive.
-    await expect(retargetPanel).toContainText(/PATCH/);
-    await expect(section.getByRole("tab", { name: "Retarget" })).toHaveAttribute("aria-selected", "true");
-    await expect(section.getByRole("tab", { name: "Create" })).toHaveAttribute("aria-selected", "false");
+    // Five verbs; Create server-rendered open with its panes visible.
+    // Uppercase HTTP methods stay REGEX literals (lib/e2e-safety.test.ts's
+    // static scan flags hardcoded uppercase runs in e2e/ as potential
+    // real-slug literals; a regex literal is exempt by construction —
+    // same convention the retired tab test used).
+    const verbs = section.locator("details.api-verb");
+    await expect(verbs).toHaveCount(5);
+    await expect(verbs.nth(0)).toContainText(/POST/);
+    await expect(verbs.nth(0)).toHaveAttribute("open", "");
+    await expect(verbs.nth(0).getByText("Request", { exact: true })).toBeVisible();
+
+    // Opening Retarget closes Create: native exclusive accordion via the
+    // details name group — the proof no client island is doing this.
+    await expect(verbs.nth(3)).toContainText(/PATCH/);
+    await verbs.nth(3).locator("summary").click();
+    await expect(verbs.nth(3)).toHaveAttribute("open", "");
+    await expect(verbs.nth(0)).not.toHaveAttribute("open", "");
+    await expect(verbs.nth(3).getByText("Response", { exact: true })).toBeVisible();
+
+    // The rail: one real engine render on the white mat, the green
+    // active light beside it.
+    await expect(section.locator("[data-slot=api-mat] svg")).toHaveCount(1);
+    await expect(section.getByText("active", { exact: true })).toBeVisible();
+
+    // The heading's primary doorway + the eight-feature capability grid
+    // (quota text renders from entitlements.ts — asserted via the same
+    // formatted value, never a second hand-typed copy).
+    await expect(section.getByRole("link", { name: "Read the docs" })).toHaveAttribute(
+      "href",
+      "/developers",
+    );
+    await expect(section.locator("[data-slot=api-feature]")).toHaveCount(8);
+    await expect(
+      section.getByText(`${PLAN_LIMITS.pro.apiMonthlyRequests?.toLocaleString("en-US")} req/mo`),
+    ).toBeVisible();
   });
 
   test("comparison: the landing cut on the lit bench (P9.9-C3)", async ({ page }) => {

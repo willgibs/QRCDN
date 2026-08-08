@@ -1,6 +1,7 @@
 import { parseQrStyle } from "@qrcdn/shared";
 import { ModuleMark } from "@/components/brand/marks";
 import { GlyphChip, type ChipTone } from "@/components/marketing/comparison-chips";
+import { LearnMoreLink } from "@/components/marketing/learn-more-link";
 import { Section, SectionHeading, SectionBody } from "@/components/marketing/section";
 import {
   COMPARISON_COLUMNS,
@@ -47,9 +48,13 @@ import { cn } from "@/lib/utils";
  * no other change.
  *
  * Zero client JS is this section's defining trait (P9.5-T3c, reaffirmed
- * every round): plain <table> markup, plain <a> links (next/link ships
- * "use client" internally and would put a client boundary in this
- * section's module graph). Two DOM tables, one data source: a native
+ * every round): plain <table> markup, and the row proof-links are plain
+ * <a> elements. The one exception is deliberate (C3-R1, board directive
+ * "maintain the design system"): the pricing doorway is the system's
+ * LearnMoreLink, whose next/link reference is already in every page's
+ * client graph via SiteNav and the other sections — the section still
+ * ships no island and hydrates nothing of its own. Two DOM tables, one
+ * data source: a native
  * table's columns can't be reordered by CSS, so mobile (QRCDN column
  * first) and desktop (QRCDN last) each render their own <table> and
  * `md:hidden`/`hidden md:block` picks exactly one — the e2e suite targets
@@ -272,12 +277,7 @@ export function ComparisonSection({ index }: { index: string }) {
           <p className="text-xs text-muted-foreground">
             Category patterns, not claims about any specific vendor.
           </p>
-          <a
-            href="/pricing#compare"
-            className="font-mono text-xs tracking-wide text-primary transition-colors hover:text-primary/80"
-          >
-            the full sheet, on pricing →
-          </a>
+          <LearnMoreLink href="/pricing#compare">See the full sheet on pricing</LearnMoreLink>
         </div>
       </SectionBody>
     </Section>

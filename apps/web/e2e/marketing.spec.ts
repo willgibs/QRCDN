@@ -531,12 +531,14 @@ test.describe("marketing site", () => {
     await expect(section.locator("[data-decor] svg")).toHaveCount(3);
 
     // Footnote is never omitted — deck copy verbatim — and the doorway to
-    // the comprehensive surface is a real link, not a promise.
+    // the comprehensive surface is a real link, not a promise (C3-R1: the
+    // design system's LearnMoreLink, per the board's "maintain the design
+    // system" directive).
     await expect(
       section.getByText("Category patterns, not claims about any specific vendor."),
     ).toBeVisible();
     await expect(
-      section.getByRole("link", { name: "the full sheet, on pricing →" }),
+      section.getByRole("link", { name: "See the full sheet on pricing" }),
     ).toHaveAttribute("href", "/pricing#compare");
   });
 

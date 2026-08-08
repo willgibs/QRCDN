@@ -79,7 +79,7 @@ export function SiteFooter() {
               href="/"
               className="flex w-fit items-center gap-2.5 font-display text-lg font-bold tracking-tight text-foreground"
             >
-              <ModuleMark className="size-3.5 text-primary" />
+              <ModuleMark tone="brand" className="size-3.5" />
               QRCDN
             </Link>
             <p className="max-w-[26ch] text-sm text-muted-foreground">

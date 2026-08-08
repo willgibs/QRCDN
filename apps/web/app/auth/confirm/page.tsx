@@ -37,7 +37,7 @@ export default async function ConfirmSignInPage(props: PageProps<"/auth/confirm"
 
       <div className="relative flex w-full max-w-sm flex-col items-center">
         <span className="mb-8 flex items-center gap-2.5 font-display text-lg font-bold tracking-tight">
-          <ModuleMark className="size-3.5 text-primary" />
+          <ModuleMark tone="brand" className="size-3.5" />
           QRCDN
         </span>
 

@@ -23,7 +23,7 @@ export function StudioPublicNav() {
           href="/"
           className="flex shrink-0 items-center gap-2.5 font-display text-lg font-bold tracking-tight"
         >
-          <ModuleMark className="size-3.5 text-primary" />
+          <ModuleMark tone="brand" className="size-3.5" />
           QRCDN
         </Link>
 

@@ -102,7 +102,15 @@ const OG_ACCESS_CONTROLS_PAYLOAD = "HTTPS://QRCDN.COM/FEATURES/ACCESS-CONTROLS";
 const DARK_BACKGROUND = "#070709"; // .dark --background: oklch(0.13 0.004 280) — globals.css:116
 const DARK_FOREGROUND = "#f1f2f3"; // .dark --foreground: oklch(0.96 0.002 280) — globals.css:117
 const DARK_MUTED_FOREGROUND = "#85868a"; // .dark --muted-foreground: oklch(0.62 0.006 280) — globals.css:127
-const DARK_PRIMARY = "#5178ff"; // .dark --primary: oklch(0.62 0.21 268) — globals.css:122
+// P9.10-D1 (D13 as amended): the violet primary retired from the base —
+// the brand's color is the aurora family, and the CTA register is
+// near-white ink. The two glow hexes are hand-picked sRGB approximations
+// of --au-1 oklch(0.8 0.16 160) / --au-2 oklch(0.7 0.2 330) (globals.css)
+// — approximation is fine here: they paint a 35%-opacity blurred decor
+// glow, not a brand-exact surface (unlike the favicon's computed hexes).
+const AU_MINT = "#57e6b0";
+const AU_MAGENTA = "#e05ab5";
+const WHITE_INK = "#fafafa"; // .dark --primary register (near-white CTA ink)
 const QR_PAPER = "#ffffff"; // --qr-bg (light) — globals.css:104, must match brandQrBackdrop.precision.light (lib/brand-qr.ts)
 
 function fontFiles(): string[] {
@@ -127,17 +135,30 @@ function rasterize(svg: string, widthPx: number): Buffer {
   return png;
 }
 
-/** ModuleMark brand glyph (components/brand/magic.tsx's ModuleMark),
- *  redrawn as a raw SVG fragment with a fixed fill instead of currentColor
- *  — this is composed into a larger hand-laid SVG string, not a live DOM
- *  node, so there is no CSS cascade to inherit a color from. */
-function moduleMarkFragment(x: number, y: number, size: number, fill: string): string {
-  const s = size / 10;
-  return `<g transform="translate(${x} ${y})" fill="${fill}">
-    <rect x="0" y="0" width="${4 * s}" height="${4 * s}"/>
-    <rect x="${6 * s}" y="0" width="${4 * s}" height="${4 * s}" opacity="0.45"/>
-    <rect x="0" y="${6 * s}" width="${4 * s}" height="${4 * s}" opacity="0.45"/>
-    <rect x="${6 * s}" y="${6 * s}" width="${4 * s}" height="${4 * s}"/>
+/** QRCDN brand mark (components/brand/marks.tsx's ModuleMark, the
+ *  board-supplied maze glyph, P9.10-D1 close-out) as a raw SVG fragment —
+ *  composed into a larger hand-laid SVG string, not a live DOM node, so
+ *  the gradient is inlined with a position-derived id (one mark per
+ *  document today; the id stays collision-proof if that ever changes).
+ *  Path data verbatim from the board SVG (269 viewBox), scaled to size. */
+const MARK_PATHS = [
+  "M204.797 6.40002C204.797 2.8654 207.662 1.75949e-05 211.197 1.79039e-05L262.397 2.238e-05C265.932 2.2689e-05 268.797 2.8654 268.797 6.40002V57.6C268.797 61.1346 265.932 64 262.397 64L211.197 64C207.662 64 204.797 61.1346 204.797 57.6V6.40002Z",
+  "M204.797 224.001C204.797 220.466 201.932 217.601 198.397 217.601H172.798C169.264 217.601 166.398 220.466 166.398 224.001V262.401C166.398 265.935 163.533 268.801 159.998 268.801H108.798C105.264 268.801 102.398 265.935 102.398 262.401L102.398 211.201C102.398 207.666 105.264 204.801 108.798 204.801H147.194C150.728 204.801 153.594 201.935 153.594 198.401L153.594 172.8C153.594 169.266 150.728 166.4 147.194 166.4H108.798C105.264 166.4 102.398 163.535 102.398 160L102.398 121.6C102.398 118.066 99.5331 115.2 95.9985 115.2H70.4C66.8654 115.2 64 118.066 64 121.6L64 160C64 163.535 61.1346 166.4 57.6 166.4H6.40001C2.86539 166.4 8.64312e-06 163.535 8.95213e-06 160L1.34282e-05 108.8C1.37372e-05 105.266 2.86539 102.4 6.40001 102.4H44.7953C48.3299 102.4 51.1953 99.535 51.1953 96.0004V70.4C51.1953 66.8654 48.33 64 44.7953 64H6.40002C2.8654 64 1.75952e-05 61.1346 1.79043e-05 57.6L2.23803e-05 6.4C2.26893e-05 2.86538 2.8654 -3.09007e-07 6.40002 0L57.6 4.47605e-06C61.1346 4.78505e-06 64 2.86538 64 6.4L64 44.8002C64 48.3348 66.8654 51.2002 70.4 51.2002L95.9985 51.2002C99.5331 51.2002 102.398 48.3348 102.398 44.8002L102.398 6.40001C102.398 2.86539 105.264 8.64295e-06 108.798 8.95196e-06L159.998 1.3428e-05C163.533 1.3737e-05 166.398 2.86539 166.398 6.40001V57.6C166.398 61.1346 163.533 64 159.998 64L121.595 64C118.061 64 115.195 66.8654 115.195 70.4V96.0004C115.195 99.535 118.061 102.4 121.595 102.4L159.998 102.4C163.533 102.4 166.398 105.266 166.398 108.8V147.201C166.398 150.735 169.264 153.601 172.798 153.601H198.397C201.932 153.601 204.797 150.735 204.797 147.201V108.8C204.797 105.266 207.662 102.4 211.197 102.4L262.397 102.4C265.932 102.4 268.797 105.266 268.797 108.8V160C268.797 163.535 265.932 166.4 262.397 166.4H223.994C220.459 166.4 217.594 169.266 217.594 172.8L217.594 198.401C217.594 201.935 220.459 204.801 223.994 204.801H262.397C265.932 204.801 268.797 207.666 268.797 211.201V262.401C268.797 265.935 265.932 268.801 262.397 268.801H211.197C207.662 268.801 204.797 265.935 204.797 262.401V224.001Z",
+  "M4.47605e-06 211.201C4.78505e-06 207.666 2.86538 204.801 6.40001 204.801H57.6C61.1346 204.801 64 207.666 64 211.201L64 262.401C64 265.935 61.1346 268.801 57.6 268.801H6.4C2.86538 268.801 -3.09007e-07 265.935 0 262.401L4.47605e-06 211.201Z",
+] as const;
+
+function moduleMarkFragment(x: number, y: number, size: number): string {
+  const s = size / 269;
+  const gid = `mm-${x}-${y}`;
+  const paths = MARK_PATHS.map((d) => `<path d="${d}" fill="url(#${gid})"/>`).join("\n    ");
+  return `<g transform="translate(${x} ${y}) scale(${s})">
+    <defs>
+      <linearGradient id="${gid}" x1="134.398" y1="268.801" x2="134.398" y2="0" gradientUnits="userSpaceOnUse">
+        <stop stop-color="#E7E7E7"/>
+        <stop offset="1" stop-color="#FFFFFF"/>
+      </linearGradient>
+    </defs>
+    ${paths}
   </g>`;
 }
 
@@ -274,7 +295,7 @@ function buildHomepageOgSvg(qr: QrRender): string {
     <rect width="${W}" height="${H}" fill="${DARK_BACKGROUND}"/>
     ${gridTextureFragment(W, H)}
 
-    ${moduleMarkFragment(leftX, 146, 30, DARK_PRIMARY)}
+    ${moduleMarkFragment(leftX, 146, 30)}
     <text x="${leftX + 42}" y="169" font-family="Inter" font-weight="700" font-size="24" letter-spacing="-0.3" fill="${DARK_FOREGROUND}">QRCDN</text>
 
     <text x="${leftX}" y="342" font-family="Inter" font-weight="700" font-size="72" letter-spacing="-1.5" fill="${DARK_FOREGROUND}">One code.</text>
@@ -287,7 +308,8 @@ function buildHomepageOgSvg(qr: QrRender): string {
         <feGaussianBlur stdDeviation="38"/>
       </filter>
     </defs>
-    <ellipse cx="${tileCenterX}" cy="${tileCenterY + 18}" rx="230" ry="185" fill="${DARK_PRIMARY}" opacity="0.35" filter="url(#glow)"/>
+    <ellipse cx="${tileCenterX - 120}" cy="${tileCenterY + 110}" rx="200" ry="160" fill="${AU_MAGENTA}" opacity="0.3" filter="url(#glow)"/>
+    <ellipse cx="${tileCenterX + 130}" cy="${tileCenterY - 80}" rx="200" ry="160" fill="${AU_MINT}" opacity="0.28" filter="url(#glow)"/>
 
     <rect x="${tile.x}" y="${tile.y}" width="${tile.w}" height="${tile.h}" rx="${tile.rx}" fill="${QR_PAPER}"/>
     ${qrGroupFragment(qr, qrX, qrY, qrBox)}
@@ -329,20 +351,21 @@ function buildPricingOgSvg(qr: QrRender): string {
     <rect width="${W}" height="${H}" fill="${DARK_BACKGROUND}"/>
     ${gridTextureFragment(W, H)}
 
-    ${moduleMarkFragment(leftX, 146, 30, DARK_PRIMARY)}
+    ${moduleMarkFragment(leftX, 146, 30)}
     <text x="${leftX + 42}" y="169" font-family="Inter" font-weight="700" font-size="24" letter-spacing="-0.3" fill="${DARK_FOREGROUND}">QRCDN</text>
 
     <text x="${leftX}" y="342" font-family="Inter" font-weight="700" font-size="72" letter-spacing="-1.5" fill="${DARK_FOREGROUND}">Simple, honest</text>
     <text x="${leftX}" y="422" font-family="Inter" font-weight="700" font-size="72" letter-spacing="-1.5" fill="${DARK_FOREGROUND}">pricing.</text>
 
-    <text x="${leftX}" y="480" font-family="Inter" font-weight="700" font-size="32" letter-spacing="0.2" fill="${DARK_PRIMARY}">${priceLine}</text>
+    <text x="${leftX}" y="480" font-family="Inter" font-weight="700" font-size="32" letter-spacing="0.2" fill="${WHITE_INK}">${priceLine}</text>
 
     <defs>
       <filter id="glow" x="-80%" y="-80%" width="260%" height="260%">
         <feGaussianBlur stdDeviation="38"/>
       </filter>
     </defs>
-    <ellipse cx="${tileCenterX}" cy="${tileCenterY + 18}" rx="230" ry="185" fill="${DARK_PRIMARY}" opacity="0.35" filter="url(#glow)"/>
+    <ellipse cx="${tileCenterX - 120}" cy="${tileCenterY + 110}" rx="200" ry="160" fill="${AU_MAGENTA}" opacity="0.3" filter="url(#glow)"/>
+    <ellipse cx="${tileCenterX + 130}" cy="${tileCenterY - 80}" rx="200" ry="160" fill="${AU_MINT}" opacity="0.28" filter="url(#glow)"/>
 
     <rect x="${tile.x}" y="${tile.y}" width="${tile.w}" height="${tile.h}" rx="${tile.rx}" fill="${QR_PAPER}"/>
     ${qrGroupFragment(qr, qrX, qrY, qrBox)}
@@ -383,7 +406,7 @@ function buildLegalOgSvg(qr: QrRender): string {
     <rect width="${W}" height="${H}" fill="${DARK_BACKGROUND}"/>
     ${gridTextureFragment(W, H)}
 
-    ${moduleMarkFragment(leftX, 146, 30, DARK_PRIMARY)}
+    ${moduleMarkFragment(leftX, 146, 30)}
     <text x="${leftX + 42}" y="169" font-family="Inter" font-weight="700" font-size="24" letter-spacing="-0.3" fill="${DARK_FOREGROUND}">QRCDN</text>
 
     <text x="${leftX}" y="342" font-family="Inter" font-weight="700" font-size="60" letter-spacing="-1.2" fill="${DARK_FOREGROUND}">The fine print,</text>
@@ -396,7 +419,8 @@ function buildLegalOgSvg(qr: QrRender): string {
         <feGaussianBlur stdDeviation="38"/>
       </filter>
     </defs>
-    <ellipse cx="${tileCenterX}" cy="${tileCenterY + 18}" rx="230" ry="185" fill="${DARK_PRIMARY}" opacity="0.35" filter="url(#glow)"/>
+    <ellipse cx="${tileCenterX - 120}" cy="${tileCenterY + 110}" rx="200" ry="160" fill="${AU_MAGENTA}" opacity="0.3" filter="url(#glow)"/>
+    <ellipse cx="${tileCenterX + 130}" cy="${tileCenterY - 80}" rx="200" ry="160" fill="${AU_MINT}" opacity="0.28" filter="url(#glow)"/>
 
     <rect x="${tile.x}" y="${tile.y}" width="${tile.w}" height="${tile.h}" rx="${tile.rx}" fill="${QR_PAPER}"/>
     ${qrGroupFragment(qr, qrX, qrY, qrBox)}
@@ -432,7 +456,7 @@ function buildDynamicCodesOgSvg(qr: QrRender): string {
     <rect width="${W}" height="${H}" fill="${DARK_BACKGROUND}"/>
     ${gridTextureFragment(W, H)}
 
-    ${moduleMarkFragment(leftX, 146, 30, DARK_PRIMARY)}
+    ${moduleMarkFragment(leftX, 146, 30)}
     <text x="${leftX + 42}" y="169" font-family="Inter" font-weight="700" font-size="24" letter-spacing="-0.3" fill="${DARK_FOREGROUND}">QRCDN</text>
 
     <text x="${leftX}" y="342" font-family="Inter" font-weight="700" font-size="66" letter-spacing="-1.3" fill="${DARK_FOREGROUND}">Repoint anything</text>
@@ -445,7 +469,8 @@ function buildDynamicCodesOgSvg(qr: QrRender): string {
         <feGaussianBlur stdDeviation="38"/>
       </filter>
     </defs>
-    <ellipse cx="${tileCenterX}" cy="${tileCenterY + 18}" rx="230" ry="185" fill="${DARK_PRIMARY}" opacity="0.35" filter="url(#glow)"/>
+    <ellipse cx="${tileCenterX - 120}" cy="${tileCenterY + 110}" rx="200" ry="160" fill="${AU_MAGENTA}" opacity="0.3" filter="url(#glow)"/>
+    <ellipse cx="${tileCenterX + 130}" cy="${tileCenterY - 80}" rx="200" ry="160" fill="${AU_MINT}" opacity="0.28" filter="url(#glow)"/>
 
     <rect x="${tile.x}" y="${tile.y}" width="${tile.w}" height="${tile.h}" rx="${tile.rx}" fill="${QR_PAPER}"/>
     ${qrGroupFragment(qr, qrX, qrY, qrBox)}
@@ -478,7 +503,7 @@ function buildAnalyticsOgSvg(qr: QrRender): string {
     <rect width="${W}" height="${H}" fill="${DARK_BACKGROUND}"/>
     ${gridTextureFragment(W, H)}
 
-    ${moduleMarkFragment(leftX, 146, 30, DARK_PRIMARY)}
+    ${moduleMarkFragment(leftX, 146, 30)}
     <text x="${leftX + 42}" y="169" font-family="Inter" font-weight="700" font-size="24" letter-spacing="-0.3" fill="${DARK_FOREGROUND}">QRCDN</text>
 
     <text x="${leftX}" y="342" font-family="Inter" font-weight="700" font-size="66" letter-spacing="-1.3" fill="${DARK_FOREGROUND}">Every scan,</text>
@@ -491,7 +516,8 @@ function buildAnalyticsOgSvg(qr: QrRender): string {
         <feGaussianBlur stdDeviation="38"/>
       </filter>
     </defs>
-    <ellipse cx="${tileCenterX}" cy="${tileCenterY + 18}" rx="230" ry="185" fill="${DARK_PRIMARY}" opacity="0.35" filter="url(#glow)"/>
+    <ellipse cx="${tileCenterX - 120}" cy="${tileCenterY + 110}" rx="200" ry="160" fill="${AU_MAGENTA}" opacity="0.3" filter="url(#glow)"/>
+    <ellipse cx="${tileCenterX + 130}" cy="${tileCenterY - 80}" rx="200" ry="160" fill="${AU_MINT}" opacity="0.28" filter="url(#glow)"/>
 
     <rect x="${tile.x}" y="${tile.y}" width="${tile.w}" height="${tile.h}" rx="${tile.rx}" fill="${QR_PAPER}"/>
     ${qrGroupFragment(qr, qrX, qrY, qrBox)}
@@ -525,7 +551,7 @@ function buildBrandStudioOgSvg(qr: QrRender): string {
     <rect width="${W}" height="${H}" fill="${DARK_BACKGROUND}"/>
     ${gridTextureFragment(W, H)}
 
-    ${moduleMarkFragment(leftX, 146, 30, DARK_PRIMARY)}
+    ${moduleMarkFragment(leftX, 146, 30)}
     <text x="${leftX + 42}" y="169" font-family="Inter" font-weight="700" font-size="24" letter-spacing="-0.3" fill="${DARK_FOREGROUND}">QRCDN</text>
 
     <text x="${leftX}" y="342" font-family="Inter" font-weight="700" font-size="66" letter-spacing="-1.3" fill="${DARK_FOREGROUND}">Design the code</text>
@@ -538,7 +564,8 @@ function buildBrandStudioOgSvg(qr: QrRender): string {
         <feGaussianBlur stdDeviation="38"/>
       </filter>
     </defs>
-    <ellipse cx="${tileCenterX}" cy="${tileCenterY + 18}" rx="230" ry="185" fill="${DARK_PRIMARY}" opacity="0.35" filter="url(#glow)"/>
+    <ellipse cx="${tileCenterX - 120}" cy="${tileCenterY + 110}" rx="200" ry="160" fill="${AU_MAGENTA}" opacity="0.3" filter="url(#glow)"/>
+    <ellipse cx="${tileCenterX + 130}" cy="${tileCenterY - 80}" rx="200" ry="160" fill="${AU_MINT}" opacity="0.28" filter="url(#glow)"/>
 
     <rect x="${tile.x}" y="${tile.y}" width="${tile.w}" height="${tile.h}" rx="${tile.rx}" fill="${QR_PAPER}"/>
     ${qrGroupFragment(qr, qrX, qrY, qrBox)}
@@ -569,7 +596,7 @@ function buildAccessControlsOgSvg(qr: QrRender): string {
     <rect width="${W}" height="${H}" fill="${DARK_BACKGROUND}"/>
     ${gridTextureFragment(W, H)}
 
-    ${moduleMarkFragment(leftX, 146, 30, DARK_PRIMARY)}
+    ${moduleMarkFragment(leftX, 146, 30)}
     <text x="${leftX + 42}" y="169" font-family="Inter" font-weight="700" font-size="24" letter-spacing="-0.3" fill="${DARK_FOREGROUND}">QRCDN</text>
 
     <text x="${leftX}" y="342" font-family="Inter" font-weight="700" font-size="66" letter-spacing="-1.3" fill="${DARK_FOREGROUND}">Decide who</text>
@@ -582,7 +609,8 @@ function buildAccessControlsOgSvg(qr: QrRender): string {
         <feGaussianBlur stdDeviation="38"/>
       </filter>
     </defs>
-    <ellipse cx="${tileCenterX}" cy="${tileCenterY + 18}" rx="230" ry="185" fill="${DARK_PRIMARY}" opacity="0.35" filter="url(#glow)"/>
+    <ellipse cx="${tileCenterX - 120}" cy="${tileCenterY + 110}" rx="200" ry="160" fill="${AU_MAGENTA}" opacity="0.3" filter="url(#glow)"/>
+    <ellipse cx="${tileCenterX + 130}" cy="${tileCenterY - 80}" rx="200" ry="160" fill="${AU_MINT}" opacity="0.28" filter="url(#glow)"/>
 
     <rect x="${tile.x}" y="${tile.y}" width="${tile.w}" height="${tile.h}" rx="${tile.rx}" fill="${QR_PAPER}"/>
     ${qrGroupFragment(qr, qrX, qrY, qrBox)}
@@ -599,7 +627,7 @@ function buildAppleIconSvg(): string {
   const offset = (SIZE - MARK) / 2;
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${SIZE}" height="${SIZE}" viewBox="0 0 ${SIZE} ${SIZE}">
     <rect width="${SIZE}" height="${SIZE}" fill="${DARK_BACKGROUND}"/>
-    ${moduleMarkFragment(offset, offset, MARK, DARK_PRIMARY)}
+    ${moduleMarkFragment(offset, offset, MARK)}
   </svg>`;
 }
 

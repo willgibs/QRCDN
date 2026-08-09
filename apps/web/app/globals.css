@@ -1795,3 +1795,200 @@ html {
     transition: none;
   }
 }
+
+/* ── P9.10 D4 — the index wall ──────────────────────────────────────────
+   02's six rows are the landing's six anchored sections, printed at the
+   ordinals `app/(marketing)/page.tsx` gives them. Zero client JS: the
+   whole section is a server component and the hover below is CSS only,
+   the same posture 09 took when its tabs island retired at D2.
+
+   The round explored a drawn hairline and an ordinal lift; the board took
+   neither and asked for the aurora text instead, so the row's one
+   supporting layer is the brand's colour playing across the name. */
+.iw-list {
+  border-top: 1px solid var(--border);
+}
+.iw-row {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  row-gap: 0.375rem;
+  padding-block: clamp(0.75rem, 0.55rem + 0.89vw, 1.1875rem);
+  border-bottom: 1px solid var(--border);
+}
+/* Row padding is where the section's height was bought back: the first
+   draft came in at 1,049px, TALLER than the 1,004px bento it replaces,
+   which would have lost the pace argument the round is built on. The
+   50px rows are the point of a wall, so the height came out of the
+   furniture (label-register heading, tight rhythm) and out of here. */
+.iw-ord {
+  color: var(--muted-foreground);
+}
+.iw-name {
+  color: var(--foreground);
+}
+@media (width >= 48rem) {
+  .iw-row {
+    grid-template-columns: 4rem minmax(0, 1fr) auto;
+    column-gap: clamp(1rem, 2.4vw, 2.25rem);
+    align-items: baseline;
+    row-gap: 0;
+  }
+  .iw-receipt {
+    text-align: right;
+  }
+}
+.iw-row:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 4px;
+  border-radius: 4px;
+}
+
+/* The row's one supporting detail (D0 note 4) is the aurora text below:
+   hovering a row plays the brand's own colour across the name it points
+   at. Board pick at the D4 R1 review, replacing both the drawn-rule and
+   the ordinal-lift treatments the round explored.
+
+   `justify-self: start` is load-bearing, not tidiness. A grid item
+   stretches to its track by default, so the name's box was the whole
+   ~700px column while the word itself was ~150px of it. The aurora
+   pockets are sized in PERCENTAGES of that box, so every pocket came out
+   wider than the word and each frame painted the name one flat colour
+   that changed over time: a colour fade, not an aurora. Shrink-wrapping
+   the box to the glyphs makes the percentages mean what they were tuned
+   to mean and puts two or three hues inside a single word at once. */
+.iw-name {
+  position: relative;
+  justify-self: start;
+}
+
+/* ── P9.10 D4 — aurora TEXT ──────────────────────────────────────────────
+   The third member of the beam family, admitted at D0 note 1 ("aurora TEXT
+   joins the family for heading highlight words") and built here for the
+   first time: the D1 exploration drew it, but the board picked the print
+   run, so no implementation ever landed.
+
+   Board note at the D4 R1 review, and the whole reason this is a rebuild
+   rather than a port: the D1 draft "feels too linear gradient moving
+   sideways, not their wavy color motion that feels alive." That draft was
+   the shimmer-text construction, one band sliding across on
+   background-position. A band sliding sideways is a SWEEP, and a sweep can
+   only ever look mechanical: the motion has one axis and one period, so
+   the eye locks onto the loop immediately.
+
+   So this is built on the aurora EDGE's mechanism instead, which is the
+   one the board already approved as "natural wavy movement": several
+   independent colour pockets, each wandering on its own clock, composited.
+   Four radial pockets drift on two axes over 7.5s / 9.5s / 11s / 13s,
+   eased and alternating, so the composite period is their common multiple
+   rather than any one of them and the pattern never visibly repeats. A
+   24s hue rotation runs underneath, the same slow clock `beam-hue` gives
+   the edge. Nothing here slides.
+
+   The pockets are tall ellipses (about 200% on the block axis) because the
+   painted box is a line of text: a circular pocket inside a 55px-tall box
+   would be a dot, and the colour has to read across the whole glyph
+   height to look like light rather than a highlighter.
+
+   Registered via @property for the same reason --beam-a/--beam-b are: an
+   unregistered custom property is an untyped token, so keyframes on it
+   SNAP between values instead of interpolating. */
+@property --aut-x1 { syntax: "<percentage>"; initial-value: 12%; inherits: false; }
+@property --aut-y1 { syntax: "<percentage>"; initial-value: 28%; inherits: false; }
+@property --aut-x2 { syntax: "<percentage>"; initial-value: 74%; inherits: false; }
+@property --aut-y2 { syntax: "<percentage>"; initial-value: 76%; inherits: false; }
+@property --aut-x3 { syntax: "<percentage>"; initial-value: 44%; inherits: false; }
+@property --aut-y3 { syntax: "<percentage>"; initial-value: 90%; inherits: false; }
+@property --aut-x4 { syntax: "<percentage>"; initial-value: 92%; inherits: false; }
+@property --aut-y4 { syntax: "<percentage>"; initial-value: 16%; inherits: false; }
+
+/* The paint. Applied to a duplicate text layer, never to the readable
+   text itself, so the accessible string is always a plain foreground
+   glyph and the colour is decoration sitting on top of it. */
+.aurora-text {
+  background-color: var(--au-5);
+  background-image:
+    radial-gradient(38% 190% at var(--aut-x1) var(--aut-y1), var(--au-1) 0%, transparent 58%),
+    radial-gradient(34% 175% at var(--aut-x2) var(--aut-y2), var(--au-2) 0%, transparent 55%),
+    radial-gradient(42% 200% at var(--aut-x3) var(--aut-y3), var(--au-3) 0%, transparent 60%),
+    radial-gradient(32% 165% at var(--aut-x4) var(--aut-y4), var(--au-4) 0%, transparent 54%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  -webkit-text-fill-color: transparent;
+}
+
+/* The duplicate layer: absolutely stacked on the real text, aria-hidden in
+   the markup, and faded rather than swapped so a row never snaps from ink
+   to colour. The animations are declared here but PAUSED, and hover only
+   sets play-state — so leaving a row freezes the drift at the frame it
+   reached and fades that out, instead of restarting from the first frame
+   mid-fade. At most one row is ever running: these are custom-property
+   animations, which repaint a gradient on the main thread every frame,
+   and six of them drifting at once for no reason would be exactly the
+   sort of cost the detail budget exists to prevent. */
+.aurora-text-layer {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  user-select: none;
+  opacity: 0;
+  transition: opacity var(--duration-normal) var(--motion-ease-out);
+  animation:
+    aut-p1 7.5s var(--motion-ease-in-out) infinite alternate,
+    aut-p2 11s var(--motion-ease-in-out) infinite alternate-reverse,
+    aut-p3 9.5s var(--motion-ease-in-out) infinite alternate,
+    aut-p4 13s var(--motion-ease-in-out) infinite alternate-reverse,
+    aut-hue 24s linear infinite;
+  animation-play-state: paused;
+}
+.iw-row:hover .aurora-text-layer,
+.iw-row:focus-visible .aurora-text-layer {
+  opacity: 1;
+  animation-play-state: running;
+}
+
+@keyframes aut-p1 {
+  from { --aut-x1: 2%;  --aut-y1: 18%; }
+  to   { --aut-x1: 56%; --aut-y1: 82%; }
+}
+@keyframes aut-p2 {
+  from { --aut-x2: 88%; --aut-y2: 84%; }
+  to   { --aut-x2: 28%; --aut-y2: 14%; }
+}
+@keyframes aut-p3 {
+  from { --aut-x3: 30%; --aut-y3: 94%; }
+  to   { --aut-x3: 90%; --aut-y3: 8%;  }
+}
+@keyframes aut-p4 {
+  from { --aut-x4: 98%; --aut-y4: 10%; }
+  to   { --aut-x4: 48%; --aut-y4: 88%; }
+}
+@keyframes aut-hue {
+  from { filter: hue-rotate(0deg); }
+  to   { filter: hue-rotate(360deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .aurora-text-layer {
+    transition: none;
+    animation: none;
+  }
+}
+
+/* ── P9.10 D4 — in-page anchors travel ──────────────────────────────────
+   Board note at the D4 R1 review: a row in the index should SCROLL to its
+   section, "so visitors know they can scroll back, not think they're on a
+   new page." A jump cut gives no sense of distance, and the wall is the
+   first device on the site whose whole job is sending people down the
+   page. Set on the root rather than on the wall because the jump is
+   performed by the document, not by the link, so scoping it to the
+   component would do nothing. */
+html {
+  scroll-behavior: smooth;
+}
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+}

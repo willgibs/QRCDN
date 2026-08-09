@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { Hero } from "@/components/marketing/hero";
-import { HighlightsSection } from "@/components/marketing/highlights-section";
 import { HowItWorksSection } from "@/components/marketing/how-it-works-section";
+import { IndexWallSection } from "@/components/marketing/index-wall";
 import { StudioSection } from "@/components/marketing/studio-section";
 import { BrandSystemSection } from "@/components/marketing/brand-system-section";
 import { DynamicCodesSection } from "@/components/marketing/dynamic-codes-section";
@@ -67,8 +67,18 @@ export const metadata: Metadata = {
 // renumbered eleven sections, and the entire change was the block below.
 // Access controls (06) landed the same way at P9.7-V4.
 //
-// Highlights takes `tint` directly under the hero, so How it works moves to
-// `default` to keep the alternation legal.
+// P9.10-D4 swapped 01 and 02 and nothing else. The highlights bento retired
+// (it enumerated the product a third time in one screen and drew two of the
+// filmstrip's own artworks a second time), the filmstrip took 01 so the
+// hero's real engine renders hand off to more real renders, and the index
+// wall took 02 as the ramp into the deep page. Because the two sections
+// exchanged ordinals rather than one being inserted, 03 through 13 did not
+// move at all — the opposite of the eleven-section renumber P9.7-V2 caused.
+//
+// How it works takes `tint` at 01 (the bento's old surface): `variant="band"`
+// forces `divider="none"`, and hero and band are both `default`, so promoted
+// unchanged there would be no seam between the hero and the page's first
+// section at all. The wall then sits on `default` and 03 keeps `floor`.
 //
 // P9.9-C0: this file also owns the heading ladder. Every section's title
 // used to render at one of two fixed sizes decided inside its own component
@@ -89,8 +99,11 @@ export default function HomePage() {
   return (
     <>
       <Hero />
-      <HighlightsSection index="01" titleSize="h2-lg" />
-      <HowItWorksSection index="02" titleSize="h2-lg" />
+      <HowItWorksSection index="01" titleSize="h2-lg" />
+      {/* No titleSize: the wall owns its own label register (see the
+          component). It is the one section on the page whose heading is
+          deliberately quieter than its body. */}
+      <IndexWallSection index="02" />
       <StudioSection index="03" titleSize="h2-lg" />
       <BrandSystemSection index="04" titleSize="h2-lg" />
       <DynamicCodesSection index="05" titleSize="h2-lg" />

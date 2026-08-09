@@ -11,10 +11,18 @@ import { Filmstrip } from "@/components/marketing/filmstrip";
  * the hero, the only one with no id anchor and no feature page reusing it,
  * so it is the safest place to judge the new register on production.
  *
- * The call today is `variant="band"` alone (band forces `divider="none"` —
- * its own full-bleed plate against the neighbors is the seam). Round 1 also
- * carried `frame="bleed"` and a raised `titleSize`; round 2 reverted both,
- * as recorded below.
+ * The call today is `variant="band"` with `surface="tint"` (band forces
+ * `divider="none"` — its own full-bleed plate against the neighbors is the
+ * seam). Round 1 also carried `frame="bleed"` and a raised `titleSize`;
+ * round 2 reverted both, as recorded below.
+ *
+ * P9.10-D4 promoted this section from 02 to 01 and gave it the tint plate.
+ * The promotion is the reason for the surface: at 02 this band sat between
+ * a tint bento and a floor showcase, so `default` was itself the change.
+ * At 01 its neighbor above is the hero, which is also `default`, and band
+ * suppresses the hairline — so promoted unchanged there would be no seam at
+ * all between the hero and the page's first section. Tint is the plate the
+ * bento vacated, which keeps the run default → tint → default → floor.
  *
  * BOARD REVIEW, two rounds. Round 1: the stations bled to the viewport edge
  * while the heading sat on the page measure (two left edges in one section),
@@ -50,7 +58,7 @@ export function HowItWorksSection({
   titleSize?: ComponentProps<typeof SectionHeading>["titleSize"];
 }) {
   return (
-    <Section variant="band">
+    <Section variant="band" surface="tint">
       <SectionHeading
         eyebrow="How it works"
         index={index}

@@ -26,7 +26,7 @@ export function StudioSection({
   return (
     <Section id="studio" variant="showcase" surface="floor" divider="none">
       <SectionHeading
-        eyebrow="Design studio"
+        eyebrow="Studio"
         index={index}
         title="Design one right now"
         lede="The real engine, three dials: turn one and the whole wall follows. Payloads, logo knockout, and the scannability instrument wait in the studio, free."

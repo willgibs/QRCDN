@@ -97,12 +97,23 @@ function extractSymbol(svg: string, id: string): { id: string; viewBox: string; 
   return { id, viewBox: match[1], inner: match[2] };
 }
 
-/** One code, both themes, extracted into a `<symbol>` pair. */
+/**
+ * One code, extracted into a `<symbol>`.
+ *
+ * P9.10-D4 dropped the second (dark) render. Until this round every station
+ * carried a light/dark PAIR and CSS-toggled between them, because the codes
+ * sat directly on the page field and had to survive both themes. They no
+ * longer sit on the field: every station is now ink on white paper, matching
+ * the hero one section up and the `#131316` ink swatch this section prints
+ * under station 1 — which the white-on-black code above it had been
+ * contradicting. Paper does not have a dark mode, so the dark symbol was
+ * markup nothing could ever reference.
+ */
 function buildCode(data: string, slug: string) {
-  return {
-    light: extractSymbol(renderQr({ data, style: brandQrStyles.precision.light }).svg, `hiw-${slug}-light`),
-    dark: extractSymbol(renderQr({ data, style: brandQrStyles.precision.dark }).svg, `hiw-${slug}-dark`),
-  };
+  return extractSymbol(
+    renderQr({ data, style: brandQrStyles.precision.light }).svg,
+    `hiw-${slug}`,
+  );
 }
 
 const CODES = {
@@ -119,48 +130,52 @@ type CodeKey = keyof typeof CODES;
 function QrDefs() {
   return (
     <svg aria-hidden className="absolute size-0">
-      {Object.values(CODES).flatMap((code) =>
-        [code.light, code.dark].map((sym) => (
-          <symbol
-            key={sym.id}
-            id={sym.id}
-            viewBox={sym.viewBox}
-            dangerouslySetInnerHTML={{ __html: sym.inner }}
-          />
-        )),
-      )}
+      {Object.values(CODES).map((sym) => (
+        <symbol
+          key={sym.id}
+          id={sym.id}
+          viewBox={sym.viewBox}
+          dangerouslySetInnerHTML={{ __html: sym.inner }}
+        />
+      ))}
     </svg>
   );
 }
 
-/** One station's QR (or artifact's QR): a light instance and a dark
- *  instance, CSS-toggled by theme — the same `dark:hidden`/`hidden
- *  dark:block` swap `qr-tile.tsx` uses, just against a `<use>` reference
- *  instead of a second inlined copy. */
-function FilmstripQr({ code = "a", className }: { code?: CodeKey; className?: string }) {
-  const { light, dark } = CODES[code];
+/** One station's QR: a single `<use>` against the shared symbol. */
+function FilmstripQr({
+  code = "a",
+  className,
+}: {
+  code?: CodeKey;
+  className?: string;
+}) {
+  const sym = CODES[code];
   return (
-    <>
-      <svg viewBox={light.viewBox} aria-hidden className={cn("block dark:hidden", className)}>
-        <use href={`#${light.id}`} />
-      </svg>
-      <svg viewBox={dark.viewBox} aria-hidden className={cn("hidden dark:block", className)}>
-        <use href={`#${dark.id}`} />
-      </svg>
-    </>
+    <svg viewBox={sym.viewBox} aria-hidden className={cn("block", className)}>
+      <use href={`#${sym.id}`} />
+    </svg>
   );
 }
 
 /** The 84x84 "hero" QR presentation shared by stations 1 and 3 (`.qr-node`
  *  in the reference artifact): white paper, the QR at full opacity. */
 /**
- * `tone` exists because the accent glow does not survive being repeated.
- * One code carrying a violet bloom reads as the hero object of its station;
- * five of them across one baseline wash the whole band blue and the bloom
- * stops meaning anything. Only the two solo codes (stations 1 and 3) keep it;
- * the three-up trio at station 2 gets a plain neutral lift instead, which is
- * also truer to what that station is saying (these are ordinary codes you
- * made, not a featured one).
+ * `tone` exists because the featured code should not survive being repeated.
+ * One code lifted off the baseline reads as the hero object of its station;
+ * five of them lifted equally and the emphasis stops meaning anything. Only
+ * the two solo codes (stations 1 and 3) get it; the three-up trio at station
+ * 2 sits lower, which is also truer to what that station is saying (these
+ * are ordinary codes you made, not a featured one).
+ *
+ * P9.10-D4: the accent used to be a VIOLET bloom (`var(--primary)` in the
+ * shadow). Since the D13 monochrome amendment `--primary` computes identical
+ * to `--foreground`, so the bloom had quietly become a white one — the same
+ * dead violet-era glow D3 cut from the studio CTA, still lit here. The
+ * monochrome answer to hierarchy is DEPTH, not hue: the featured code now
+ * throws a deeper, softer shadow than the trio and nothing on this baseline
+ * is tinted. It is also the hero's own physics one section up, where three
+ * paper mats float on shadow alone.
  */
 function QrNode({
   code = "a",
@@ -175,9 +190,10 @@ function QrNode({
   return (
     <div
       className={cn(
-        "shrink-0 rounded-[14px] bg-qr-bg",
+        "shrink-0 rounded-[14px]",
+        "bg-white",
         tone === "accent"
-          ? "shadow-[0_1px_0_var(--border),0_20px_44px_-22px_var(--primary)]"
+          ? "shadow-[0_1px_0_var(--border),0_26px_54px_-24px_rgb(0_0_0/0.78)]"
           : "shadow-[0_1px_0_var(--border),0_12px_28px_-20px_rgb(0_0_0/0.55)]",
       )}
       style={{ width: size, height: size, padding: pad }}
@@ -332,8 +348,14 @@ function TrackStation() {
               <span
                 key={i}
                 className={cn(
+                  // P9.10-D4: was `bg-primary`, which since the monochrome
+                  // amendment renders pure white — white budget spent on a
+                  // decorative chart. These bars are DATA, and D3's board
+                  // doctrine makes data color first-class, so the highlight
+                  // takes the restored chart violet like every other chart
+                  // on the platform.
                   "w-[4px] rounded-[1px]",
-                  i >= 9 && i <= 13 ? "bg-primary" : "bg-foreground/25",
+                  i >= 9 && i <= 13 ? "bg-(--chart-1)" : "bg-foreground/25",
                 )}
                 style={{ height: `${(h / 24) * 100}%` }}
               />
@@ -406,7 +428,13 @@ export function Filmstrip() {
       <div>
         <div className="relative mt-7 lg:mt-10">
           <span aria-hidden className="hidden lg:absolute lg:inset-x-0 lg:top-1/2 lg:block lg:h-px lg:bg-border" />
-          <p className="relative mx-auto w-fit bg-transparent px-0 font-mono text-[11px] text-muted-foreground lg:bg-background lg:px-3.5">
+          {/* The knockout has to match the plate this section sits on, not
+              the page field. P9.10-D4 moved the section to `surface="tint"`
+              on promotion to 01, and `bg-background` immediately read as a
+              darker pill floating on the lighter plate. Pinned to the same
+              token the Section applies rather than left to inherit, because
+              the rule it is knocking out is a sibling, not an ancestor. */}
+          <p className="relative mx-auto w-fit bg-transparent px-0 font-mono text-[11px] text-muted-foreground lg:bg-surface-tint lg:px-3.5">
             one code, design to scan · no reprints, ever
           </p>
         </div>

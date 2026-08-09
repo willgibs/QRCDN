@@ -28,7 +28,7 @@ export function BrandSystemSection({
           note now carry the sync claim on this section (the strip's line
           still lives on /features/brand-studio). */}
       <SectionHeading
-        eyebrow="Brand system"
+        eyebrow="Brand kits"
         index={index}
         title="Every code syncs instantly"
         lede="Set your kit once. Edit it anytime: every attached code re-renders in the same breath, from menu tents to ticket stubs."

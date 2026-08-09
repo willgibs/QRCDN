@@ -7,6 +7,7 @@ import { BLOG_POSTS } from "../lib/blog";
 import { HELP_ARTICLES, HELP_CATEGORIES } from "../lib/help";
 import { MAX_SLUG_LENGTH } from "../lib/slug";
 import { COMPARISON_BANDS, COMPARISON_ROWS, LANDING_ROWS } from "../lib/comparison";
+import { LANDING_INDEX } from "../lib/landing-index";
 import { LOGO_EFFECTIVE_ERROR, LOGO_EFFECTIVE_WARN } from "@qrcdn/qr-engine";
 
 // Relative imports only in e2e/ (no "@/" — see env.ts's header note).
@@ -744,34 +745,56 @@ test.describe("marketing site", () => {
     );
   });
 
-  test("highlights bento: five cards, each anchored to its deep section (P9.7-V2)", async ({
+  test("02 the index wall: six rows, each feeding a real anchor at its true ordinal (P9.10-D4)", async ({
     page,
   }) => {
     await page.goto("/");
-    const bento = page
-      .locator("section")
-      .filter({ has: page.getByRole("heading", { name: "Everything you need in one place" }) });
 
-    // The bento replaced the hero's pillar strip, so it inherits the strip's
-    // navigation contract: five links, each resolving to a real section id.
-    const links = bento.getByRole("link");
-    await expect(links).toHaveCount(5);
-    for (const [label, href] of [
-      ["Design studio", "#studio"],
-      ["Brand system", "#brand-system"],
-      ["Dynamic links", "#dynamic-codes"],
-      ["Scan analytics", "#analytics"],
-      ["Developer API", "#api"],
-    ] as const) {
-      const card = bento.getByRole("link").filter({ hasText: label });
-      await expect(card).toHaveAttribute("href", href);
+    // The wall replaced the highlights bento, which had replaced the hero's
+    // pillar strip; it inherits that navigation contract and extends it by
+    // one, since the bento never linked open source.
+    const rows = page.locator('[data-slot="index-wall-row"]');
+    await expect(rows).toHaveCount(LANDING_INDEX.length);
+    expect(LANDING_INDEX.length).toBe(6);
+
+    for (const row of LANDING_INDEX) {
+      const link = rows.filter({ hasText: row.receipt });
+      await expect(link).toHaveAttribute("href", `#${row.id}`);
       // A dead fragment is not an href="#", so the no-empty-anchor sweep
       // would not catch a renamed section. Assert the target really exists.
-      await expect(page.locator(href)).toHaveCount(1);
+      await expect(page.locator(`#${row.id}`)).toHaveCount(1);
+
+      // THE contract of this section. `lib/landing-index.ts` records the
+      // ordinal and the name the target section renders, but the ordinals
+      // are owned by app/(marketing)/page.tsx and the names by each section
+      // file, so nothing in the type system stops those three drifting
+      // apart — the exact failure P9.7-V1 fixed for the eyebrows themselves.
+      // Comparing the row against the eyebrow the target ACTUALLY renders
+      // makes drift a red test instead of a wrong number on production.
+      const eyebrow = page
+        .locator(`#${row.id} [data-slot="section-heading-main"] p`)
+        .first();
+      // Read the two halves separately rather than the joined string: the
+      // ordinal and the label are siblings separated by a flex `gap`, not by
+      // whitespace, so `textContent` returns "03Studio" with no separator to
+      // split on.
+      await expect(eyebrow.locator("span").first()).toHaveText(row.ordinal);
+      const full = ((await eyebrow.textContent()) ?? "").trim();
+      expect(full.slice(row.ordinal.length).trim()).toBe(row.name);
     }
 
-    // The strip it replaced is gone from every breakpoint.
+    // The zone's order, which D4 swapped: the run leads, the wall follows.
+    const headings = page.locator('section[data-slot="section"] h2');
+    await expect(headings.nth(0)).toHaveText("Make codes that last forever");
+    await expect(headings.nth(1)).toHaveText("Our full-stack platform");
+
+    // The bento and the strip before it are gone from every breakpoint.
+    await expect(page.getByText("Everything you need in one place")).toHaveCount(0);
     await expect(page.locator('nav[aria-label="Jump to a section"]')).toHaveCount(0);
+
+    // D4's de-duplication, pinned. The bento and the filmstrip both drew
+    // this retarget line, 782px apart; only the filmstrip does now.
+    await expect(page.getByText("yourcafe.com/winter")).toHaveCount(1);
   });
 
   test("hero tagline is removed", async ({ page }) => {

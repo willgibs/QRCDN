@@ -28,7 +28,8 @@ export function MonoStrip({
    *  surface="ink" plates, where the site's normal border/card/
    *  muted-foreground tokens don't re-scope. First consumer: ManifestoSection's
    *  move onto the ink plate. ModuleMark stays text-primary regardless of
-   *  tone: the accent violet is legible on the plate in both themes. */
+   *  tone: since the D13 monochrome amendment (P9.10-D1) primary is
+   *  ink-register (near-white in dark), legible on the plate either way. */
   tone?: "default" | "ink";
 }) {
   return (

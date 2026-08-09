@@ -302,7 +302,7 @@ export function BulkCreateDialog({
                       onClick={() => handleCopyRow(outcome.url)}
                     >
                       {copiedUrl === outcome.url ? (
-                        <Check className="size-3.5 text-primary" aria-hidden />
+                        <Check className="size-3.5 text-(--ok)" aria-hidden />
                       ) : (
                         <Copy className="size-3.5" aria-hidden />
                       )}

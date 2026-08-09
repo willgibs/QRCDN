@@ -186,8 +186,13 @@ function MatQr({ payload, style, delayMs }: { payload: string; style: QrStyle; d
   );
 }
 
+/* P9.10-D3: the flat border became the lit-stroke hairline (D0 note 3 —
+   the gradient stroke "applies to toggles, buttons, chips, cards"; these
+   dials are the studio's toggles). The checked cue moved from
+   border-color to an INSET ring so it can't collide with the
+   focus-visible ring utilities, which share the outer ring slot. */
 const CHIP =
-  "flex size-11 cursor-pointer items-center justify-center rounded-lg border border-border/70 bg-card/50 text-foreground/75 transition-colors duration-(--duration-normal) ease-(--motion-ease-out) hover:border-border peer-checked:border-foreground/60 peer-checked:bg-muted peer-checked:text-foreground peer-focus-visible:ring-2 peer-focus-visible:ring-ring peer-focus-visible:ring-offset-2 peer-focus-visible:ring-offset-background";
+  "lit-stroke flex size-11 cursor-pointer items-center justify-center rounded-lg bg-card/50 text-foreground/75 transition-colors duration-(--duration-normal) ease-(--motion-ease-out) hover:bg-card hover:text-foreground peer-checked:bg-muted peer-checked:text-foreground peer-checked:inset-ring peer-checked:inset-ring-foreground/50 peer-focus-visible:ring-2 peer-focus-visible:ring-ring peer-focus-visible:ring-offset-2 peer-focus-visible:ring-offset-background";
 
 function DialLegend({ children }: { children: string }) {
   return (

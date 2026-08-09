@@ -101,7 +101,7 @@ export default async function LoginPage(props: PageProps<"/login">) {
         <ul className="flex flex-col gap-3">
           {VALUE_CHECKS.map((check) => (
             <li key={check} className="flex items-start gap-2.5 text-sm text-foreground">
-              <Check className="mt-0.5 size-4 shrink-0 text-primary" aria-hidden />
+              <Check className="mt-0.5 size-4 shrink-0 text-(--ok)" aria-hidden />
               {check}
             </li>
           ))}

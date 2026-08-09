@@ -6,11 +6,18 @@ import { cn } from "@/lib/utils";
  * matrix and /pricing#compare's full sheet so the two surfaces cannot
  * drift. Server-only, zero client JS.
  *
- * Tone system (the badge-less marking the board picked): a FILLED primary
- * chip appears only in the QRCDN cell of a lead row; our parity answers
- * keep a quiet primary outline so the filled chip still grades. The gap
- * row's enterprise cell gets the filled treatment in NEUTRAL: the marking
- * is symmetric, the accent is not.
+ * Tone system, re-toned at P9.10-D3 (the C3 original was built as
+ * violet-vs-neutral; the D13 monochrome amendment collapsed that into an
+ * opacity ladder of one near-white, so the grading premise moved from
+ * hue to STRUCTURE): the FILLED chip in a lead row's QRCDN cell is the
+ * bench's one deliberate white (bg-primary IS the ink-white CTA token —
+ * white-budget classed); our parity answers carry the lit-stroke
+ * hairline instead of a wash, so they still grade below the filled chip
+ * without borrowing its material; the gap row's enterprise cell keeps
+ * the neutral fill (the marking is symmetric, the material is not);
+ * field cells stay quiet alpha steps. Yes-verdicts carry the semantic
+ * green (`--ok`) — the board-picked posture B at the D3 review
+ * (2026-08-09): semantic color stays, "adds a bit of life to the UI."
  */
 
 export type ChipTone = "lead" | "qrcdn" | "gaplead" | "field";
@@ -19,9 +26,11 @@ export function chipClass(glyph: ComparisonGlyph, tone: ChipTone): string {
   if (tone === "lead") return "bg-primary text-primary-foreground";
   if (tone === "gaplead") return "bg-foreground/20 text-foreground";
   if (tone === "qrcdn") {
-    return glyph === "yes" ? "bg-primary/15 text-primary" : "bg-foreground/[0.07] text-foreground/45";
+    return glyph === "yes"
+      ? "lit-stroke bg-white/[0.04] text-(--ok)"
+      : "bg-foreground/[0.07] text-foreground/45";
   }
-  if (glyph === "yes") return "bg-primary/10 text-primary/80";
+  if (glyph === "yes") return "bg-foreground/[0.09] text-(--ok)";
   if (glyph === "partial") return "bg-foreground/[0.07] text-foreground/60";
   return "bg-foreground/[0.07] text-foreground/40";
 }

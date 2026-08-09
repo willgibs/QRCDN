@@ -195,7 +195,10 @@
   --border: oklch(0.92 0.002 280);
   --input: oklch(0.92 0.002 280);
   --ring: oklch(0.21 0.005 280);
-  --chart-1: oklch(0.28 0.006 280);
+  /* chart-1 rejoined color at P9.10-D3 (board: the /codes "graphs lost
+     color" in the D1 monochrome flip — data viz is a contextual accent,
+     not chrome). Values pin the brand-violet literals, dest-1's family. */
+  --chart-1: oklch(0.51 0.23 268);
   --chart-2: oklch(0.62 0.15 230);
   --chart-3: oklch(0.42 0.12 285);
   --chart-4: oklch(0.7 0.1 200);
@@ -237,6 +240,12 @@
   --dest-2: oklch(0.62 0.14 78); /* amber */
   --dest-3: oklch(0.55 0.12 195); /* teal */
   --dest-4: oklch(0.58 0.15 350); /* rose */
+  /* Semantic-positive green (P9.10-D3, board 2026-08-09: semantic color
+     "adds a bit of life to the UI, otherwise it's too grayscale") — the
+     verdict checkmark / yes-chip accent. Values shared with the code
+     palette's string green (one green family, two names for two jobs:
+     retuning code strings must never silently recolor verdicts). */
+  --ok: #107d32;
   /* Shiki code-block palette — VERCEL's, by board directive (P9.10-D2:
      "code syntax highlighting, same theme as Vercel"). Values extracted
      2026-08-08 from vercel.com/geist/code-block's SERVED CSS (their
@@ -290,7 +299,8 @@
   --border: oklch(1 0 0 / 9%);
   --input: oklch(1 0 0 / 13%);
   --ring: oklch(0.96 0.002 280);
-  --chart-1: oklch(0.9 0.003 280);
+  /* chart-1 rejoined color at P9.10-D3 — see the :root note. */
+  --chart-1: oklch(0.62 0.21 268);
   --chart-2: oklch(0.68 0.14 230);
   --chart-3: oklch(0.52 0.12 285);
   --chart-4: oklch(0.74 0.1 200);
@@ -315,6 +325,8 @@
   --dest-2: oklch(0.76 0.13 80);
   --dest-3: oklch(0.70 0.12 195);
   --dest-4: oklch(0.72 0.13 350);
+  /* Semantic-positive green, dark value — see the :root note. */
+  --ok: #00ca52;
   /* Shiki code-block palette — Vercel's ds-* DARK values (see the :root
      block for provenance + the contextual-accent doctrine note). The
      pane ground goes RECESSED (below --background, not the raised
@@ -770,7 +782,14 @@ html {
    UI-only decoration (never engine output). The paint (plate hex, both
    radial stacks, inset, blur) is SHARED with the studio dials' sweep
    overlay (.sdx-*, P9.9-C2-R1) via these grouped selectors — one aurora
-   identity across both sections, two timelines. */
+   identity across both sections, two timelines.
+   P9.10-D3: the paint now draws from the D13 aurora tokens (--au-1..5,
+   the same family the hero's kiss runs on) instead of the pre-amendment
+   literal rgbs — ONE aurora system page-wide; sections 03/04 are formal
+   beam-family members in the kiss census. Alphas carried over as
+   color-mix percentages; every radial position/size/stop, the -40%
+   inset, and the 18px blur are byte-identical to the board-approved
+   C1/C2 motion. */
 .ks-aurora-a,
 .ks-aurora-b,
 .sdx-aurora-a,
@@ -784,16 +803,16 @@ html {
 .ks-aurora-a,
 .sdx-aurora-a {
   background:
-    radial-gradient(42% 42% at 22% 78%, rgb(52 211 153 / 0.34), transparent 70%),
-    radial-gradient(46% 46% at 84% 22%, rgb(217 70 239 / 0.3), transparent 72%),
-    radial-gradient(36% 36% at 74% 84%, rgb(56 189 248 / 0.24), transparent 70%);
+    radial-gradient(42% 42% at 22% 78%, color-mix(in oklch, var(--au-1) 34%, transparent), transparent 70%),
+    radial-gradient(46% 46% at 84% 22%, color-mix(in oklch, var(--au-2) 30%, transparent), transparent 72%),
+    radial-gradient(36% 36% at 74% 84%, color-mix(in oklch, var(--au-3) 24%, transparent), transparent 70%);
 }
 .ks-aurora-b,
 .sdx-aurora-b {
   background:
-    radial-gradient(40% 40% at 56% 10%, rgb(251 191 36 / 0.26), transparent 70%),
-    radial-gradient(44% 44% at 14% 34%, rgb(167 139 250 / 0.28), transparent 72%),
-    radial-gradient(34% 34% at 88% 62%, rgb(244 114 182 / 0.22), transparent 70%);
+    radial-gradient(40% 40% at 56% 10%, color-mix(in oklch, var(--au-4) 26%, transparent), transparent 70%),
+    radial-gradient(44% 44% at 14% 34%, color-mix(in oklch, var(--au-5) 28%, transparent), transparent 72%),
+    radial-gradient(34% 34% at 88% 62%, color-mix(in oklch, var(--au-2) 22%, transparent), transparent 70%);
 }
 .ks-state-2,
 .ks-state-3,
@@ -1169,9 +1188,12 @@ html {
 
    .cmp-panel: the bench the landing table sits on. Base plate is the
    popover token (one step lighter than the page), topped with a soft
-   overhead-light gradient; the second shadow is the primary under-glow,
-   deliberately faint (one-loud-thing rule: the accent's loud moment here
-   is the filled lead chips, not the furniture). */
+   overhead-light gradient; the second shadow is a faint neutral
+   under-bloom (P9.10-D3: was the violet-era "primary under-glow" —
+   re-anchored to --foreground, visually identical in dark, so the
+   panel no longer depends on a token whose meaning changed at the D13
+   amendment). One-loud-thing rule: the loud moment is the filled lead
+   chips, not the furniture. */
 .cmp-panel {
   position: relative;
   z-index: 10;
@@ -1188,7 +1210,7 @@ html {
     var(--popover);
   box-shadow:
     0 18px 50px -20px oklch(0 0 0 / 70%),
-    0 34px 90px -38px color-mix(in oklab, var(--primary) 40%, transparent);
+    0 34px 90px -38px color-mix(in oklab, var(--foreground) 40%, transparent);
 }
 
 /* Mobile scroll hint inside the panel: fades to the PANEL plate, not the

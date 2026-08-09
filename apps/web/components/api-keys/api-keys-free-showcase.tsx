@@ -73,7 +73,7 @@ export async function ApiKeysFreeShowcase() {
           <ul className="flex flex-col gap-1.5">
             {PRO_INCLUDES.map((line) => (
               <li key={line} className="flex items-center gap-2 text-sm text-foreground">
-                <Check className="size-3.5 shrink-0 text-primary" aria-hidden />
+                <Check className="size-3.5 shrink-0 text-(--ok)" aria-hidden />
                 {line}
               </li>
             ))}

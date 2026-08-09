@@ -116,7 +116,7 @@ function cellHover(row: ComparisonRow, colIndex: number): string | undefined {
 function RowLabel({ row }: { row: ComparisonRow }) {
   const inner = (
     <>
-      <span className="underline decoration-primary/50 decoration-dotted underline-offset-4">
+      <span className="underline decoration-foreground/40 decoration-dotted underline-offset-4">
         {row.label}
       </span>
       <span className="sr-only">, {row.detail}</span>
@@ -159,7 +159,7 @@ function LanderRow({ row, columnOrder }: { row: ComparisonRow; columnOrder: read
             data-cell={isQrcdn ? "qrcdn" : undefined}
             className={cn(
               "px-3 py-3 text-center align-middle",
-              isQrcdn && "border-x border-primary/15 bg-primary/[0.06]",
+              isQrcdn && "border-x border-white/[0.12] bg-foreground/[0.05]",
             )}
           >
             <span
@@ -197,7 +197,7 @@ function LanderTable({ columnOrder }: { columnOrder: readonly number[] }) {
                 className={cn(
                   "whitespace-nowrap px-3 pb-3 pt-4 text-center text-[0.8rem] font-semibold",
                   isQrcdn
-                    ? "border-x border-primary/15 bg-primary/[0.06] text-primary"
+                    ? "border-x border-white/[0.12] bg-foreground/[0.05] text-foreground"
                     : "text-foreground",
                 )}
               >

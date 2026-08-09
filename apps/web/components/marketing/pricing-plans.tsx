@@ -123,7 +123,7 @@ export function PricingPlans() {
             <CardContent className="flex flex-1 flex-col gap-2.5">
               {FREE_FEATURES.map((f) => (
                 <p key={f} className="flex items-start gap-2 text-sm">
-                  <Check className="mt-0.5 size-4 shrink-0 text-primary" aria-hidden /> {f}
+                  <Check className="mt-0.5 size-4 shrink-0 text-(--ok)" aria-hidden /> {f}
                 </p>
               ))}
             </CardContent>
@@ -186,7 +186,7 @@ export function PricingPlans() {
             <CardContent className="flex flex-1 flex-col gap-2.5">
               {PRO_FEATURES.map((f) => (
                 <p key={f} className="flex items-start gap-2 text-sm">
-                  <Check className="mt-0.5 size-4 shrink-0 text-primary" aria-hidden /> {f}
+                  <Check className="mt-0.5 size-4 shrink-0 text-(--ok)" aria-hidden /> {f}
                 </p>
               ))}
             </CardContent>

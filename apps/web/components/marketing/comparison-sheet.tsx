@@ -35,7 +35,7 @@ function SheetRow({ row, columnOrder }: { row: ComparisonRow; columnOrder: reado
   const leader = leaderIndex(row);
   const label = (
     <>
-      <span className="underline decoration-primary/50 decoration-dotted underline-offset-4">
+      <span className="underline decoration-foreground/40 decoration-dotted underline-offset-4">
         {row.label}
       </span>
       <span className="sr-only">, {row.detail}</span>
@@ -80,7 +80,7 @@ function SheetRow({ row, columnOrder }: { row: ComparisonRow; columnOrder: reado
             className={cn(
               "px-3 py-3 text-left align-top text-sm",
               isQrcdn
-                ? "border-x border-primary/15 bg-primary/[0.06] text-foreground"
+                ? "border-x border-white/[0.12] bg-foreground/[0.05] text-foreground"
                 : "text-muted-foreground",
             )}
           >
@@ -95,7 +95,7 @@ function SheetRow({ row, columnOrder }: { row: ComparisonRow; columnOrder: reado
               </span>
             </span>
             {showReceipt && (
-              <span className="mt-1 block pl-7 font-mono text-[0.68rem] text-primary/80">
+              <span className="mt-1 block pl-7 font-mono text-[0.68rem] text-foreground/75">
                 {row.receipt}
               </span>
             )}
@@ -122,7 +122,7 @@ function SheetTable({ columnOrder }: { columnOrder: readonly number[] }) {
               className={cn(
                 "whitespace-nowrap px-3 pb-3 pt-4 text-left text-[0.8rem] font-semibold",
                 colIndex === QRCDN_INDEX
-                  ? "border-x border-primary/15 bg-primary/[0.06] text-primary"
+                  ? "border-x border-white/[0.12] bg-foreground/[0.05] text-foreground"
                   : "text-foreground",
               )}
             >

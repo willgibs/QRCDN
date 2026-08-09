@@ -219,8 +219,10 @@ export function KitSyncTheatre() {
   return (
     <div className="grid items-start gap-8 md:grid-cols-[15rem_1fr] md:gap-10">
       {/* The control: the kit card — a clean change between kit states, no
-          simulated app chrome. Purely presentational. */}
-      <div className="rounded-2xl border border-border/70 bg-card/60 p-5 text-sm">
+          simulated app chrome. Purely presentational. P9.10-D3: dressed in
+          the lit-stroke hairline (it is literally "the control" — D0 note
+          3's gradient stroke marks the touchable/instrument surfaces). */}
+      <div className="lit-stroke rounded-2xl bg-card/60 p-5 text-sm">
         <p className="mb-3 flex items-center gap-2.5 font-medium text-foreground">
           {/* The kit identity in miniature: the ink-tinted ModuleMark on
               its own paper chip, walking the three states. */}

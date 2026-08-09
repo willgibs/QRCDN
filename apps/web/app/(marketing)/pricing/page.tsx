@@ -44,7 +44,7 @@ function MatrixValue({ value, included }: { value: string; included?: boolean })
         included ? "text-foreground" : "text-muted-foreground",
       )}
     >
-      {included && <Check className="size-3.5 shrink-0 text-primary" aria-hidden />}
+      {included && <Check className="size-3.5 shrink-0 text-(--ok)" aria-hidden />}
       {value}
     </span>
   );

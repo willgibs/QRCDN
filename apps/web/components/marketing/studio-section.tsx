@@ -37,7 +37,11 @@ export function StudioSection({
         <StudioDials />
       </SectionBody>
       <SectionBody delay={0.15} className="mt-10 flex flex-wrap items-center gap-4">
-        <Button asChild size="lg" className="rounded-full px-6 shadow-lg shadow-primary/25">
+        {/* P9.10-D3: shed shadow-primary/25 — the violet-era CTA glow; since
+            the D13 amendment primary is near-white, so the colored shadow
+            had silently become a faint neutral bloom (dead meaning). The
+            plain shadow-lg carries the lift. */}
+        <Button asChild size="lg" className="rounded-full px-6 shadow-lg">
           <Link href="/studio">Open the studio</Link>
         </Button>
         <p className="font-mono text-xs text-muted-foreground">

@@ -440,7 +440,7 @@ export function KitBar({
                     </span>
                   )}
                   {kit.id === activeKitId && (
-                    <Check className="size-3.5 shrink-0 text-primary" aria-hidden />
+                    <Check className="size-3.5 shrink-0 text-(--ok)" aria-hidden />
                   )}
                 </DropdownMenuItem>
               ))}

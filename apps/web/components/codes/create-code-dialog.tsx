@@ -292,7 +292,7 @@ export function CreateCodeDialog({
                 onClick={handleCopy}
               >
                 {copied ? (
-                  <Check className="size-3.5 text-primary" aria-hidden />
+                  <Check className="size-3.5 text-(--ok)" aria-hidden />
                 ) : (
                   <Copy className="size-3.5" aria-hidden />
                 )}

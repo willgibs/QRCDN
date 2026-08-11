@@ -28,7 +28,7 @@ import { Eyebrow } from "@/components/brand/marks";
  *   the separator). Between two sections with *different* surfaces, the
  *   surface/color change already reads as a separator — an added
  *   hairline on top of that is a redundant, fussier seam. `variant="band"`
- *   enforces its own half of this (never a hairline); `surface="ink"`
+ *   enforces its own half of this (never a hairline); `surface="paper"`
  *   does too, for the same reason plus its own load-bearing top/bottom
  *   hairline (see `SectionSurface` below) — everything else is a
  *   per-call-site judgment, not automatic (same reason as the centered
@@ -56,12 +56,19 @@ import { Eyebrow } from "@/components/brand/marks";
 
 type SectionVariant = "stack" | "split" | "centered" | "showcase" | "band";
 type SectionRhythm = "tight" | "standard" | "air";
-/** `"ink"` (P9.7-U1) is the page's one inverted plate: background AND
- *  foreground flip, plus a load-bearing top/bottom hairline in
- *  `--ink-border` (not the normal `--border`, which reads as invisible
- *  against this dark plate in both site themes) — without it, an inverted
- *  surface in dark mode reads as "more page," not a hard stop. */
-type SectionSurface = "default" | "tint" | "floor" | "ink";
+/** `"paper"` (P9.10-D6) is the page's one LIGHT plate: background AND
+ *  foreground flip, independent of site theme, plus a load-bearing
+ *  top/bottom hairline in `--paper-border` (not the normal `--border`,
+ *  which is tuned for the dark field and vanishes against a near-white
+ *  plate) — without it, the band reads as a gap rather than a sheet.
+ *
+ *  It replaced `"ink"`, the inverted DARK plate that held this slot from
+ *  P9.7-U1 to D6. Ink retired for the reason `design-system.md` had
+ *  already written down: on a dark page an inverted plate reads as a
+ *  subtle deepening, so it never delivered the strong surface event it
+ *  was added for. Section 12 was its only consumer anywhere on the
+ *  site. */
+type SectionSurface = "default" | "tint" | "floor" | "paper";
 type SectionDivider = "hairline" | "fade" | "none";
 /** `"page"` (default, byte-identical to pre-P9.7-U1 markup) is today's
  *  72rem frame; `"wide"` is the 88rem `max-w-wide` frame; `"bleed"` drops
@@ -79,7 +86,12 @@ const SURFACE_CLASS: Record<SectionSurface, string> = {
   default: "",
   tint: "bg-surface-tint",
   floor: "bg-surface-studio",
-  ink: "border-y border-ink-border bg-surface-ink text-ink-foreground",
+  /* The paper plate (P9.10-D6): the page's one LIGHT band. Same shape as
+     ink and for the same reason — background AND foreground flip
+     independent of site theme, and it carries its own top/bottom hairline
+     because `--border` is tuned for the dark field and vanishes against a
+     near-white plate. */
+  paper: "border-y border-paper-border bg-surface-paper text-paper-foreground",
 };
 
 const FRAME_CLASS: Record<SectionFrame, string> = {
@@ -114,10 +126,11 @@ export function Section({
 }) {
   // band renders full-bleed and is never seamed with a hairline (its
   // surface change is the separator) — enforced regardless of what the
-  // caller passes, per the rule above. surface="ink" (P9.7-U1) joins band
-  // here for the same reason: it carries its own top/bottom hairline in
-  // --ink-border, so the generic --border hairline would double the seam.
-  const effectiveDivider = variant === "band" || surface === "ink" ? "none" : divider;
+  // caller passes, per the rule above. surface="paper" (P9.10-D6) joins
+  // band here for the same reason: it carries its own top/bottom hairline
+  // in --paper-border, so the generic --border hairline would double the
+  // seam (and would be invisible against the plate anyway).
+  const effectiveDivider = variant === "band" || surface === "paper" ? "none" : divider;
 
   return (
     <section
@@ -191,16 +204,16 @@ export function SectionHeading({
    *  `app/(marketing)/page.tsx`, the same ownership model P9.7-V1 already
    *  established for section ordinals. */
   titleSize?: "display" | "h1" | "h2-lg" | "h2" | "h3";
-  /** "ink" (P9.9-C0, additive - default stays byte-identical) recolors the
-   *  whole heading block for a `surface="ink"` plate: the site's
-   *  foreground/muted tokens don't re-scope inside ink, so the eyebrow and
-   *  lede would otherwise keep their un-inverted greys. Also sets the
-   *  title's `text-ink-foreground` EXPLICITLY: without it the title only
-   *  read correctly by accident (tailwind-merge treats `text-foreground`
-   *  and the `text-h1` size utility as one conflict group and silently
-   *  dropped the color, letting the section root's `text-ink-foreground`
-   *  inherit through). Same prop shape as `MonoStrip`/`Eyebrow` `tone`. */
-  tone?: "default" | "ink";
+  /** "paper" recolors the whole heading block for a `surface="paper"`
+   *  plate: the site's foreground/muted tokens don't re-scope inside it, so
+   *  the eyebrow and lede would otherwise keep their dark-field greys. It
+   *  also sets the title's colour EXPLICITLY rather than letting the
+   *  section root's inherit — a lesson from the ink era this slot inherits
+   *  wholesale: tailwind-merge treats `text-foreground` and the `text-h1`
+   *  size utility as one conflict group and silently drops the colour, so
+   *  the title only ever read correctly by accident. Same prop shape as
+   *  `MonoStrip`/`Eyebrow` `tone`. */
+  tone?: "default" | "paper";
   /** Reveal-wraps the whole heading on scroll into view. Set false inside
    *  something already handling its own entrance (e.g. a tab panel). */
   reveal?: boolean;
@@ -225,7 +238,8 @@ export function SectionHeading({
         <TitleTag
           className={cn(
             "font-display font-semibold",
-            tone === "ink" ? "text-ink-foreground" : "text-foreground",
+            tone === "paper" && "text-paper-foreground",
+            tone === "default" && "text-foreground",
             TITLE_SIZE_CLASS[resolvedTitleSize],
           )}
         >
@@ -235,7 +249,8 @@ export function SectionHeading({
           <p
             className={cn(
               "max-w-lede text-lede",
-              tone === "ink" ? "text-ink-muted" : "text-muted-foreground",
+              tone === "paper" && "text-paper-muted",
+              tone === "default" && "text-muted-foreground",
             )}
           >
             {lede}

@@ -95,25 +95,20 @@ export function Eyebrow({
 }: {
   children: ReactNode;
   index?: string;
-  /** "ink" (P9.9-C0, additive - default stays byte-identical) swaps the
-   *  label and ordinal onto the ink plate's own muted token: the site's
-   *  `--muted-foreground` doesn't re-scope inside `surface="ink"`, so
-   *  without this the eyebrow renders as the un-inverted grey and reads
-   *  dimmer than everything around it. Same prop shape as `MonoStrip`'s
-   *  `tone`. */
-  tone?: "default" | "ink";
+  /** Swaps the label and ordinal onto a plate's own muted token: the site's
+   *  `--muted-foreground` does not re-scope inside `surface="paper"`, so without this the eyebrow renders in the
+   *  un-scoped grey and reads wrong against the plate. The ink plate held
+   *  this slot from P9.9-C0 until D6 retired it; "paper" is its heir. Same
+   *  prop shape as `MonoStrip`'s `tone`. */
+  tone?: "default" | "paper";
 }) {
+  const label = tone === "paper" ? "text-paper-muted" : "text-muted-foreground";
+  const ordinal = tone === "paper" ? "text-paper-muted/70" : "text-muted-foreground/70";
   return (
     <p
-      className={`mb-3 flex items-center gap-2.5 font-mono text-xs uppercase tracking-[0.2em] ${
-        tone === "ink" ? "text-ink-muted" : "text-muted-foreground"
-      }`}
+      className={`mb-3 flex items-center gap-2.5 font-mono text-xs uppercase tracking-[0.2em] ${label}`}
     >
-      {index && (
-        <span className={tone === "ink" ? "text-ink-muted/70" : "text-muted-foreground/70"}>
-          {index}
-        </span>
-      )}
+      {index && <span className={ordinal}>{index}</span>}
       {children}
     </p>
   );

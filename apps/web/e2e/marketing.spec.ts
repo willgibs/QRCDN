@@ -637,17 +637,33 @@ test.describe("marketing site", () => {
     ).toBeVisible();
   });
 
-  test("trust and privacy: three commitments present", async ({ page }) => {
+  test("trust and privacy: the paper band, its three guarantees and a code that scans (P9.10-D6)", async ({
+    page,
+  }) => {
     await page.goto("/");
     const section = page
       .locator("section")
-      .filter({ has: page.getByRole("heading", { name: "Our lifetime guarantee" }) });
+      .filter({ has: page.getByRole("heading", { name: "Lifetime guarantees" }) });
 
-    await expect(section.getByText("Free codes are never deactivated.")).toBeVisible();
-    await expect(section.getByText("A downgrade makes codes read-only, never dead.")).toBeVisible();
+    // The surface is the round's whole point, so it is pinned: this is the
+    // page's ONE light plate, and a future round must not silently revert it.
+    await expect(section).toHaveAttribute("data-surface", "paper");
+    await expect(page.locator('section[data-surface="paper"]')).toHaveCount(1);
+    // Ink retired with the move — 12 was its only consumer anywhere.
+    await expect(page.locator('section[data-surface="ink"]')).toHaveCount(0);
+
+    await expect(section.getByText("We never switch off a free code.")).toBeVisible();
     await expect(
-      section.getByText("Redirects run at the edge, independent of our app and database."),
+      section.getByText("Stop paying and your codes go read-only, never dark."),
     ).toBeVisible();
+    await expect(
+      section.getByText("If our site goes down, your codes keep redirecting."),
+    ).toBeVisible();
+
+    // The code printed on the sheet is a real engine render pointed at a real
+    // page (the citations above send you to the terms), not decoration.
+    await expect(section.getByText("scan for the terms")).toBeVisible();
+    await expect(page.locator("#terms-code")).toHaveCount(1);
   });
 
   test("heads: the amended section heads are live (P9.7-V1 IA rewrite)", async ({ page }) => {

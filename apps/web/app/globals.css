@@ -14,10 +14,11 @@
   --font-heading: var(--brand-font-display);
   --color-surface-studio: var(--surface-studio);
   --color-surface-tint: var(--surface-tint);
-  --color-surface-ink: var(--surface-ink);
-  --color-ink-foreground: var(--ink-foreground);
-  --color-ink-muted: var(--ink-muted);
-  --color-ink-border: var(--ink-border);
+  --color-surface-paper: var(--surface-paper);
+  --color-paper-foreground: var(--paper-foreground);
+  --color-paper-muted: var(--paper-muted);
+  --color-paper-border: var(--paper-border);
+  --color-paper-rule: var(--paper-rule);
   --color-qr-fg: var(--qr-fg);
   --color-qr-bg: var(--qr-bg);
   --color-code-bg: var(--code-bg);
@@ -209,19 +210,43 @@
      register. background(1.0) -> tint(0.98) -> surface-studio(0.975) ->
      muted(0.96): a graduated staircase, not a duplicate of surface-studio. */
   --surface-tint: oklch(0.98 0.003 280);
-  /* The page's one inverted plate (P9.7-U1, Section's surface="ink"):
-     background AND foreground flip, independent of site theme — this
-     surface reads dark in both light-mode and dark-mode. --ink-border is
-     its own hairline color (not --border, which is far too close to
-     --surface-ink's own lightness to read against it) — load-bearing per
-     the board artifact: without it, an inverted surface reads as "more
-     page," not a hard stop. Only --surface-ink itself is redeclared below
-     in .dark (a touch darker still); foreground/muted/border stay fixed
-     across both site themes, since this plate never un-inverts. */
-  --surface-ink: oklch(0.14 0.006 280);
-  --ink-foreground: oklch(0.97 0.002 280);
-  --ink-muted: oklch(0.64 0.008 280);
-  --ink-border: oklch(1 0 0 / 14%);
+  /* The paper plate (P9.10-D6, Section's surface="paper"): the page's one
+     LIGHT band, read as a sheet of print in a dark page. Same recipe the ink
+     plate proved and, like ink's, declared ONCE here and never redeclared in
+     .dark — paper does not have a dark mode, it is paper.
+
+     --paper-foreground is deliberately --qr-fg's own ink (#131316, the
+     D13-locked precision ink every certified code on this site prints in):
+     the band's text and the band's codes are the same ink on the same sheet,
+     which is the whole argument the surface exists to make.
+
+     Contrast, computed rather than eyeballed (WCAG 2.1, sRGB, resolved by
+     painting each colour into a canvas and reading the pixel rather than by
+     a hand-rolled conversion):
+       --paper-foreground   16.78:1   AA body 4.5, AAA 7   PASS
+       --paper-muted         6.21:1   AA body 4.5          PASS
+       --paper-border        3.63:1   AA non-text 3        PASS
+       --paper-rule          1.35:1   decorative, exempt   see below
+       --ok green            4.82:1   AA body 4.5          PASS
+       --qr-fg ink          17.04:1   AA body 4.5          PASS
+
+     THE BORDER IS TWO TOKENS, and the audit is why. A single hairline value
+     cannot serve both roles on a near-white plate: the threshold for WCAG
+     1.4.11's 3:1 is 47% alpha, and a 47%-plus line is a dark rule, not a
+     hairline. So the two uses split honestly rather than one of them
+     quietly failing:
+       --paper-border  anything that must be IDENTIFIABLE — a control edge,
+                       a container boundary, a focus ring. Clears 3:1.
+       --paper-rule    decoration only — a divider between commitments, a
+                       flourish under a heading. Explicitly exempt under
+                       1.4.11 ("pure decoration"), and it must never be the
+                       only thing marking a control.
+     Re-run the audit in the D6 record if any of these values move. */
+  --surface-paper: oklch(0.972 0.004 280);
+  --paper-foreground: oklch(0.196 0.006 280);
+  --paper-muted: oklch(0.472 0.012 280);
+  --paper-border: oklch(0.196 0.006 280 / 52%);
+  --paper-rule: oklch(0.196 0.006 280 / 16%);
   --qr-fg: #131316;
   --qr-bg: #ffffff;
   /* Destination-identity hues (P9.5-T3a) — a second color family, scoped
@@ -314,7 +339,6 @@
   /* A touch darker still than the light-mode plate — foreground/muted/
      border are unchanged from :root (see the light-mode comment above):
      this surface was already dark, dark mode just deepens it further. */
-  --surface-ink: oklch(0.07 0.006 280);
   --qr-fg: #ececf1;
   --qr-bg: #101013;
   /* Destination-identity hues, dark-mode values (P9.5-T3a; D13 amendment

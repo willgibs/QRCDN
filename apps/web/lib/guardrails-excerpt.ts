@@ -41,7 +41,17 @@ const GUARDRAILS_SRC_PATH = join(
 // guardrails.ts can never silently shift what this excerpt shows. If either
 // anchor goes missing (the real source's shape changed), this throws at
 // build time instead of rendering a stale or empty excerpt.
-const START_MARKER = "/**\n * Empirical decode limits";
+//
+// P9.10-D6 moved START_MARKER off the file's opening JSDoc and onto the
+// first constant. The excerpt used to render about forty lines of which
+// five were code: two long comment blocks citing internal round IDs
+// (P9.5-T3c) and internal doc paths, which is inside-baseball a visitor
+// cannot use, on a section whose whole promise is "verify our platform
+// yourself." The numbers ARE the proof; the repo link right beneath carries
+// anyone who wants the reasoning. Still one contiguous verbatim slice of
+// the real file's bytes, just a tighter window — never a hand-typed literal
+// and never two windows stitched to look contiguous.
+const START_MARKER = "export const LOGO_EFFECTIVE_WARN";
 const END_MARKER = "export const CONTRAST_WARN_MIN = 4;";
 
 export function readGuardrailsExcerpt(): string {

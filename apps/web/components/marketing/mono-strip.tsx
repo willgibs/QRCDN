@@ -23,25 +23,40 @@ export function MonoStrip({
   children: ReactNode;
   className?: string;
   icon?: boolean;
-  /** "ink" (P9.9-C0, additive - default stays "default", byte-identical to
-   *  before this prop existed) inverts the strip's own chrome for
-   *  surface="ink" plates, where the site's normal border/card/
-   *  muted-foreground tokens don't re-scope. First consumer: ManifestoSection's
-   *  move onto the ink plate. ModuleMark stays text-primary regardless of
-   *  tone: since the D13 monochrome amendment (P9.10-D1) primary is
-   *  ink-register (near-white in dark), legible on the plate either way. */
-  tone?: "default" | "ink";
+  /** Inverts the strip's chrome for a plate whose tokens do not re-scope.
+   *  The ink plate held this from P9.9-C0 until P9.10-D6 retired it;
+   *  "paper" is its heir, and unlike ink it also has to move the
+   *  ModuleMark (see below). */
+  tone?: "default" | "paper";
 }) {
   return (
     <div
       className={cn(
         "flex max-w-3xl items-center gap-3 rounded-2xl border px-5 py-4",
-        tone === "ink" ? "border-ink-border bg-white/[0.06]" : "border-border/60 bg-card/60",
+        tone === "paper" && "border-paper-border bg-paper-foreground/[0.04]",
+        tone === "default" && "border-border/60 bg-card/60",
         className,
       )}
     >
-      {icon && <ModuleMark className="size-3 shrink-0 text-primary" />}
-      <p className={cn("font-mono text-xs", tone === "ink" ? "text-ink-muted" : "text-muted-foreground")}>
+      {/* The mark follows the plate. It stayed `text-primary` through the
+          ink era because primary is near-white in dark and read fine on a
+          dark plate; on PAPER that is near-white on near-white, which the
+          D6 recon caught before it shipped. */}
+      {icon && (
+        <ModuleMark
+          className={cn(
+            "size-3 shrink-0",
+            tone === "paper" ? "text-paper-foreground" : "text-primary",
+          )}
+        />
+      )}
+      <p
+        className={cn(
+          "font-mono text-xs",
+          tone === "paper" && "text-paper-muted",
+          tone === "default" && "text-muted-foreground",
+        )}
+      >
         {children}
       </p>
     </div>

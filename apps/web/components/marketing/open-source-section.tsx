@@ -6,13 +6,19 @@ import { readGuardrailsExcerpt } from "@/lib/guardrails-excerpt";
 
 const REPO_URL = "https://github.com/willgibs/QRCDN";
 
-// 09 — Built in the open (P9.5-T3c, new section, id="open-source" — the
+// 11 — Built in the open (P9.5-T3c, new section, id="open-source" — the
 // hero pillar strip's "open source" chip anchors here now instead of
 // linking straight out to the repo). The visual is a real, build-time
 // excerpt of packages/qr-engine/src/guardrails.ts's threshold constants
 // (lib/guardrails-excerpt.ts reads the file off disk and slices it by
 // content anchor) — never a hand-typed copy that could drift from the
 // actual source.
+//
+// P9.10-D6: the lede lost two of its four sentences. "Audit the privacy
+// claims yourself" repeated the heading directly above it, and "That's the
+// point." was filler. The excerpt tightened in the same pass — see
+// lib/guardrails-excerpt.ts for why forty lines of mostly-comment became
+// the constants themselves.
 export function OpenSourceSection({ index }: { index: string }) {
   const excerpt = readGuardrailsExcerpt();
 
@@ -22,7 +28,7 @@ export function OpenSourceSection({ index }: { index: string }) {
         eyebrow="Open source"
         index={index}
         title="Verify our platform yourself"
-        lede="The engine, the redirect worker, this site: MIT-licensed and public. Audit the privacy claims yourself. If we ever disappear, the path off is public. That's the point."
+        lede="The engine, the redirect worker, this site: MIT-licensed and public. If we ever disappear, the path off is public."
         className="mb-10"
       />
 

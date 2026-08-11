@@ -334,34 +334,53 @@ test.describe("marketing site", () => {
     await expect(playgroundSection.getByText("88%", { exact: true })).toBeVisible();
   });
 
-  test("dynamic codes: RetargetTheatre responds to a tap", async ({ page }) => {
+  test("dynamic codes: the constant holds while the counter climbs (P9.10-D5)", async ({
+    page,
+  }) => {
     await page.goto("/");
     const section = page.locator("#dynamic-codes");
 
-    // Three destination chips, hue-labeled per destination-hues.ts.
-    const chips = section.getByRole("button", { name: /Retarget the code to/ });
+    // The constant: one printed code carrying one short address, and it is
+    // the same code the filmstrip follows at 01.
+    await expect(section.getByText("qrcdn.com/cafe")).toBeVisible();
+
+    // Three destinations, one business — hue-labeled per destination-hues.ts.
+    const chips = section.getByRole("button", { name: /Point the code at/ });
     await expect(chips).toHaveCount(3);
-
-    // Idle hint shows before any tap.
-    await expect(section.getByText("tap a destination")).toBeVisible();
-
-    // Tapping a chip flips the destination readout beneath the stage —
-    // wait for the packet travel (≤800ms per spec) to land.
-    const first = chips.first();
-    const label = await first.getAttribute("aria-label");
-    await first.click();
-    await expect(section.getByText(/302 · no-store ·/)).toBeVisible({ timeout: 2000 });
-    if (label) {
-      const destination = label.replace("Retarget the code to ", "");
-      await expect(section.getByText(`302 · no-store · ${destination}`)).toBeVisible();
+    for (const dest of ["yourcafe.com/menu", "yourcafe.com/winter", "yourcafe.com/order"]) {
+      await expect(
+        section.getByRole("button", { name: `Point the code at ${dest}` }),
+      ).toBeVisible();
     }
 
-    // The retired hero tagline's new home. Exact match: the section's own
-    // lede ("...and the printed code never changes. Pause it...") contains
-    // this exact phrase as a substring, which a non-exact getByText also
-    // matches — a real strict-mode violation caught by CI, not a feature bug.
-    await expect(section.getByText("the printed code never changes", { exact: true })).toBeVisible();
+    // THE contract of this device: the visitor drives the left number and the
+    // right one never moves. That pair is the unlimited-retargets guarantee
+    // (D14) demonstrated rather than asserted, so it is what CI pins.
+    const readout = section.locator('[role="status"]');
+    await expect(readout).toContainText("0 retargets");
+    await expect(readout).toContainText("0 reprints");
 
+    await chips.nth(0).click();
+    await expect(chips.nth(0)).toHaveAttribute("aria-pressed", "true");
+    await expect(readout).toContainText("1 retarget");
+
+    await chips.nth(1).click();
+    await expect(chips.nth(1)).toHaveAttribute("aria-pressed", "true");
+    await expect(chips.nth(0)).toHaveAttribute("aria-pressed", "false");
+    await expect(readout).toContainText("2 retargets");
+    // Never moves, whatever the left number does.
+    await expect(readout).toContainText("0 reprints");
+    await expect(readout).toContainText("302");
+
+    // The four claims that replaced the two mono strips.
+    for (const name of [
+      "Retarget anytime",
+      "Never cached",
+      "Live at the edge",
+      "Your code never dies",
+    ]) {
+      await expect(section.getByText(name, { exact: true })).toBeVisible();
+    }
   });
 
   test("access controls: three controls and the states a visitor meets (P9.7-V4)", async ({
@@ -792,9 +811,16 @@ test.describe("marketing site", () => {
     await expect(page.getByText("Everything you need in one place")).toHaveCount(0);
     await expect(page.locator('nav[aria-label="Jump to a section"]')).toHaveCount(0);
 
-    // D4's de-duplication, pinned. The bento and the filmstrip both drew
-    // this retarget line, 782px apart; only the filmstrip does now.
-    await expect(page.getByText("yourcafe.com/winter")).toHaveCount(1);
+    // D4's de-duplication, pinned — refined at D5. The original pin counted
+    // the string `yourcafe.com/winter`, which was a fine proxy while the
+    // bento and the filmstrip were the only two things drawing it. D5 gave
+    // section 05 the same café's destinations on purpose (one business
+    // repointing one code, threaded to the filmstrip's own repoint), so the
+    // STRING now legitimately appears twice: once as the filmstrip's story,
+    // once as a choice in 05's picker. What must stay unique is the
+    // ARTWORK — a struck-through old URL over a live one. Only the
+    // filmstrip draws that.
+    await expect(page.locator(".line-through", { hasText: "yourcafe.com/menu" })).toHaveCount(1);
   });
 
   test("hero tagline is removed", async ({ page }) => {
@@ -964,11 +990,15 @@ test.describe("marketing site", () => {
     await expect(
       page.getByRole("heading", { level: 1, name: "Repoint anything you have printed" }),
     ).toBeVisible();
-    // A section-body marker distinct from the hero: the RetargetTheatre
-    // island (S2), the same reused component the landing's own #dynamic-
-    // codes section renders — proves the page composes it, not a copy.
+    // A section-body marker distinct from the hero: the RetargetPlate island
+    // (S2), the same reused component the landing's own #dynamic-codes
+    // section renders — proves the page composes it, not a copy. P9.10-D5
+    // retired the theatre's `role="img"` stage (its bezier wires went with
+    // it), so the marker is the plate's own constant, which only that
+    // component draws.
+    await expect(page.getByText("qrcdn.com/cafe")).toBeVisible();
     await expect(
-      page.getByRole("img", { name: "A printed QR code with three destinations; tap one to retarget it" }),
+      page.getByRole("button", { name: "Point the code at yourcafe.com/menu" }),
     ).toBeVisible();
   });
 

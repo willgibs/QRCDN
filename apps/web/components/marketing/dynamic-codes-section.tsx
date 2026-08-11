@@ -1,27 +1,39 @@
 import type { ComponentProps } from "react";
+import Link from "next/link";
 import { Section, SectionHeading, SectionBody } from "@/components/marketing/section";
-import { MonoStrip } from "@/components/marketing/mono-strip";
-import { LearnMoreLink } from "@/components/marketing/learn-more-link";
-import { RetargetTheatre } from "@/components/marketing/retarget-theatre";
+import { Button } from "@/components/ui/button";
+import { RetargetStage } from "@/components/marketing/retarget-stage";
 import { DYNAMIC_CODES_DOORWAY_ENABLED } from "@/lib/marketing-flags";
 
-// 04 — Dynamic codes (P9.5-T3a: migrated onto Section/SectionHeading, copy
-// deck v3 head/lede/mono strips applied; the guarantee strip's text also
-// picks up the site-wide no-em-dash fix — deck v3 replaces the original
-// "your code never dies — ..." with a colon). P9.5-T3b: the old three
-// feature-icon pills (bland, the board's exact word) are retired in favor
-// of the RetargetTheatre + truthful state-cards below, which embody the
-// same "pause it, protect it, expire it" claim concretely instead of just
-// naming it — a paused/archived code IS the /u fallback the first
-// state-card shows, a protected code IS the /p gate the second shows, and
-// an expired code IS the dashboard "Expired" pill the third shows.
-//
-// P9.5-T-F2: a second doorway link, into /features/access-controls, joins
-// the existing dynamic-codes one below. The T-F2 spec asked for this only
-// "if a natural slot exists" — it does: the state-cards right above already
-// depict the password gate and the expired-code row this new page expands
-// on, and the existing doorway-link convention (a LearnMoreLink beside the
-// mono strips) accepts a second entry with zero layout change.
+/**
+ * 05 — Dynamic codes. Rebuilt at P9.10-D5 on the board's reference (GitBook's
+ * enterprise section): the heading, lede and doorway sit centered, one
+ * upgraded visual holds the middle, and four claims flank it.
+ *
+ * The two `MonoStrip` guarantee lines this section used to close on are gone,
+ * but nothing they said is: "302 + no-store" and "≤ 5 min worst case" became
+ * the "Never cached" and "Live at the edge" features, and the downgrade
+ * guarantee became "Your code never dies" in full. They were three facts
+ * compressed into two strips of 11px mono under the artwork; they are now
+ * four claims a visitor can actually read. `/pricing`'s guarantee strip still
+ * carries the downgrade sentence verbatim, and e2e still asserts it there.
+ *
+ * `variant="centered"` is this section's first use, and it takes the page to
+ * THREE centered sections (05, 12 the manifesto, and the closing) — the cap
+ * `section.tsx` documents. Worth spending here: 05 is the middle of the page
+ * and every one of its neighbours is a left-aligned split or showcase, which
+ * is exactly the layout monotony the board asked to break.
+ *
+ * The doorway moves from a quiet `LearnMoreLink` beside the mono strips to a
+ * real button under the lede, the same move D2 made for 09's "Read the docs".
+ *
+ * The lede was cut at the board's R3 note. It used to read "A QRCDN code is a
+ * permanent address. Retarget it in seconds and the printed code never
+ * changes." — three claims that the four features underneath now each make
+ * properly, so the lede was spending the reader's attention introducing what
+ * the section was about to demonstrate. It states the idea in two beats now
+ * and gets out of the way.
+ */
 export function DynamicCodesSection({
   index,
   titleSize,
@@ -30,33 +42,25 @@ export function DynamicCodesSection({
   titleSize?: ComponentProps<typeof SectionHeading>["titleSize"];
 }) {
   return (
-    <Section id="dynamic-codes" variant="showcase" surface="tint" divider="none">
+    <Section id="dynamic-codes" variant="centered" surface="tint" divider="none">
       <SectionHeading
         eyebrow="Dynamic links"
         index={index}
         title="Update a destination anytime"
-        lede="A QRCDN code is a permanent address. Retarget it in seconds and the printed code never changes."
+        lede="Print the code once. Change where it goes as often as you like."
         titleSize={titleSize}
+        actions={
+          DYNAMIC_CODES_DOORWAY_ENABLED ? (
+            <Button asChild variant="secondary">
+              <Link href="/features/dynamic-codes">Explore dynamic codes</Link>
+            </Button>
+          ) : undefined
+        }
+        className="mb-block"
       />
 
-      {/* P9.7-V4: the state cards moved to section 06, where they were always
-          the story. They had been sharing this row as a 280px sidebar, which
-          left the page's one visitor-driven moment rendering narrower than a
-          static dashboard mock two sections later. The theatre now has the
-          whole frame. */}
-      <SectionBody className="mt-10">
-        <RetargetTheatre />
-      </SectionBody>
-
-      <SectionBody delay={0.15} className="mt-10 flex flex-col items-start gap-3">
-        <MonoStrip>
-          <span className="text-foreground">your code never dies</span>: free codes are never
-          deactivated, and a downgrade never breaks a printed code.
-        </MonoStrip>
-        <MonoStrip icon={false}>302 + no-store · retarget live in seconds · ≤ 5 min worst case</MonoStrip>
-        {DYNAMIC_CODES_DOORWAY_ENABLED && (
-          <LearnMoreLink href="/features/dynamic-codes">Explore dynamic codes</LearnMoreLink>
-        )}
+      <SectionBody>
+        <RetargetStage />
       </SectionBody>
     </Section>
   );

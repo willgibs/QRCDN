@@ -6,8 +6,16 @@
 // See docs/guides/design-system.md's destination-palette amendment for
 // where these tokens may (and may not) be used — hero/network destination
 // identity only, never UI chrome.
+// P9.10-D5 added the two `yourcafe.com/*` siblings. Section 05's device
+// follows ONE business repointing ONE printed code through its year, which
+// is a stronger demonstration than three unrelated brands and threads to the
+// filmstrip one section up, where the same code (`qrcdn.com/cafe`) is shown
+// moving from /menu to /winter. Purely additive: ScanNetwork and OrbitStage
+// select their own subsets by label, so neither sees these.
 export const DESTINATION_HUES = {
   "yourcafe.com/menu": "dest-1",
+  "yourcafe.com/winter": "dest-2",
+  "yourcafe.com/order": "dest-3",
   "tickets.io/tour-2026": "dest-2",
   "instagram.com/drop": "dest-3",
   "g.page/cafe-norte/review": "dest-4",

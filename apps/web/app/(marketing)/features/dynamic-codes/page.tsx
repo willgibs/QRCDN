@@ -4,7 +4,7 @@ import { Eyebrow } from "@/components/brand/magic";
 import { Section, SectionHeading, SectionBody } from "@/components/marketing/section";
 import { MonoStrip } from "@/components/marketing/mono-strip";
 import { LearnMoreLink } from "@/components/marketing/learn-more-link";
-import { RetargetTheatre } from "@/components/marketing/retarget-theatre";
+import { RetargetPlate } from "@/components/marketing/retarget-stage";
 import { StateCards } from "@/components/marketing/state-cards";
 import { ClosingSection } from "@/components/marketing/closing-section";
 import { FeatureHero } from "@/components/marketing/features/feature-hero";
@@ -14,7 +14,7 @@ import { PRICING_ROWS, type PricingRow } from "@/lib/pricing";
 
 // /features/dynamic-codes (P9.5-T-F1) — the first of two feature-depth
 // pages that COMPOSE the landing's already-proven section-04 components
-// (RetargetTheatre, StateCards) with page-depth copy from the T-F chunk-1
+// (RetargetPlate, StateCards) with page-depth copy from the T-F chunk-1
 // deck, rather than inventing a new visual system. Every deck string below
 // is verbatim-locked; the only invented copy is the FAQ block's own small
 // heading (the deck gives 5 Q&A pairs but no section head for the block
@@ -102,13 +102,13 @@ export default function DynamicCodesFeaturePage() {
         </SectionBody>
       </Section>
 
-      {/* S2 — Retarget it yourself, right here. RetargetTheatre reused
+      {/* S2 — Retarget it yourself, right here. RetargetPlate reused
           as-is; its own caption ("the printed code never changes") is
           already part of the component, per the deck's own note. */}
       <Section variant="showcase" surface="tint" divider="none">
         <SectionHeading title="Retarget it yourself, right here" className="mb-10" />
         <SectionBody>
-          <RetargetTheatre />
+          <RetargetPlate />
         </SectionBody>
       </Section>
 

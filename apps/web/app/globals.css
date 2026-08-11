@@ -403,8 +403,32 @@ html {
    bare `[data-variant="X"]` — `data-variant` is also emitted by several
    vendored shadcn primitives (`components/ui/button.tsx`, `badge.tsx`,
    `tabs.tsx`, `toggle-group.tsx`, `dropdown-menu.tsx`), so an unscoped
-   attribute selector would reach into all of them. */
-@layer components {
+   attribute selector would reach into all of them.
+
+   ---- P9.10-D5: these rules moved from `@layer components` to `@layer
+   utilities`, which is a bug fix, not tidying. ----
+
+   `SectionHeading`'s own class list carries `md:flex-row md:items-end
+   md:justify-between`. Those are UTILITIES, and in Tailwind v4 the utilities
+   layer outranks the components layer regardless of specificity — so from md
+   up, `flex-direction: column` here simply never applied. Every centered
+   section on the site has been rendering as a LEFT-PINNED flex row this
+   whole time, with only the text inside `-main` centering; measured on the
+   landing before the fix, the heading box was 1088px wide with `-main` at
+   688–892px and a `mainLeftGap` of 0, so the manifesto and the closing CTA
+   sat 100–200px left of the measure's true centre and merely looked
+   slightly off rather than obviously broken.
+
+   Nobody caught it because no centered section had ever passed an `aside` or
+   `actions`. Section 05 passes a doorway button, and a left-pinned row with
+   `justify-between` threw it to the far right of a centered heading, which
+   is finally visible enough to diagnose.
+
+   In `utilities` these win on specificity instead: (0,3,0) here against the
+   (0,1,0) of `.md\:flex-row`. Affects 05, 12, the closing CTA, /pricing's
+   FAQ aside and the feature-page heroes — all sections that had already
+   opted into `variant="centered"` and were not getting it. */
+@layer utilities {
   [data-slot="section"][data-variant="centered"] [data-slot="section-heading"] {
     flex-direction: column;
     align-items: center;
@@ -412,6 +436,9 @@ html {
   [data-slot="section"][data-variant="centered"] [data-slot="section-heading-main"] {
     align-items: center;
     text-align: center;
+  }
+  [data-slot="section"][data-variant="centered"] [data-slot="section-heading-aside"] {
+    align-items: center;
   }
 }
 

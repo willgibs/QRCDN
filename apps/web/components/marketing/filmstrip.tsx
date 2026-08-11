@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
-import { renderQr } from "@qrcdn/qr-engine";
 import { brandQrStyles } from "@/lib/brand-qr";
+import { definePrintCode, PrintCodeDefs, PrintMat } from "@/components/marketing/print-mat";
 import { inkHexFromStyle } from "@/lib/qr-style-derive";
 import { HUE_CLASSES } from "@/components/marketing/destination-hues";
 import { cn } from "@/lib/utils";
@@ -30,41 +30,32 @@ import { cn } from "@/lib/utils";
  * the real engine, the same static-composition idiom `qr-tile.tsx` and
  * `kit-sync-theatre.tsx` use. No hooks, no "use client".
  *
- * ---- Why a `<symbol>`/`<use>` pair instead of six inlined engine renders ----
+ * ---- Why one `<symbol>` per code instead of an engine render per instance ----
  * The product claim this section makes is "the same code, unchanged, at
- * every station" — `renderQr` is called exactly ONCE per theme (light/dark),
- * and every one of the five on-page instances (station 1, three station-2
- * artifacts, station 3) references that single definition via `<use>`,
- * which is also literally "the same DOM node," reinforcing the claim in the
- * markup rather than asserting it in a sentence.
+ * every station". The engine runs exactly ONCE per code and every on-page
+ * instance references that single definition via `<use>`, which is also
+ * literally the same DOM node — the claim is true of the markup, not just
+ * asserted in a sentence beside it.
  *
- * `renderQr` returns a complete standalone `<svg xmlns=... viewBox=...>...
- * </svg>` string (two `<path>` fills for dots/eyes; no `<defs>` since
- * `brandQrStyles` is a solid fill, no background `<path>` since its
- * background is transparent — verified by reading `packages/qr-engine/src/
- * render.ts` and by actually calling `renderQr` with this exact style/data
- * pair). `extractSymbol` below pulls the `viewBox` and inner content out of
- * that string with a single guarded regex (matched and measured against the
- * real output before this shipped) so the symbol content is byte-identical
- * to what `renderQr` produced — never hand-copied or re-derived. If the
- * engine's output shape ever changes underneath this, the regex fails to
- * match and this throws at module load (a loud build/request-time failure)
- * rather than silently rendering broken markup.
+ * That machinery moved to `print-mat.tsx` at P9.10-D5, once section 05
+ * needed the same object and this file's copy would have been the third
+ * hand-built one. The guarded extraction regex went with it, and so did its
+ * failure mode: if the engine's output shape ever changes underneath, it
+ * throws at module load rather than silently rendering broken markup.
  *
- * Measured, not guessed: `next build`'s served `/` HTML (`.next/server/app/
- * index.html`) is 861,279 bytes with this symbol/use approach. Temporarily
- * swapping `FilmstripQr`/`QrDefs` for ten repeated `dangerouslySetInnerHTML`
- * copies (one full engine SVG per instance, no shared definition) and
- * rebuilding produced 970,768 bytes — 109,489 bytes (~107 KB) heavier, about
- * 12.7% of the whole page's raw HTML, for markup that is otherwise pixel-
- * identical. Gzipped the gap narrows (65,917 vs 69,267 bytes, a 3,350-byte
- * / 4.8% difference) since ten byte-identical ~6.3 KB chunks compress well,
- * but the symbol approach still wins under compression too, at a fraction
- * of the raw-byte cost. (The RSC flight payload Next embeds alongside the
- * rendered HTML means each id/string appears twice in the served bytes,
- * which is why the deltas above are roughly double a naive "5 instances ×
- * 6,374-byte SVG" estimate — a Next.js characteristic of every static page,
- * not specific to this section.)
+ * Measured when the approach was chosen, and the reason it stays: `next
+ * build`'s served `/` HTML was 861,279 bytes with the shared-symbol
+ * approach. Temporarily swapping it for ten repeated
+ * `dangerouslySetInnerHTML` copies (one full engine SVG per instance) and
+ * rebuilding produced 970,768 bytes — 109,489 bytes heavier, about 12.7% of
+ * the whole page's raw HTML, for markup that is otherwise pixel-identical.
+ * Gzipped the gap narrows (65,917 vs 69,267 bytes, 4.8%) since ten
+ * byte-identical chunks compress well, but the symbol approach still wins
+ * under compression, at a fraction of the raw-byte cost. (The RSC flight
+ * payload Next embeds alongside the rendered HTML means each id/string
+ * appears twice in the served bytes, which is why those deltas are roughly
+ * double a naive per-instance estimate — a characteristic of every static
+ * Next page, not of this section.)
  */
 
 /* Three distinct codes, one shared kit. Code A is the thread: it is the code
@@ -83,99 +74,25 @@ const QR_C = "HTTPS://QRCDN.COM/TOUR";
  *  prints), which never swaps with the site's own theme. */
 const KIT_INK = inkHexFromStyle(brandQrStyles.precision.light);
 
-const SVG_SHAPE_RE = /^<svg[^>]*\sviewBox="([^"]+)"[^>]*>([\s\S]*)<\/svg>$/;
-
-function extractSymbol(svg: string, id: string): { id: string; viewBox: string; inner: string } {
-  const match = svg.match(SVG_SHAPE_RE);
-  if (!match) {
-    throw new Error(
-      `filmstrip.tsx: renderQr's output no longer matches the expected ` +
-        `<svg viewBox="...">...</svg> shape (symbol id "${id}"): the ` +
-        `extraction regex needs updating to match the new format.`,
-    );
-  }
-  return { id, viewBox: match[1], inner: match[2] };
-}
-
-/**
- * One code, extracted into a `<symbol>`.
- *
- * P9.10-D4 dropped the second (dark) render. Until this round every station
- * carried a light/dark PAIR and CSS-toggled between them, because the codes
- * sat directly on the page field and had to survive both themes. They no
- * longer sit on the field: every station is now ink on white paper, matching
- * the hero one section up and the `#131316` ink swatch this section prints
- * under station 1 — which the white-on-black code above it had been
- * contradicting. Paper does not have a dark mode, so the dark symbol was
- * markup nothing could ever reference.
- */
-function buildCode(data: string, slug: string) {
-  return extractSymbol(
-    renderQr({ data, style: brandQrStyles.precision.light }).svg,
-    `hiw-${slug}`,
-  );
-}
-
 const CODES = {
-  a: buildCode(QR_A, "a"),
-  b: buildCode(QR_B, "b"),
-  c: buildCode(QR_C, "c"),
+  a: definePrintCode(QR_A, "hiw-a"),
+  b: definePrintCode(QR_B, "hiw-b"),
+  c: definePrintCode(QR_C, "hiw-c"),
 } as const;
 
 type CodeKey = keyof typeof CODES;
 
-/** Rendered once, referenced by every `FilmstripQr` below via `<use>`. Zero
- *  visual footprint (`size-0`, `absolute`) — matches the reference
- *  artifact's own hidden symbol holder. */
-function QrDefs() {
-  return (
-    <svg aria-hidden className="absolute size-0">
-      {Object.values(CODES).map((sym) => (
-        <symbol
-          key={sym.id}
-          id={sym.id}
-          viewBox={sym.viewBox}
-          dangerouslySetInnerHTML={{ __html: sym.inner }}
-        />
-      ))}
-    </svg>
-  );
-}
-
-/** One station's QR: a single `<use>` against the shared symbol. */
-function FilmstripQr({
-  code = "a",
-  className,
-}: {
-  code?: CodeKey;
-  className?: string;
-}) {
-  const sym = CODES[code];
-  return (
-    <svg viewBox={sym.viewBox} aria-hidden className={cn("block", className)}>
-      <use href={`#${sym.id}`} />
-    </svg>
-  );
-}
-
-/** The 84x84 "hero" QR presentation shared by stations 1 and 3 (`.qr-node`
- *  in the reference artifact): white paper, the QR at full opacity. */
 /**
- * `tone` exists because the featured code should not survive being repeated.
- * One code lifted off the baseline reads as the hero object of its station;
- * five of them lifted equally and the emphasis stops meaning anything. Only
- * the two solo codes (stations 1 and 3) get it; the three-up trio at station
- * 2 sits lower, which is also truer to what that station is saying (these
- * are ordinary codes you made, not a featured one).
+ * A station's printed code. P9.10-D5 collapsed this onto the shared
+ * `PrintMat` primitive: it had become the second hand-built copy of the same
+ * object (the hero's mats are the first), and section 05 was about to be a
+ * third. `PrintMat`'s defaults are chosen to reproduce what this rendered
+ * before adoption exactly, so the swap carries no visual delta.
  *
- * P9.10-D4: the accent used to be a VIOLET bloom (`var(--primary)` in the
- * shadow). Since the D13 monochrome amendment `--primary` computes identical
- * to `--foreground`, so the bloom had quietly become a white one — the same
- * dead violet-era glow D3 cut from the studio CTA, still lit here. The
- * monochrome answer to hierarchy is DEPTH, not hue: the featured code now
- * throws a deeper, softer shadow than the trio and nothing on this baseline
- * is tinted. It is also the hero's own physics one section up, where three
- * paper mats float on shadow alone.
+ * `tone` is depth, never hue. It used to be a VIOLET bloom that the
+ * monochrome amendment had quietly repainted white; D4 replaced it with a
+ * deeper shadow on the two solo stations, which is also the hero's own
+ * physics one section up, where three paper mats float on shadow alone.
  */
 function QrNode({
   code = "a",
@@ -186,21 +103,7 @@ function QrNode({
   size?: number;
   tone?: "accent" | "plain";
 }) {
-  const pad = Math.round(size * 0.083);
-  return (
-    <div
-      className={cn(
-        "shrink-0 rounded-[14px]",
-        "bg-white",
-        tone === "accent"
-          ? "shadow-[0_1px_0_var(--border),0_26px_54px_-24px_rgb(0_0_0/0.78)]"
-          : "shadow-[0_1px_0_var(--border),0_12px_28px_-20px_rgb(0_0_0/0.55)]",
-      )}
-      style={{ width: size, height: size, padding: pad }}
-    >
-      <FilmstripQr code={code} className="h-full w-full" />
-    </div>
-  );
+  return <PrintMat code={CODES[code]} size={size} depth={tone === "accent" ? "raised" : "rest"} />;
 }
 
 function StationMeta({ label, title, note }: { label: string; title: string; note: string }) {
@@ -410,7 +313,7 @@ function RepointStation() {
 export function Filmstrip() {
   return (
     <div className="relative mt-block">
-      <QrDefs />
+      <PrintCodeDefs codes={Object.values(CODES)} />
       {/* The baseline every station's primary object sits on — spans the
           section's content measure. (The frame="bleed" experiment was
           reverted at U2 round 2: a full-viewport hairline read as a line

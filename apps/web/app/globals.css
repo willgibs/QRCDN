@@ -2043,3 +2043,19 @@ html {
     scroll-behavior: auto;
   }
 }
+
+/* ── P9.10-D6.1 — the open-source strip's module field ───────────────────
+   The master plan's device #6 ("our dots are real"), spent here for the
+   first time: a real engine render of the repository's own URL, bled past
+   the strip on both axes so it reads as pattern rather than as a symbol.
+
+   The fade is a MASK, not an opacity ramp on the element: an opacity ramp
+   would wash the modules toward grey and lose their edges, while a mask
+   keeps each module crisp right up to the point it disappears. Two axes,
+   composited, so the field is strongest at the outer corner and gone
+   before it reaches the statement on the left. */
+.os-field {
+  opacity: 0.14;
+  -webkit-mask-image: linear-gradient(to left, #000 0%, transparent 72%);
+  mask-image: linear-gradient(to left, #000 0%, transparent 72%);
+}

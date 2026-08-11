@@ -47,8 +47,29 @@ const SVG_SHAPE_RE = /^<svg[^>]*\sviewBox="([^"]+)"[^>]*>([\s\S]*)<\/svg>$/;
  * output shape ever changes underneath this, it throws at module load — a
  * loud build-time failure rather than silently broken markup.
  */
-export function definePrintCode(data: string, id: string): PrintCode {
-  const svg = renderQr({ data, style: brandQrStyles.precision.light }).svg;
+export function definePrintCode(
+  data: string,
+  id: string,
+  /**
+   * `"paper"` (the default) is dark ink for a white mat, which is the only
+   * thing a PrintMat should ever hold. `"field"` renders the light-ink pair
+   * instead, and exists for ONE use: ambient module-field texture on a dark
+   * ground (P9.10-D6.1's open-source strip). It is not a mat and must never
+   * be handed to `PrintMat` — a light-ink code on white paper would not
+   * scan, which is exactly the class of mistake the QR solidity rule is
+   * there to prevent.
+   *
+   * The distinction is load-bearing because `renderQr` BAKES the fill into
+   * the path attributes: a `text-*` utility on the consuming element does
+   * nothing, so getting this wrong renders a code that is present in the DOM
+   * and invisible on screen, which is how the first draft of that strip
+   * shipped near-black ink onto a near-black card.
+   */
+  variant: "paper" | "field" = "paper",
+): PrintCode {
+  const style =
+    variant === "field" ? brandQrStyles.precision.dark : brandQrStyles.precision.light;
+  const svg = renderQr({ data, style }).svg;
   const match = svg.match(SVG_SHAPE_RE);
   if (!match) {
     throw new Error(

@@ -65,12 +65,11 @@ const EM_DASH = "—";
  * a conscious decision and a comment, never an accidental broad match.
  */
 const EXEMPT_FILES = new Set<string>([
-  // Thrown only if packages/qr-engine/src/guardrails.ts's own source shape
-  // changes underneath this file's anchor markers — a build-time developer
-  // invariant, never reachable at runtime by a real visitor (next build
-  // fails first). Not customer-facing copy; see this file's own doc
-  // comment for the full reasoning.
-  "lib/guardrails-excerpt.ts",
+  // P9.10-D6.1 emptied this. Its one entry, lib/guardrails-excerpt.ts,
+  // retired with the source excerpt section 11 used to render; the
+  // replacement (lib/open-source.ts) simply avoids em dashes in its thrown
+  // strings rather than asking for an exemption. Keep it empty if you can:
+  // an exemption should always cost a conscious decision and a comment.
 ]);
 
 function stripComments(source: string): string {

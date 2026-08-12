@@ -929,7 +929,9 @@ test.describe("marketing site", () => {
       ["03", "Update links anytime"],
       ["04", "Track scan analytics"],
     ].entries()) {
-      await expect(cells.nth(i).getByText(ordinal, { exact: true })).toHaveCount(2);
+      // One ordinal per cell since D9.2: the background numeral (the
+      // meta-row duplicate retired on the board's note).
+      await expect(cells.nth(i).getByText(ordinal, { exact: true })).toHaveCount(1);
       await expect(cells.nth(i).getByText(title, { exact: true })).toBeVisible();
     }
 
@@ -939,14 +941,15 @@ test.describe("marketing site", () => {
     await expect(cells.nth(0).locator(".hw-restyle svg")).toHaveCount(1);
     await expect(cells.nth(0).locator(".hw-mat-base svg")).toHaveCount(1);
 
-    // Cell 02: the five-code fan (D9.1), fading toward its edges.
-    await expect(cells.nth(1).locator(".hw-fan")).toHaveCount(5);
+    // Cell 02: the seven-code fan (D9.2), receding by brightness.
+    await expect(cells.nth(1).locator(".hw-fan")).toHaveCount(7);
 
     // D9.1: cell 01's mini studio panel and cell 03's branch diagram
     // with its two packets (SMIL circles; visibility swaps on hover).
     await expect(cells.nth(0).locator(".hw-swatch")).toHaveCount(3);
     await expect(cells.nth(2).locator(".hw-br")).toHaveCount(3);
-    await expect(cells.nth(2).locator(".hw-packet")).toHaveCount(2);
+    // Two comets of three (leader + two followers each).
+    await expect(cells.nth(2).locator(".hw-packet")).toHaveCount(6);
 
     // Cell 03: the constant address, and the drawn-strike device is NOT
     // the line-through class (the page-wide pin below counts exactly 1).
@@ -1004,7 +1007,7 @@ test.describe("marketing site", () => {
 
     // The zone's order, which D4 swapped: the run leads, the wall follows.
     const headings = page.locator('section[data-slot="section"] h2');
-    await expect(headings.nth(0)).toHaveText("Make codes that last forever");
+    await expect(headings.nth(0)).toHaveText("Create codes that work forever");
     await expect(headings.nth(1)).toHaveText("Our full-stack platform");
 
     // The bento and the strip before it are gone from every breakpoint.

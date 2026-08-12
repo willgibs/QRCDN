@@ -2306,30 +2306,22 @@ html {
    03's third destination occupies layout at opacity 0 — no micro can
    move layout. */
 
-/* 01 · the restyle, blur-masked (D9.1). The D9 crossfade read as jerky:
-   at mid-fade two transparent renders over one mat are a double image.
-   A few px of blur during the swap bridges them into one object — the
-   crossfade trick from the emil catalog, on our tokens. The incoming
-   layer also settles from 98.5% scale so the new style "arrives"
-   rather than materializes. */
+/* 01 · the restyle WIPE (D9.2). The D9.1 blur-crossfade still read as
+   rigid — a fade is a swap, however masked. The restyled render now
+   sweeps across the sheet on a clip-path inset transition and sweeps
+   back off on hover-out: the style is APPLIED across the code, and the
+   hard pixel edge of the wipe suits a QR. The layer carries its own
+   opaque paper so the swept region covers the base cleanly; the base
+   never fades at all. clip-path animates on the compositor and the
+   inset() interpolation is linear in the one dimension that moves. */
 .hw-restyle {
-  opacity: 0;
-  filter: blur(3px);
-  scale: 0.985;
-  transition:
-    opacity 360ms var(--motion-ease-out),
-    filter 360ms var(--motion-ease-out),
-    scale 360ms var(--motion-ease-out);
+  clip-path: inset(0 100% 0 0);
+  transition: clip-path 420ms var(--motion-ease-in-out);
 }
 .hw-restyle svg {
   display: block;
   width: 100%;
   height: 100%;
-}
-.hw-mat-base > svg {
-  transition:
-    opacity 340ms var(--motion-ease-out),
-    filter 340ms var(--motion-ease-out);
 }
 
 /* The mini studio's selection states. Base options are selected at
@@ -2342,11 +2334,12 @@ html {
   border: 1px solid var(--border);
   transition: box-shadow 240ms var(--motion-ease-out);
 }
-.hw-chip-opt {
-  padding: 2px 7px;
-  border-radius: 6px;
-  font-family: var(--font-mono);
-  font-size: 10px;
+.hw-icon-opt {
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 7px;
   color: var(--muted-foreground);
   transition:
     color 240ms var(--motion-ease-out),
@@ -2355,7 +2348,7 @@ html {
 .hw-opt-base.hw-swatch {
   box-shadow: 0 0 0 1.5px var(--background), 0 0 0 3px oklch(1 0 0 / 55%);
 }
-.hw-opt-base.hw-chip-opt {
+.hw-opt-base.hw-icon-opt {
   color: var(--foreground);
   background: oklch(1 0 0 / 10%);
 }
@@ -2370,8 +2363,14 @@ html {
   transition:
     translate 360ms var(--motion-ease-spring-back),
     rotate 360ms var(--motion-ease-spring-back),
-    opacity 360ms var(--motion-ease-out);
+    filter 360ms var(--motion-ease-out);
 }
+/* Recession is BRIGHTNESS, not opacity (D9.2 board note): opacity let
+   overlapped sheets show through each other; dimming keeps every mat
+   opaque while the run recedes into the dark card. */
+.hw-fan-1, .hw-fan-7 { filter: brightness(0.4); }
+.hw-fan-2, .hw-fan-6 { filter: brightness(0.58); }
+.hw-fan-3, .hw-fan-5 { filter: brightness(0.8); }
 .hw-fan > div {
   animation: hw-float var(--hw-t, 9s) var(--motion-ease-in-out) var(--hw-d, 0s) infinite alternate;
 }
@@ -2380,6 +2379,8 @@ html {
 .hw-fan-3 > div { --hw-t: 9.4s; --hw-d: 0s; }
 .hw-fan-4 > div { --hw-t: 11s; --hw-d: -7s; }
 .hw-fan-5 > div { --hw-t: 8.8s; --hw-d: -3.5s; }
+.hw-fan-6 > div { --hw-t: 10.6s; --hw-d: -6.2s; }
+.hw-fan-7 > div { --hw-t: 9.8s; --hw-d: -1.2s; }
 @keyframes hw-float {
   from {
     translate: 0 2px;
@@ -2457,13 +2458,7 @@ html {
 
 @media (hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference) {
   .hw-card:hover .hw-restyle {
-    opacity: 1;
-    filter: blur(0);
-    scale: 1;
-  }
-  .hw-card:hover .hw-mat-base > svg {
-    opacity: 0;
-    filter: blur(3px);
+    clip-path: inset(0 0 0 0);
   }
   .hw-card:hover .hw-opt-base.hw-swatch {
     box-shadow: none;
@@ -2471,56 +2466,74 @@ html {
   .hw-card:hover .hw-opt-alt.hw-swatch {
     box-shadow: 0 0 0 1.5px var(--background), 0 0 0 3px oklch(1 0 0 / 55%);
   }
-  .hw-card:hover .hw-opt-base.hw-chip-opt {
+  .hw-card:hover .hw-opt-base.hw-icon-opt {
     color: var(--muted-foreground);
     background: transparent;
   }
-  .hw-card:hover .hw-opt-alt.hw-chip-opt {
+  .hw-card:hover .hw-opt-alt.hw-icon-opt {
     color: var(--foreground);
     background: oklch(1 0 0 / 10%);
   }
 
   .hw-card:hover .hw-fan-1 {
-    translate: -18px 18px;
-    rotate: -22deg;
-    opacity: 0.55;
+    translate: -20px 26px;
+    rotate: -30deg;
+    filter: brightness(0.55);
     transition:
       translate 410ms var(--motion-ease-spring-out),
       rotate 410ms var(--motion-ease-spring-out),
-      opacity 360ms var(--motion-ease-out);
+      filter 360ms var(--motion-ease-out);
   }
   .hw-card:hover .hw-fan-2 {
-    translate: -10px 8px;
-    rotate: -12deg;
-    opacity: 0.92;
+    translate: -14px 16px;
+    rotate: -20deg;
+    filter: brightness(0.72);
     transition:
       translate 410ms var(--motion-ease-spring-out),
       rotate 410ms var(--motion-ease-spring-out),
-      opacity 360ms var(--motion-ease-out);
+      filter 360ms var(--motion-ease-out);
   }
   .hw-card:hover .hw-fan-3 {
+    translate: -8px 7px;
+    rotate: -11deg;
+    filter: brightness(0.9);
+    transition:
+      translate 410ms var(--motion-ease-spring-out),
+      rotate 410ms var(--motion-ease-spring-out),
+      filter 360ms var(--motion-ease-out);
+  }
+  .hw-card:hover .hw-fan-4 {
     translate: 0 -4px;
     transition:
       translate 410ms var(--motion-ease-spring-out),
       rotate 410ms var(--motion-ease-spring-out);
   }
-  .hw-card:hover .hw-fan-4 {
-    translate: 10px 8px;
-    rotate: 12deg;
-    opacity: 0.92;
-    transition:
-      translate 410ms var(--motion-ease-spring-out),
-      rotate 410ms var(--motion-ease-spring-out),
-      opacity 360ms var(--motion-ease-out);
-  }
   .hw-card:hover .hw-fan-5 {
-    translate: 18px 18px;
-    rotate: 22deg;
-    opacity: 0.55;
+    translate: 8px 7px;
+    rotate: 11deg;
+    filter: brightness(0.9);
     transition:
       translate 410ms var(--motion-ease-spring-out),
       rotate 410ms var(--motion-ease-spring-out),
-      opacity 360ms var(--motion-ease-out);
+      filter 360ms var(--motion-ease-out);
+  }
+  .hw-card:hover .hw-fan-6 {
+    translate: 14px 16px;
+    rotate: 20deg;
+    filter: brightness(0.72);
+    transition:
+      translate 410ms var(--motion-ease-spring-out),
+      rotate 410ms var(--motion-ease-spring-out),
+      filter 360ms var(--motion-ease-out);
+  }
+  .hw-card:hover .hw-fan-7 {
+    translate: 20px 26px;
+    rotate: 30deg;
+    filter: brightness(0.55);
+    transition:
+      translate 410ms var(--motion-ease-spring-out),
+      rotate 410ms var(--motion-ease-spring-out),
+      filter 360ms var(--motion-ease-out);
   }
 
   .hw-card:hover .hw-br-winter {

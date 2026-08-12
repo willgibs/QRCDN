@@ -2288,31 +2288,38 @@ html {
   inset: -10px;
 }
 
-/* ── P9.10-D9 — the How It Works grid's microanimations ──────────────────
-   Four cells, one micro each, all demonstrating the concept they sit
-   under: the code restyles (01), the fan spreads (02), the next repoint
-   plays (03), the scans arrive (04).
+/* ── P9.10-D9 / D9.1 — the How It Works grid's choreography ──────────────
+   Four cells, one hover micro each, plus TWO constant motions the board
+   licensed at D9.1 where movement adds dimension a still can't: the fan
+   floats on the hero's physics, and a packet travels cell 03's active
+   branch (the redirect carries traffic even when nobody is hovering).
 
-   THE GATE. Everything interactive here lives inside ONE media query:
-   hover-capable fine pointers with no reduced-motion preference — the
-   hero-mat precedent verbatim. Outside it, every cell is its complete,
-   polished base state: touch never sees a half-told story and reduced
-   motion never sees movement. Base-state transitions are declared
-   OUTSIDE the gate (they are inert without the hover rules that change
-   the properties), so the return leg always matches the out leg.
+   THE GATE. Every hover rule lives inside one media query — hover-capable
+   fine pointers, no reduced-motion — so touch and reduced motion get the
+   complete base states. Base-state transitions are declared OUTSIDE the
+   gate so the return leg always matches the out leg. The ambient motions
+   carry their own reduced-motion guards; the packet is SMIL, which
+   ignores the media query, so its guard hides the element instead of
+   pausing it.
 
-   Transform and opacity only. The stages are fixed-height and cell 03's
-   third destination occupies layout at opacity 0, so nothing any micro
-   does can move layout — the board's "room to breathe" is load-bearing
-   geometry, not a mood. */
+   Transform, opacity and filter only. Stages are fixed-height and cell
+   03's third destination occupies layout at opacity 0 — no micro can
+   move layout. */
 
-/* 01 · restyle crossfade. The overlay's engine svg scales to the padding
-   box (the engine emits no width/height without pixelSize — the
-   .hero-paper precedent). Base <use> and overlay crossfade in step so
-   the two transparent renders never stack visibly. */
+/* 01 · the restyle, blur-masked (D9.1). The D9 crossfade read as jerky:
+   at mid-fade two transparent renders over one mat are a double image.
+   A few px of blur during the swap bridges them into one object — the
+   crossfade trick from the emil catalog, on our tokens. The incoming
+   layer also settles from 98.5% scale so the new style "arrives"
+   rather than materializes. */
 .hw-restyle {
   opacity: 0;
-  transition: opacity 300ms var(--motion-ease-out);
+  filter: blur(3px);
+  scale: 0.985;
+  transition:
+    opacity 360ms var(--motion-ease-out),
+    filter 360ms var(--motion-ease-out),
+    scale 360ms var(--motion-ease-out);
 }
 .hw-restyle svg {
   display: block;
@@ -2320,28 +2327,94 @@ html {
   height: 100%;
 }
 .hw-mat-base > svg {
-  transition: opacity 300ms var(--motion-ease-out);
-}
-.hw-chip-base,
-.hw-chip-alt {
-  transition: opacity 300ms var(--motion-ease-out);
-}
-.hw-chip-alt {
-  opacity: 0;
+  transition:
+    opacity 340ms var(--motion-ease-out),
+    filter 340ms var(--motion-ease-out);
 }
 
-/* 02 · fan spread. The hero's asymmetric spring pair: settle-back ease
-   declared at rest, snappier spring-out applied inside the hover gate. */
+/* The mini studio's selection states. Base options are selected at
+   rest; hover moves the selection to the alt column in step with the
+   render. Swatches ring, chips fill — both read as real controls. */
+.hw-swatch {
+  width: 16px;
+  height: 16px;
+  border-radius: 5px;
+  border: 1px solid var(--border);
+  transition: box-shadow 240ms var(--motion-ease-out);
+}
+.hw-chip-opt {
+  padding: 2px 7px;
+  border-radius: 6px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--muted-foreground);
+  transition:
+    color 240ms var(--motion-ease-out),
+    background-color 240ms var(--motion-ease-out);
+}
+.hw-opt-base.hw-swatch {
+  box-shadow: 0 0 0 1.5px var(--background), 0 0 0 3px oklch(1 0 0 / 55%);
+}
+.hw-opt-base.hw-chip-opt {
+  color: var(--foreground);
+  background: oklch(1 0 0 / 10%);
+}
+
+/* 02 · the fan. Constant float on the hero's physics: coprime periods,
+   tiny amplitudes, one keyframe set consumed at five phases via
+   negative delays. The float animates only translate — the resting
+   pose (rotate + the Tailwind translate-y offsets) lives on the same
+   element, so the float rides ON the pose via the extra --hw-drift
+   custom property rather than fighting it. */
 .hw-fan {
   transition:
     translate 360ms var(--motion-ease-spring-back),
-    rotate 360ms var(--motion-ease-spring-back);
+    rotate 360ms var(--motion-ease-spring-back),
+    opacity 360ms var(--motion-ease-out);
+}
+.hw-fan > div {
+  animation: hw-float var(--hw-t, 9s) var(--motion-ease-in-out) var(--hw-d, 0s) infinite alternate;
+}
+.hw-fan-1 > div { --hw-t: 8.4s; --hw-d: -2s; }
+.hw-fan-2 > div { --hw-t: 10.2s; --hw-d: -5s; }
+.hw-fan-3 > div { --hw-t: 9.4s; --hw-d: 0s; }
+.hw-fan-4 > div { --hw-t: 11s; --hw-d: -7s; }
+.hw-fan-5 > div { --hw-t: 8.8s; --hw-d: -3.5s; }
+@keyframes hw-float {
+  from {
+    translate: 0 2px;
+  }
+  to {
+    translate: 0 -3px;
+  }
 }
 
-/* 03 · the drawn strike. Sits over /winter's text only (its own relative
-   wrapper), scales open from the left. Deliberately NOT the
-   `line-through` class: the page-wide e2e pin counts exactly one struck
-   /menu, and this device must never be countable as a second. */
+/* 03 · the branch diagram. Dormant branches are hairlines in the border
+   grey; the active branch carries its destination hue. The /order
+   branch pre-hides its stroke behind a full dash offset (pathLength
+   100 normalizes it) so hover can DRAW it. Packets ride SMIL motion
+   paths; visibility swaps with the branch they serve. */
+.hw-br {
+  stroke: var(--border);
+  transition:
+    stroke 280ms var(--motion-ease-out),
+    opacity 280ms var(--motion-ease-out);
+}
+.hw-br-winter {
+  stroke: var(--dest-2);
+}
+.hw-br-order {
+  stroke: var(--dest-3);
+  stroke-dasharray: 100;
+  stroke-dashoffset: 100;
+  transition: stroke-dashoffset 340ms var(--motion-ease-out);
+}
+.hw-packet {
+  transition: opacity 200ms var(--motion-ease-out);
+}
+.hw-packet-order {
+  opacity: 0;
+}
 .hw-winter {
   transition: opacity 240ms var(--motion-ease-out);
 }
@@ -2364,13 +2437,11 @@ html {
     translate 240ms var(--motion-ease-out);
 }
 
-/* 04 · the bar wave. The animation is APPLIED on hover, not merely
-   unpaused: a paused animation with a negative delay would freeze every
-   bar mid-wave at load, and the resting chart must be exactly the
-   authored series. Hover-off removes the animation and the bar snaps
-   the ≤14% back to base — imperceptible at 5px wide, and the honest
-   trade against a frozen first paint. Phase offset by index; 18 bars ×
-   -100ms spans the 1.8s cycle, so the wave travels the full chart. */
+/* 04 · the bar wave. Applied on hover, never unpaused: a paused
+   animation with a negative delay freezes every bar mid-wave at first
+   paint, and the resting chart must be exactly the authored series.
+   30 bars × -60ms spans the 1.8s cycle, so the wave travels the full
+   month. */
 @keyframes hw-wave {
   0%,
   100% {
@@ -2387,38 +2458,84 @@ html {
 @media (hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference) {
   .hw-card:hover .hw-restyle {
     opacity: 1;
+    filter: blur(0);
+    scale: 1;
   }
   .hw-card:hover .hw-mat-base > svg {
     opacity: 0;
+    filter: blur(3px);
   }
-  .hw-card:hover .hw-chip-base {
-    opacity: 0;
+  .hw-card:hover .hw-opt-base.hw-swatch {
+    box-shadow: none;
   }
-  .hw-card:hover .hw-chip-alt {
-    opacity: 1;
+  .hw-card:hover .hw-opt-alt.hw-swatch {
+    box-shadow: 0 0 0 1.5px var(--background), 0 0 0 3px oklch(1 0 0 / 55%);
+  }
+  .hw-card:hover .hw-opt-base.hw-chip-opt {
+    color: var(--muted-foreground);
+    background: transparent;
+  }
+  .hw-card:hover .hw-opt-alt.hw-chip-opt {
+    color: var(--foreground);
+    background: oklch(1 0 0 / 10%);
   }
 
-  .hw-card:hover .hw-fan-l {
-    translate: -14px 9px;
-    rotate: -13deg;
+  .hw-card:hover .hw-fan-1 {
+    translate: -18px 18px;
+    rotate: -22deg;
+    opacity: 0.55;
     transition:
       translate 410ms var(--motion-ease-spring-out),
-      rotate 410ms var(--motion-ease-spring-out);
+      rotate 410ms var(--motion-ease-spring-out),
+      opacity 360ms var(--motion-ease-out);
   }
-  .hw-card:hover .hw-fan-m {
+  .hw-card:hover .hw-fan-2 {
+    translate: -10px 8px;
+    rotate: -12deg;
+    opacity: 0.92;
+    transition:
+      translate 410ms var(--motion-ease-spring-out),
+      rotate 410ms var(--motion-ease-spring-out),
+      opacity 360ms var(--motion-ease-out);
+  }
+  .hw-card:hover .hw-fan-3 {
     translate: 0 -4px;
     transition:
       translate 410ms var(--motion-ease-spring-out),
       rotate 410ms var(--motion-ease-spring-out);
   }
-  .hw-card:hover .hw-fan-r {
-    translate: 14px 9px;
-    rotate: 13deg;
+  .hw-card:hover .hw-fan-4 {
+    translate: 10px 8px;
+    rotate: 12deg;
+    opacity: 0.92;
     transition:
       translate 410ms var(--motion-ease-spring-out),
-      rotate 410ms var(--motion-ease-spring-out);
+      rotate 410ms var(--motion-ease-spring-out),
+      opacity 360ms var(--motion-ease-out);
+  }
+  .hw-card:hover .hw-fan-5 {
+    translate: 18px 18px;
+    rotate: 22deg;
+    opacity: 0.55;
+    transition:
+      translate 410ms var(--motion-ease-spring-out),
+      rotate 410ms var(--motion-ease-spring-out),
+      opacity 360ms var(--motion-ease-out);
   }
 
+  .hw-card:hover .hw-br-winter {
+    stroke: var(--border);
+  }
+  .hw-card:hover .hw-br-order {
+    stroke-dashoffset: 0;
+  }
+  .hw-card:hover .hw-packet-winter {
+    opacity: 0;
+  }
+  .hw-card:hover .hw-packet-order {
+    opacity: 1;
+    transition-delay: 180ms;
+  }
   .hw-card:hover .hw-winter {
     opacity: 0.65;
   }
@@ -2432,6 +2549,17 @@ html {
   }
 
   .hw-card:hover .hw-bar {
-    animation: hw-wave 1.8s var(--motion-ease-in-out) calc(var(--i) * -100ms) infinite;
+    animation: hw-wave 1.8s var(--motion-ease-in-out) calc(var(--i) * -60ms) infinite;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hw-fan > div {
+    animation: none;
+  }
+  /* SMIL does not consult prefers-reduced-motion, so the packets are
+     REMOVED rather than paused under it. */
+  .hw-packet {
+    display: none;
   }
 }

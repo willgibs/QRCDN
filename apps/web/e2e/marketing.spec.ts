@@ -920,14 +920,16 @@ test.describe("marketing site", () => {
     const cells = grid.locator("li.hw-card");
     await expect(cells).toHaveCount(4);
 
-    // The numbers are the product pipeline, in order.
+    // The numbers are the product pipeline, in order. Each ordinal
+    // appears TWICE per cell since D9.1 — the background numeral and
+    // the meta row — so the pin is a count, not a visibility check.
     for (const [i, [ordinal, title]] of [
       ["01", "Design your style"],
       ["02", "Create new codes"],
       ["03", "Update links anytime"],
       ["04", "Track scan analytics"],
     ].entries()) {
-      await expect(cells.nth(i).getByText(ordinal, { exact: true })).toBeVisible();
+      await expect(cells.nth(i).getByText(ordinal, { exact: true })).toHaveCount(2);
       await expect(cells.nth(i).getByText(title, { exact: true })).toBeVisible();
     }
 
@@ -937,8 +939,14 @@ test.describe("marketing site", () => {
     await expect(cells.nth(0).locator(".hw-restyle svg")).toHaveCount(1);
     await expect(cells.nth(0).locator(".hw-mat-base svg")).toHaveCount(1);
 
-    // Cell 02: the three-mat fan.
-    await expect(cells.nth(1).locator(".hw-fan")).toHaveCount(3);
+    // Cell 02: the five-code fan (D9.1), fading toward its edges.
+    await expect(cells.nth(1).locator(".hw-fan")).toHaveCount(5);
+
+    // D9.1: cell 01's mini studio panel and cell 03's branch diagram
+    // with its two packets (SMIL circles; visibility swaps on hover).
+    await expect(cells.nth(0).locator(".hw-swatch")).toHaveCount(3);
+    await expect(cells.nth(2).locator(".hw-br")).toHaveCount(3);
+    await expect(cells.nth(2).locator(".hw-packet")).toHaveCount(2);
 
     // Cell 03: the constant address, and the drawn-strike device is NOT
     // the line-through class (the page-wide pin below counts exactly 1).
@@ -946,8 +954,9 @@ test.describe("marketing site", () => {
     await expect(cells.nth(2).locator(".hw-strike")).toHaveCount(1);
     await expect(cells.nth(2).locator(".hw-next")).toHaveCount(1);
 
-    // Cell 04: the full authored series.
-    await expect(cells.nth(3).locator(".hw-bar")).toHaveCount(18);
+    // Cell 04: the full authored series — 30 bars since D9.1, so the
+    // "30 days" caption is literal.
+    await expect(cells.nth(3).locator(".hw-bar")).toHaveCount(30);
     await expect(cells.nth(3).getByText("1,284 scans · 30 days")).toBeVisible();
 
     // The struck /menu artwork exists exactly ONCE page-wide — cell 03's

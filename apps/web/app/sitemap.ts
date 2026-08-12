@@ -83,6 +83,14 @@ export default function sitemap(): MetadataRoute.Sitemap {
       priority: 0.5,
     },
     {
+      // P9.10-D7. A real, indexable page: section 13's Enterprise column
+      // and its full-length row both point here, and it is the only place
+      // that says how to reach a person.
+      url: `${BASE_URL}/contact`,
+      changeFrequency: "yearly",
+      priority: 0.4,
+    },
+    {
       url: `${BASE_URL}/terms`,
       changeFrequency: "yearly",
       priority: 0.3,

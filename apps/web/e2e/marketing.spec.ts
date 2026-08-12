@@ -2,6 +2,10 @@ import { readFileSync, readdirSync, statSync } from "node:fs";
 import { join, relative } from "node:path";
 import { test, expect } from "./fixtures";
 import { PLAN_LIMITS, PRICING } from "../lib/entitlements";
+// Imported, never literalised: lib/e2e-safety.test.ts rejects every
+// email-shaped literal under e2e/ that is not a throwaway fixture address,
+// and that allowlist is worth more than the convenience of typing it here.
+import { CONTACT_EMAIL } from "../lib/contact";
 import { CHANGELOG_ENTRIES } from "../lib/changelog";
 import { BLOG_POSTS } from "../lib/blog";
 import { HELP_ARTICLES, HELP_CATEGORIES } from "../lib/help";
@@ -258,6 +262,8 @@ test.describe("marketing site", () => {
     // P9.5-T-F2: the second pair.
     expect(body).toContain("/features/brand-studio");
     expect(body).toContain("/features/access-controls");
+    // P9.10-D7: /contact.
+    expect(body).toContain("/contact</loc>");
     // P9.5-T-R: /blog + every real post, /help + every real article.
     expect(body).toContain("/blog</loc>");
     for (const post of BLOG_POSTS) {
@@ -678,8 +684,116 @@ test.describe("marketing site", () => {
       page.getByRole("heading", { name: "Update a destination anytime" }),
     ).toBeVisible();
     await expect(
-      page.getByRole("heading", { name: "Free to start, upgrade for more" }),
+      page.getByRole("heading", { name: "Start free, pay when you print at scale" }),
     ).toBeVisible();
+  });
+
+  // P9.10-D7 — section 13 rebuilt as three plan columns over a contact row,
+  // and the landing's ending rebuilt with it. These pin the things the
+  // round actually fixed, not the chrome:
+  //
+  //  - THREE DISTINCT ACTIONS. The old section shipped "Start free" twice
+  //    in one row (free card and Pro card, same words, same href) while the
+  //    Pro footnote said checkout was not open. Pro now sends readers to
+  //    the full comparison instead of pretending to sell.
+  //  - ONE "Start free" in the whole ending, down from three.
+  //  - Every plan number still arrives from entitlements.ts.
+  test("pricing: three plan columns, three distinct actions (P9.10-D7)", async ({ page }) => {
+    await page.goto("/");
+    const section = page.locator("section").filter({
+      has: page.getByRole("heading", { name: "Start free, pay when you print at scale" }),
+    });
+
+    for (const plan of ["Free", "Pro", "Enterprise"]) {
+      await expect(section.getByRole("heading", { name: plan, exact: true })).toBeVisible();
+    }
+
+    // The three CTAs go three different places. Enterprise and the row
+    // beneath both reach the page built for them in this same round.
+    await expect(section.getByRole("link", { name: "Start free" })).toHaveAttribute(
+      "href",
+      "/login",
+    );
+    await expect(section.getByRole("link", { name: "See everything in Pro" })).toHaveAttribute(
+      "href",
+      "/pricing",
+    );
+    await expect(section.getByRole("link", { name: "Talk to us" })).toHaveAttribute(
+      "href",
+      "/contact",
+    );
+    await expect(section.getByRole("link", { name: "Contact us" })).toHaveAttribute(
+      "href",
+      "/contact",
+    );
+
+    // Numbers from entitlements.ts, never retyped (CLAUDE.md hard rule).
+    await expect(section.getByText(`${PLAN_LIMITS.free.brandKits} brand kits`)).toBeVisible();
+    await expect(
+      section.getByText(`${PLAN_LIMITS.pro.dynamicCodes.toLocaleString("en-US")} dynamic codes`),
+    ).toBeVisible();
+
+    // The ending carries ONE "Start free" per section now. It used to put
+    // two in this row alone (free card and Pro card, same words, same
+    // href) plus a third in the closing. NOT asserted page-wide: the nav's
+    // own banner CTA says "Start free" too and always has, which is why
+    // the nav test above scopes itself to role=banner.
+    await expect(section.getByRole("link", { name: "Start free", exact: true })).toHaveCount(1);
+    const ending = page.locator("section").filter({ hasText: "your code never dies" });
+    await expect(ending.getByRole("link", { name: "Start free", exact: true })).toHaveCount(1);
+  });
+
+  // The landing's closing is its own component now (LandingClosing) so the
+  // four feature pages keep ClosingSection unchanged. It carries the aurora
+  // budget's closing placement and the drifting code field behind it.
+  test("closing: the kissed CTA and the code field (P9.10-D7)", async ({ page }) => {
+    await page.goto("/");
+    const closing = page.locator("section").filter({ hasText: "your code never dies" });
+
+    const cta = closing.getByRole("link", { name: "Start free", exact: true });
+    await expect(cta).toHaveClass(/cta-kiss/);
+    await expect(cta).toHaveClass(/aurora-edge/);
+    // Matches the hero: composing .aurora-breathe is what makes both ends
+    // of the page run one animation list, including the 4.5s breath.
+    await expect(cta).toHaveClass(/aurora-breathe/);
+
+    // Six real engine renders drifting behind the ask, no more and no
+    // fewer, and the glow they float in.
+    await expect(closing.locator(".closing-mat")).toHaveCount(6);
+    await expect(closing.locator(".closing-glow")).toHaveCount(1);
+
+    // The heading breaks evenly at desktop rather than wrapping ragged.
+    await expect(closing.getByText("Create your first", { exact: true })).toBeVisible();
+    await expect(closing.getByText("code in minutes", { exact: true })).toBeVisible();
+  });
+
+  // /contact exists because section 13 points at it twice, and the site's
+  // standing rule is real hrefs only. Deliberately not a form: no endpoint,
+  // no inbox, no bot protection, and a form that drops mail is worse than
+  // an address that works.
+  test("/contact reaches a real page with a working address (P9.10-D7)", async ({ page }) => {
+    await page.goto("/contact");
+    await expect(
+      page.getByRole("heading", { name: "A person, not a form", level: 1 }),
+    ).toBeVisible();
+
+    const mailtos = page.locator(`a[href^="mailto:${CONTACT_EMAIL}"]`);
+    expect(await mailtos.count()).toBeGreaterThanOrEqual(5);
+
+    // Every "before you write" pointer resolves somewhere real.
+    await expect(page.getByRole("link", { name: "See pricing" })).toHaveAttribute(
+      "href",
+      "/pricing",
+    );
+    await expect(page.getByRole("link", { name: "Check status" })).toHaveAttribute(
+      "href",
+      "https://status.qrcdn.com",
+    );
+
+    // Reachable from every page, not only from the section that needed it.
+    await expect(
+      page.getByRole("contentinfo").getByRole("link", { name: "Contact", exact: true }),
+    ).toHaveAttribute("href", "/contact");
   });
 
   test("brand system: the sync theatre stages the hard-sync flagship (P9.9-C1)", async ({

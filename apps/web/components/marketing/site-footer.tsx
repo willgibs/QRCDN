@@ -33,6 +33,10 @@ const COLUMNS = [
       { href: "/help", label: "Help" },
       { href: "/blog", label: "Blog" },
       { href: "/changelog", label: "Changelog" },
+      // P9.10-D7: /contact was built this round for section 13's Enterprise
+      // column. Listed here so the page is reachable from every page rather
+      // than only from the one section that needed it.
+      { href: "/contact", label: "Contact" },
       { href: "https://status.qrcdn.com", label: "Status", external: true },
     ],
   },

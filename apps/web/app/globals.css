@@ -2059,3 +2059,187 @@ html {
   -webkit-mask-image: linear-gradient(to left, #000 0%, transparent 72%);
   mask-image: linear-gradient(to left, #000 0%, transparent 72%);
 }
+
+/* ── P9.10-D7 — the last kiss: the page's final CTA ──────────────────────
+   The aurora budget's fourth and closing placement (census 4/13). The
+   keystone named three highest-intent moments: the floating URL input
+   (spent on the hero), studio Save (app-side, backlogged) and THE BEST
+   CTA, which is this one. The page now opens and closes on the same
+   kiss — a bookend, not a decoration.
+
+   It is deliberately built on the defect it replaces. The closing button
+   already carried `shadow-primary/25`, authored in the violet era; since
+   the D13 monochrome amendment made --primary compute identical to
+   --foreground, that shadow had been rendering as a WHITE halo around a
+   white pill for months (measured on production at the D7 recon:
+   `oklab(0.96 …/0.25) 0 10px 15px -3px`). The halo was always there. It
+   was the wrong colour, and it was the wrong colour because it was
+   authored as an accent that no longer exists. So the halo stays and
+   becomes the aurora.
+
+   Composed from .aurora-edge rather than reinvented: ::before is the
+   same 1px mask-composite conic ring the hero input wears, and only the
+   bleed is retuned — pushed outside the pill (inset -7px, where the
+   hero's is -2px) and lifted to 0.62 so it reads as a halo around a
+   white object rather than an edge on a dark one. The animations are NOT
+   redeclared, so the existing `prefers-reduced-motion` guard on
+   `.aurora-edge::before, .aurora-edge::after` keeps covering this
+   consumer; adding a local `animation` here would silently escape it.
+
+   No .aurora-breathe: the hero's kiss breathes and this one holds
+   steady, so the two bookends are the same family without being the
+   same effect. */
+.cta-kiss.aurora-edge::after {
+  inset: -7px;
+  opacity: 0.62;
+}
+
+/* ── P9.10-D7 R2 — the aurora plate: the featured card ───────────────────
+   Board reference at the R1 review (Framer's pricing): the recommended
+   plan is a TINTED plate with a brighter edge, and the loud button sits
+   inside it. Framer does that in one flat blue; we do it in the aurora,
+   which is the whole point of having a colour family instead of an
+   accent.
+
+   STATIC on purpose. The aurora budget buys kisses, and a kiss is a
+   moment, not a texture: if the plate drifted and hued like .aurora-edge
+   does, the featured card would compete with the page's closing ask
+   sitting a few hundred pixels below it. So the plate is a still frame of
+   the family (a linear sweep through four of the five hues, plus two soft
+   pockets of tint in the ground) and the ANIMATION stays reserved for the
+   one CTA that is asking for something.
+
+   The ring is the .lit-stroke mechanism exactly: mask-composite XOR on a
+   1px padded box, which costs no layout and honours border-radius. Only
+   the paint differs, which is the point of having built .lit-stroke as a
+   mechanism rather than a one-off. */
+.aurora-plate {
+  position: relative;
+  isolation: isolate;
+  background:
+    radial-gradient(
+      92% 72% at 84% 2%,
+      color-mix(in oklch, var(--au-2) 14%, transparent),
+      transparent 66%
+    ),
+    radial-gradient(
+      86% 66% at 10% 98%,
+      color-mix(in oklch, var(--au-1) 12%, transparent),
+      transparent 64%
+    ),
+    var(--card);
+}
+.aurora-plate::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1px;
+  background: linear-gradient(
+    148deg,
+    var(--au-1) 0%,
+    var(--au-3) 34%,
+    var(--au-2) 68%,
+    var(--au-4) 100%
+  );
+  opacity: 0.46;
+  -webkit-mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  mask-composite: exclude;
+  pointer-events: none;
+}
+
+/* ── P9.10-D7 R2 — the closing field: the page's last screen ─────────────
+   Board note: "add a background pattern so it feels more alive," with
+   Cosmos as the reference (objects adrift in the dark, arranged loosely
+   around the one button). Our objects are printed codes, so the closing
+   ends the page the way the hero opens it: a glow, and codes floating in
+   it. The bookend is now literal rather than only chromatic.
+
+   The codes are the "field" render (light ink on dark), the same variant
+   D6.1 added for the open-source strip, held at low opacity so they read
+   as texture rather than as things to scan. A code a reader tries and
+   fails to scan is worse than no code, which is why these are dim and
+   soft-edged and never captioned.
+
+   .closing-glow is the hero's own paint (--au-2 / --au-1 radials) but
+   NOT the hero's geometry, and the difference matters. The hero's glow
+   is 0.4 opacity over `.hero-fan-zone`, a box a few hundred pixels
+   across; the same numbers stretched across a full-width section stop
+   being a bloom and become a coloured wash over the whole screen, which
+   is what the first R2 build did. So the light is concentrated instead:
+   a single soft ellipse roughly where the ask sits, blurred far harder
+   and held at a fraction of the opacity. Same light, same hues, sized to
+   the room it is lighting. */
+.closing-field {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 0;
+}
+.closing-glow {
+  position: absolute;
+  left: 50%;
+  top: 56%;
+  width: min(64rem, 88%);
+  height: 22rem;
+  translate: -50% -50%;
+  filter: blur(84px);
+  opacity: 0.17;
+  background:
+    radial-gradient(40% 50% at 34% 58%, var(--au-2), transparent 72%),
+    radial-gradient(38% 44% at 66% 42%, var(--au-1), transparent 74%);
+}
+.closing-mat {
+  position: absolute;
+  width: var(--cm-w);
+  left: var(--cm-x);
+  top: var(--cm-y);
+  opacity: var(--cm-o);
+  rotate: var(--cm-r);
+  filter: blur(var(--cm-b));
+  animation: closing-drift var(--cm-t) var(--motion-ease-in-out) var(--cm-d) infinite alternate;
+}
+@keyframes closing-drift {
+  from {
+    translate: 0 0;
+  }
+  to {
+    translate: 0 -14px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .closing-mat {
+    animation: none;
+  }
+}
+
+/* Hero-matched (board note at the R1 review: "make the aurora button feel
+   styling more closely to our hero"). R1 deliberately held this one
+   steady to tell the two kisses apart; the board wants them the same
+   family, so the class list gains .aurora-breathe and the closing now
+   runs the hero's own animation — beam-breathe on a 4.5s alternate loop
+   between 0.22 and 0.5 opacity, layered over the same two drifting arcs
+   and the same 21s hue clock.
+
+   The animations are NOT redeclared here. .aurora-breathe::after already
+   carries the full list, so composing the class inherits it, which keeps
+   ONE definition of what breathing means and keeps this consumer inside
+   the `prefers-reduced-motion` guard on .aurora-edge::before/::after.
+   Only the bleed's geometry is tuned: pushed outside the pill so it
+   reads as a halo around a white object rather than an edge on a dark
+   one, and pushed a little further out again when it breathes, since a
+   pulsing bleed needs room to pulse into. */
+.cta-kiss.aurora-edge::after {
+  inset: -7px;
+  opacity: 0.62;
+}
+.cta-kiss.aurora-breathe::after {
+  inset: -10px;
+}

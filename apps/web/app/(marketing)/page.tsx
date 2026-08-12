@@ -13,7 +13,7 @@ import { ComparisonSection } from "@/components/marketing/comparison-section";
 import { OpenSourceSection } from "@/components/marketing/open-source-section";
 import { ManifestoSection } from "@/components/marketing/manifesto-section";
 import { PricingTeaser } from "@/components/marketing/pricing-teaser";
-import { ClosingSection } from "@/components/marketing/closing-section";
+import { LandingClosing } from "@/components/marketing/landing-closing";
 
 // Title/description only, and only `description` is set here: the root
 // layout's `title.default` ("QRCDN: QR codes with a brand system") IS the
@@ -59,9 +59,13 @@ export const metadata: Metadata = {
 // Surface alternation, per the Section system's rule: a hairline only between
 // two same-surface neighbors; everywhere else the surface change is itself the
 // seam. Each section declares its own surface in its own file — no enumerated
-// list here, it drifted every time the order changed. The single same-surface
-// adjacency today is PricingTeaser -> ClosingSection, which is why
-// ClosingSection is the one section on the page still carrying a hairline.
+// list here, it drifted every time the order changed.
+//
+// P9.10-D7 retired the last one. PricingTeaser -> the closing was the page's
+// only same-surface adjacency, so the closing was the one section still
+// carrying a hairline; 13 now ends on a full-length contact row, which gives
+// the seam nothing left to separate. The landing carries NO hairline dividers
+// at all today, and adding one back means re-checking that rule first.
 //
 // P9.7-V2 proved the ownership model out: inserting the Highlights bento at 01
 // renumbered eleven sections, and the entire change was the block below.
@@ -115,11 +119,15 @@ export default function HomePage() {
       <OpenSourceSection index="11" />
       <ManifestoSection index="12" titleSize="h1" />
       <PricingTeaser index="13" titleSize="h2-lg" />
-      {/* Explicit title at every ClosingSection call site (this one and all
-          four feature pages), so a landing copy change can never silently
-          rewrite a feature page's closing heading through the shared
-          component default. */}
-      <ClosingSection title="Create your first code in minutes" titleSize="h2-lg" />
+      {/* P9.10-D7: the landing's closing is its own component now. It is
+          the one ending on the site carrying the aurora budget's closing
+          placement, plus the drifting code field behind it, and forking
+          the shared ClosingSection to get either would have restyled the
+          four feature pages nobody asked about. ClosingSection stays
+          exactly as it was for /features/*, still taking an explicit title
+          at every call site so a landing copy change can never silently
+          rewrite a feature page's heading. */}
+      <LandingClosing />
     </>
   );
 }

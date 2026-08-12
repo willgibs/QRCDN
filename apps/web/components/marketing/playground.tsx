@@ -42,9 +42,9 @@ import { cn } from "@/lib/utils";
  * round-trip: everything here runs client-side against the same
  * `@qrcdn/qr-engine` the API and Studio use.
  *
- * P9.9-C2: the landing branch is gone. The landing's 03 slot now renders
- * `StudioSection`/`StudioDials` (the board's merged exploration pick, a
- * far lighter island — the round's jitter lever), and this component's
+ * P9.9-C2: the landing branch is gone. The landing's 03 slot renders
+ * `StudioSection` (since P9.10-D11 the true-3D `StudioObject`; before
+ * that the C2 dial wall — both far lighter islands), and this component's
  * sole consumer is /features/brand-studio, which supplies its own section
  * wrapper and heading ("Try it, no account"). The former `embedded` prop,
  * its `Section`/`SectionHeading` wrapper, and the closing

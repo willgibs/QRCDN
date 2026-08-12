@@ -309,8 +309,9 @@ test.describe("marketing site", () => {
 
   // P9.9-C2: both playground interaction tests retargeted from "/" to
   // /features/brand-studio — the full Playground island's sole remaining
-  // home after the landing's 03 restage (StudioSection/StudioDials has its
-  // own test below). Section located by the feature page's own S2 heading.
+  // home after the landing's 03 restage (StudioSection/StudioObject has
+  // its own tests below). Section located by the feature page's own S2
+  // heading.
   test("playground opens scannable (print-truth default, d2af287)", async ({ page }) => {
     await page.goto("/features/brand-studio");
     const playgroundSection = page
@@ -813,28 +814,72 @@ test.describe("marketing site", () => {
     await expect(section.getByText("qrcdn.com/events", { exact: true })).toBeVisible();
   });
 
-  test("studio dials: the wall converges on a dial turn (P9.9-C2)", async ({ page }) => {
+  test("studio object: one real code, live restyle, WebGL enhancement (P9.10-D11)", async ({
+    page,
+    request,
+  }) => {
+    // Served bytes first: the landing carries NO <canvas> anywhere — the
+    // WebGL stage is client-only markup by construction (the sibling rule
+    // to the no-SSR-opacity:0 invariant, asserted document-wide below).
+    const html = await (await request.get("/")).text();
+    expect(html).not.toContain("<canvas");
+
     await page.goto("/");
     const section = page.locator("#studio");
-    // Four floating mats, one engine render each, resting in a RANGE of
-    // four different kits (two white-paper, two inverted showpieces).
-    await expect(section.locator("figure")).toHaveCount(4);
-    expect(await section.locator("figure [data-qr] svg").count()).toBe(4);
+    const stage = section.locator('[data-slot="studio-object"]');
+    // ONE object, ONE real engine render behind it (the config-current
+    // fallback mat — invisible while GL is live, never unmounted, never
+    // stale).
+    await expect(stage).toHaveCount(1);
+    expect(await stage.locator("[data-qr] svg").count()).toBe(1);
     // The CTA is the /studio product doorway, carrying that page's promise.
     await expect(section.getByRole("link", { name: "Open the studio" })).toHaveAttribute(
       "href",
       "/studio",
     );
     await expect(section.getByText("free · no account · no watermark")).toBeVisible();
-    // Turn the ink dial to teal: the whole wall adopts the config — the
-    // poster mat's inverted rest paper (#18181b) converges to white. The
-    // 500ms paper transition settles inside toHaveCSS's auto-retry.
-    const poster = section.locator("figure").filter({ hasText: "qrcdn.com/gallery" });
-    await expect(poster).toHaveCSS("background-color", "rgb(24, 24, 27)");
+    // Scrolled into view, the slab goes live (the render loop is
+    // IntersectionObserver-gated). SwiftShader makes canvas PRESENCE and
+    // the data-gl handshake reliable in headless; pixels are never
+    // asserted.
+    await stage.scrollIntoViewIfNeeded();
+    await expect(stage.locator("canvas")).toHaveCount(1);
+    await expect(stage).toHaveAttribute("data-gl", "live");
+    // Turn the ink dial to teal: the mat re-renders with the new ink in
+    // REAL engine output (attribute assertions see invisible elements, so
+    // this exact claim holds with GL live or fallen back).
     await section.locator('label:has(input[value="#0f766e"])').click();
     await expect(section.getByRole("radio", { name: "#0f766e ink" })).toBeChecked();
-    await expect(poster).toHaveCSS("background-color", "rgb(255, 255, 255)");
-    await expect(section.getByText("every mat follows your pick")).toBeVisible();
+    await expect(stage.locator('[data-qr] svg path[fill="#0f766e"]').first()).toBeAttached();
+  });
+
+  test("studio object under reduced motion: no canvas, instant restyles (P9.10-D11)", async ({
+    browser,
+  }) => {
+    const context = await browser.newContext({ reducedMotion: "reduce" });
+    const page = await context.newPage();
+    await page.goto("/");
+    const stage = page.locator('[data-slot="studio-object"]');
+    await stage.scrollIntoViewIfNeeded();
+    // The canvas never mounts — the mat IS the object, fully styled.
+    await expect(stage.locator("[data-qr] svg")).toBeVisible();
+    await expect(stage.locator("canvas")).toHaveCount(0);
+    // The panel stays fully live: dial turns restyle the real render.
+    await page.locator('#studio label:has(input[value="#1e3a8a"])').click();
+    await expect(stage.locator('[data-qr] svg path[fill="#1e3a8a"]').first()).toBeAttached();
+    await context.close();
+  });
+
+  test("studio object without JS: the served mat is the whole story (P9.10-D11)", async ({
+    browser,
+  }) => {
+    const context = await browser.newContext({ javaScriptEnabled: false });
+    const page = await context.newPage();
+    await page.goto("/");
+    const stage = page.locator('[data-slot="studio-object"]');
+    await expect(stage.locator("[data-qr] svg")).toBeVisible();
+    await expect(stage.locator("canvas")).toHaveCount(0);
+    await context.close();
   });
 
   test("hero h1: renders the v4 headline and never SSRs at opacity 0", async ({ page, request }) => {
@@ -1341,7 +1386,7 @@ test.describe("marketing site", () => {
     ).toHaveAttribute("href", "/features/analytics");
     // P9.9-C2: the brand-studio doorway is down to ONE call site (section
     // 04). The restaged #studio section closes on the /studio product CTA
-    // instead — asserted in the studio-dials test, not here.
+    // instead — asserted in the studio-object test, not here.
     await expect(
       page.locator("#brand-system").getByRole("link", { name: "Explore the brand studio" }),
     ).toHaveAttribute("href", "/features/brand-studio");

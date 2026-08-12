@@ -1,21 +1,44 @@
 import type { ComponentProps } from "react";
 import Link from "next/link";
+import { Gauge, ImagePlus, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Section, SectionHeading, SectionBody } from "@/components/marketing/section";
-import { StudioDials } from "./studio-dials";
+import { StudioObject } from "./studio-object";
 
-// 03 — Design studio (P9.9-C2 restage). The full anonymous Playground left
-// the landing this round (it lives whole on /features/brand-studio): since
-// P9.8-B4 the public /studio is the real free generator, and the landing's
-// job shrank to a taste plus the page's most direct doorway into it. The
-// body is StudioDials, the board's merged pick from the C2 exploration
-// artifact: live engine dials converging a floating four-mat wall.
+// 03 — Design studio (P9.10-D11 restage). The board refocused this section
+// on ONE code with configuration options — section 04 owns brand kits and
+// the many-codes visual — rendered as a true 3D object: the WebGL slab in
+// StudioObject, with the config panel floating at its side and the studio
+// argument carried by the feature rows on the left. The four-mat dial
+// wall (P9.9-C2's studio-dials) retired with this restage.
 //
-// `id="studio"` is the highlights bento's anchor target (e2e asserts it
+// `id="studio"` is the features wall's anchor target (e2e asserts it
 // resolves): it must survive every redesign, same rule as #brand-system.
-// The /features/brand-studio doorway now lives ONLY on section 04; this
+// The /features/brand-studio doorway lives ONLY on section 04; this
 // section's close is the /studio CTA, carrying the real page promise
 // (free, no account, no watermark — /studio's own metadata).
+
+// Every claim is live product truth: the instrument certification is the
+// C2 record (all 48 panel combos at 100), the knockout and export lines
+// are /studio's own feature set. No invented compliance, ever.
+const FEATURES = [
+  {
+    icon: Gauge,
+    title: "Scannability instrument",
+    note: "Every kit scores against the real engine as you design. All the combos on this panel read 100.",
+  },
+  {
+    icon: ImagePlus,
+    title: "Logo knockout",
+    note: "Drop a mark in the center. The engine carves its quiet space and holds error correction above the floor.",
+  },
+  {
+    icon: Download,
+    title: "Print-ready export",
+    note: "SVG and PNG, sRGB inks, quiet zone baked in. No watermark at any tier.",
+  },
+] as const;
+
 export function StudioSection({
   index,
   titleSize,
@@ -29,24 +52,39 @@ export function StudioSection({
         eyebrow="Studio"
         index={index}
         title="Design one right now"
-        lede="The real engine, three dials: turn one and the whole wall follows. Payloads, logo knockout, and the scannability instrument wait in the studio, free."
+        lede="The real engine under a real light: turn a dial and the object follows. Everything else waits in the studio, free."
         titleSize={titleSize}
         className="mb-10"
       />
       <SectionBody>
-        <StudioDials />
-      </SectionBody>
-      <SectionBody delay={0.15} className="mt-10 flex flex-wrap items-center gap-4">
-        {/* P9.10-D3: shed shadow-primary/25 — the violet-era CTA glow; since
-            the D13 amendment primary is near-white, so the colored shadow
-            had silently become a faint neutral bloom (dead meaning). The
-            plain shadow-lg carries the lift. */}
-        <Button asChild size="lg" className="rounded-full px-6 shadow-lg">
-          <Link href="/studio">Open the studio</Link>
-        </Button>
-        <p className="font-mono text-xs text-muted-foreground">
-          free · no account · no watermark
-        </p>
+        <div className="grid gap-12 lg:grid-cols-[minmax(0,20rem)_1fr] lg:items-center lg:gap-16">
+          <div className="order-2 flex flex-col gap-8 lg:order-none">
+            <ul className="flex flex-col gap-6">
+              {FEATURES.map(({ icon: Icon, title, note }) => (
+                <li key={title} className="flex gap-3.5">
+                  <Icon aria-hidden className="mt-0.5 size-4.5 shrink-0 text-muted-foreground" />
+                  <div>
+                    <h3 className="font-display text-sm font-semibold">{title}</h3>
+                    <p className="mt-1 text-sm leading-relaxed text-muted-foreground">{note}</p>
+                  </div>
+                </li>
+              ))}
+            </ul>
+            <div className="flex flex-wrap items-center gap-4">
+              {/* P9.10-D3: shed shadow-primary/25 — the violet-era CTA glow;
+                  the plain shadow-lg carries the lift. */}
+              <Button asChild size="lg" className="rounded-full px-6 shadow-lg">
+                <Link href="/studio">Open the studio</Link>
+              </Button>
+              <p className="font-mono text-xs text-muted-foreground">
+                free · no account · no watermark
+              </p>
+            </div>
+          </div>
+          <div className="order-1 min-w-0 lg:order-none">
+            <StudioObject />
+          </div>
+        </div>
       </SectionBody>
     </Section>
   );

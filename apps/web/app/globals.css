@@ -1382,10 +1382,24 @@ html {
 
 /* ---- the aurora edge (AuroraPulse in the design-system inventory):
    a 1px mask-composite hairline carrying two counter-drifting conic
-   arcs on eased alternate loops (the wavy motion, not a mechanical
-   spin) plus a slow linear hue clock; ::after is the blurred bleed
+   arcs plus a slow linear hue clock; ::after is the blurred bleed
    twin. hue keyframes REPLACE filter wholesale, so the bleed variant
-   carries its blur inside its own keyframes. ---- */
+   carries its blur inside its own keyframes.
+
+   MOTION, third construction (P9.10-D8). The first draft was a
+   mechanical spin (board: too linear). The second was eased alternate
+   loops — wavy, but an alternate loop has ZERO velocity at both ends
+   of every pass, and with two arcs doing it the beam hit moments where
+   it visibly stalled (board, D8: "slows almost to a stop... more
+   constant"). Now each arc makes a FULL rotation per cycle with the
+   wave baked into the keyframes instead of the timing function: the
+   stops sample one turn plus a sinusoidal wobble at eight points, so
+   under linear timing the angular speed swells and shrinks (73deg per
+   eighth at the fastest, 17 at the slowest) but never reaches zero,
+   and the loop closes without a jump because the end angle is the
+   start plus exactly 360. Counter-rotation and the 9s/13s/21s period
+   spread carry over; nothing visibly repeats inside their common
+   multiple. ---- */
 .aurora-edge {
   position: relative;
   isolation: isolate;
@@ -1428,8 +1442,8 @@ html {
   mask-composite: exclude;
   z-index: 1;
   animation:
-    beam-a 9s var(--motion-ease-in-out) infinite alternate,
-    beam-b 13s var(--motion-ease-in-out) infinite alternate-reverse,
+    beam-a 9s linear infinite,
+    beam-b 13s linear infinite,
     beam-hue 21s linear infinite;
 }
 .aurora-edge::after {
@@ -1437,8 +1451,8 @@ html {
   inset: -2px;
   opacity: 0.4;
   animation:
-    beam-a 9s var(--motion-ease-in-out) infinite alternate,
-    beam-b 13s var(--motion-ease-in-out) infinite alternate-reverse,
+    beam-a 9s linear infinite,
+    beam-b 13s linear infinite,
     beam-hue-blur 21s linear infinite;
 }
 .aurora-edge > * {
@@ -1447,25 +1461,71 @@ html {
 }
 .aurora-breathe::after {
   animation:
-    beam-a 9s var(--motion-ease-in-out) infinite alternate,
-    beam-b 13s var(--motion-ease-in-out) infinite alternate-reverse,
+    beam-a 9s linear infinite,
+    beam-b 13s linear infinite,
     beam-hue-blur 21s linear infinite,
     beam-breathe 4.5s var(--motion-ease-in-out) infinite alternate;
 }
+/* Eight stops sampling one full turn plus a sine wobble. LINEAR timing
+   on purpose: the speed variation lives in the non-uniform angle
+   spacing, so easing here would double-modulate and reintroduce the
+   stalls this construction exists to remove. */
 @keyframes beam-a {
-  from {
+  0% {
     --beam-a: -60deg;
   }
-  to {
-    --beam-a: 240deg;
+  12.5% {
+    --beam-a: 13deg;
+  }
+  25% {
+    --beam-a: 70deg;
+  }
+  37.5% {
+    --beam-a: 103deg;
+  }
+  50% {
+    --beam-a: 120deg;
+  }
+  62.5% {
+    --beam-a: 137deg;
+  }
+  75% {
+    --beam-a: 170deg;
+  }
+  87.5% {
+    --beam-a: 227deg;
+  }
+  100% {
+    --beam-a: 300deg;
   }
 }
 @keyframes beam-b {
-  from {
-    --beam-b: 300deg;
+  0% {
+    --beam-b: 335deg;
   }
-  to {
+  12.5% {
+    --beam-b: 280deg;
+  }
+  25% {
+    --beam-b: 210deg;
+  }
+  37.5% {
+    --beam-b: 140deg;
+  }
+  50% {
+    --beam-b: 85deg;
+  }
+  62.5% {
+    --beam-b: 50deg;
+  }
+  75% {
     --beam-b: 30deg;
+  }
+  87.5% {
+    --beam-b: 10deg;
+  }
+  100% {
+    --beam-b: -25deg;
   }
 }
 @keyframes beam-hue {
@@ -1502,9 +1562,11 @@ html {
   gap: 0.7rem;
   width: 100%;
   max-width: 27rem;
-  border-radius: 0.875rem;
+  border-radius: 1rem;
   background: oklch(0.145 0.004 280);
-  padding: 0.55rem 0.55rem 0.55rem 1.1rem;
+  /* 0.55rem -> 0.75rem at D8 (board: "a bit taller on both desktop and
+     mobile") — padding-driven so every viewport gains the same height. */
+  padding: 0.75rem 0.75rem 0.75rem 1.2rem;
   text-align: left;
 }
 .hero-input input {
@@ -1524,47 +1586,23 @@ html {
   outline-offset: 3px;
 }
 
-/* Ignite: the input arrives unlit, the stroke fades up at 2.15s and the
-   bleed follows — the lights come on only after the objects exist. The
-   ignite keyframes are appended LAST in each list so they win during
-   their own run, then hand back to the loops. */
-.hero-input.aurora-edge::before {
-  animation:
-    beam-a 9s var(--motion-ease-in-out) infinite alternate,
-    beam-b 13s var(--motion-ease-in-out) infinite alternate-reverse,
-    beam-hue 21s linear infinite,
-    hero-beam-in 700ms var(--motion-ease-out) 2150ms backwards;
-}
-.hero-input.aurora-breathe::after {
-  animation:
-    beam-a 9s var(--motion-ease-in-out) infinite alternate,
-    beam-b 13s var(--motion-ease-in-out) infinite alternate-reverse,
-    beam-hue-blur 21s linear infinite,
-    beam-breathe 4.5s var(--motion-ease-in-out) infinite alternate,
-    hero-beam-in-bleed 900ms var(--motion-ease-out) 2150ms backwards;
-}
-@keyframes hero-beam-in {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
-}
-@keyframes hero-beam-in-bleed {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 0.4;
-  }
-}
+/* The ignite retired at D8. D1's choreography had the input arrive
+   unlit and the beam fade up LAST (2.15s); the board reversed it:
+   "the aurora playing on the input & QR codes when they load in rather
+   than be the last thing to load in." No override needed to get that —
+   the beam loops run from mount, and because the stage entrance
+   animates opacity on the FORM, the pseudo-element ring composites
+   under it and fades in with (and through the entrance blur of) the
+   object it decorates. Objects arrive lit. */
 
-/* ---- the load choreography (D1 R3, board-approved): a beat of dark
-   field first, then claim -> sub -> input arriving unlit -> the run
-   dealing out -> the beam lighting -> the glow blooming last. Same
-   mechanism as hero-enter (mount animation, backwards fill); slower
-   and staged because this entrance is meant to be SEEN. ---- */
+/* ---- the load choreography (D1 R3, re-cut at D8): a beat of dark
+   field first, then eyebrow -> claim -> sub -> the input arriving
+   ALREADY LIT -> the run dealing out under its glow. The D1 cut saved
+   the aurora for last (ignite at 2.15s); the D8 board note reversed
+   it, so the lights are on when each object enters and nothing waits
+   on a second beat. Same mechanism as hero-enter (mount animation,
+   backwards fill); slower and staged because this entrance is meant
+   to be SEEN. ---- */
 @keyframes hero-rise-soft {
   from {
     opacity: 0;
@@ -1579,6 +1617,9 @@ html {
 }
 .hero-stage {
   animation: hero-rise-soft 950ms var(--motion-ease-out) backwards;
+}
+.hero-stage-0 {
+  animation-delay: 220ms;
 }
 .hero-stage-1 {
   animation-delay: 350ms;
@@ -1636,7 +1677,10 @@ html {
   background:
     radial-gradient(45% 50% at 34% 74%, var(--au-2), transparent 70%),
     radial-gradient(48% 45% at 70% 30%, var(--au-1), transparent 72%);
-  animation: hero-glow-in 1400ms var(--motion-ease-out) 2050ms backwards;
+  /* 2050ms -> 1150ms at D8: the glow now blooms WITH the fan deal (the
+     mats rise at 1150ms) instead of arriving after everything, per the
+     same board note that retired the input's ignite. */
+  animation: hero-glow-in 1400ms var(--motion-ease-out) 1150ms backwards;
 }
 @keyframes hero-glow-in {
   from {

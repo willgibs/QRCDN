@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { HeroBackdrop } from "@/components/brand/backdrop";
 import { LearnMoreLink } from "./learn-more-link";
@@ -23,10 +24,11 @@ import { renderPreview } from "@/lib/preview";
  *   of floating print mats over a steady aurora under-glow. QR solidity
  *   rule: no hand-authored patterns, ever; these are renderPreview()
  *   output, server-rendered, deterministic.
- * - The load is choreographed (globals.css hero-stage / hero-fan-out):
- *   a beat of dark field, claim, sub, input arriving unlit, the run
- *   rising as one stack and springing open, the beam igniting, the glow
- *   blooming last. Pure CSS mount animations in the hero-enter tradition:
+ * - The load is choreographed (globals.css hero-stage / hero-fan-out,
+ *   re-cut at D8): a beat of dark field, then eyebrow, claim, sub, the
+ *   input arriving ALREADY LIT, and the run rising under its glow — the
+ *   D1 cut saved the aurora for last and the board reversed it. Pure
+ *   CSS mount animations in the hero-enter tradition:
  *   backwards fill only, so served markup never carries opacity:0 (the
  *   whole-document e2e sweep) and the h1 stays the honest LCP candidate.
  * - Hover breathes the outside mats out on the extracted card-stack
@@ -58,6 +60,27 @@ export function Hero() {
       <HeroBackdrop />
 
       <div className="relative mx-auto flex max-w-3xl flex-col items-center gap-6 px-6 pt-16 text-center sm:pt-20 lg:pt-24">
+        {/* The eyebrow (D8): a real doorway, not a badge — /studio is
+            the product with no account in the way, and that fact IS the
+            compact copy. .lit-stroke because a pill you can press is
+            exactly the touchable-control surface D0 note 3 rations that
+            hairline to. First to arrive (stage-0), so the page opens
+            top-down. */}
+        <Link
+          href="/studio"
+          className="hero-stage hero-stage-0 lit-stroke group/eyebrow inline-flex items-center gap-2 rounded-full bg-card/50 px-3.5 py-1.5 font-mono text-[11px] tracking-[0.08em] text-muted-foreground uppercase transition-colors hover:text-foreground"
+        >
+          <span aria-hidden className="grid size-2.5 grid-cols-2 grid-rows-2 gap-px">
+            <span className="bg-current" />
+            <span className="bg-current opacity-40" />
+            <span className="bg-current opacity-40" />
+            <span className="bg-current" />
+          </span>
+          Studio · no account needed
+          <span aria-hidden className="transition-transform group-hover/eyebrow:translate-x-0.5">
+            →
+          </span>
+        </Link>
         <h1 className="hero-stage hero-stage-1 font-display text-display font-semibold text-foreground text-balance">
           <span className="block">The modern</span>
           <span className="block">QR platform</span>
@@ -81,8 +104,12 @@ export function Hero() {
               autoComplete="off"
               spellCheck={false}
             />
-            <Button type="submit" size="sm" className="rounded-[9px] px-3.5">
-              Make it
+            {/* "Make it" -> "Start free" and size sm -> default with
+                wider padding (D8 board note). The submit is a BUTTON,
+                not a link, so it never collides with the link-scoped
+                "Start free" counts the pricing/closing e2e pins hold. */}
+            <Button type="submit" className="rounded-[11px] px-4">
+              Start free
             </Button>
           </form>
           <LearnMoreLink href="/developers">Read the API docs</LearnMoreLink>

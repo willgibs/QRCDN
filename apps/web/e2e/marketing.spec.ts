@@ -863,7 +863,7 @@ test.describe("marketing site", () => {
     expect(h1Text?.replace(/\s+/g, " ").trim()).toMatch(/The modern\s*QR platform\.?/);
   });
 
-  test("hero: the aurora URL form seeds the studio, the docs doorway stands, three real mats (P9.10-D1)", async ({
+  test("hero: the aurora URL form seeds the studio, the docs doorway stands, three real mats (P9.10-D1, D8)", async ({
     page,
   }) => {
     await page.goto("/");
@@ -876,6 +876,15 @@ test.describe("marketing site", () => {
     const docs = hero.getByRole("link", { name: "Read the API docs" });
     await expect(docs).toHaveAttribute("href", "/developers");
 
+    // D8: the eyebrow above the claim is a real doorway to the studio,
+    // and its copy is the honest fact (anonymous studio, no account).
+    const eyebrow = hero.getByRole("link", { name: /Studio · no account needed/ });
+    await expect(eyebrow).toHaveAttribute("href", "/studio");
+
+    // D8: the pixel field — the brand's module texture, generated not
+    // tiled. Present in the hero's backdrop as an inline SVG.
+    await expect(hero.locator('[data-slot="pixel-field"]')).toHaveCount(1);
+
     // Three engine renders on paper mats (QR solidity rule: real
     // renderPreview output server-side, so the SVGs are in the DOM with
     // no client JS involved).
@@ -884,10 +893,13 @@ test.describe("marketing site", () => {
     // The honest-input contract: typing a URL and submitting is a real
     // GET form to /studio, and the studio seeds it into the Destination
     // field (app/studio/page.tsx reads ?url=, StudioShell prefills).
+    // The submit says "Start free" since D8 — a BUTTON role, so the
+    // link-scoped "Start free" pins in the pricing/closing tests are
+    // unaffected by construction.
     const form = hero.locator("form");
     await expect(form).toHaveAttribute("action", "/studio");
     await form.getByRole("textbox", { name: /destination url/i }).fill("https://example.com/menu");
-    await form.getByRole("button", { name: "Make it" }).click();
+    await form.getByRole("button", { name: "Start free" }).click();
     await expect(page).toHaveURL(/\/studio\?url=https%3A%2F%2Fexample\.com%2Fmenu/);
     await expect(page.getByLabel("Destination", { exact: true })).toHaveValue(
       "https://example.com/menu",

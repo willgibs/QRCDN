@@ -47,7 +47,18 @@ export function StudioSection({
   titleSize?: ComponentProps<typeof SectionHeading>["titleSize"];
 }) {
   return (
-    <Section id="studio" variant="showcase" surface="floor" divider="none">
+    // overflow-x-clip: the WebGL canvas overdraws the object's stage by
+    // 21% per side for tilt/light headroom; with the stage anchored to
+    // the content's right edge (D11.1) that spill would widen the page
+    // at <=1024. Clipping at the section's full-bleed box crops only
+    // empty canvas corners — the slab itself never reaches them.
+    <Section
+      id="studio"
+      variant="showcase"
+      surface="floor"
+      divider="none"
+      className="overflow-x-clip"
+    >
       <SectionHeading
         eyebrow="Studio"
         index={index}
@@ -57,7 +68,10 @@ export function StudioSection({
         className="mb-10"
       />
       <SectionBody>
-        <div className="grid gap-12 lg:grid-cols-[minmax(0,20rem)_1fr] lg:items-center lg:gap-16">
+        {/* D11.1: the left column widened (20 -> 24rem) and the object
+            reaches the content's right edge — the board's "a little
+            tight" note. */}
+        <div className="grid gap-12 lg:grid-cols-[minmax(0,24rem)_1fr] lg:items-center lg:gap-16">
           <div className="order-2 flex flex-col gap-8 lg:order-none">
             <ul className="flex flex-col gap-6">
               {FEATURES.map(({ icon: Icon, title, note }) => (

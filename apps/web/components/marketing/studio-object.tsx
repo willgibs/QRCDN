@@ -13,7 +13,7 @@ import {
   type SwapTransition,
 } from "@/lib/webgl/swap-machine";
 import { renderPreview } from "@/lib/preview";
-import { DEFAULT_KIT, kitStyle, STUDIO_LABEL, STUDIO_PAYLOAD, type KitConfig } from "./studio-kit";
+import { DEFAULT_KIT, kitStyle, STUDIO_PAYLOAD, type KitConfig } from "./studio-kit";
 import { StudioConfigPanel } from "./studio-config-panel";
 import { cn } from "@/lib/utils";
 
@@ -373,12 +373,16 @@ export function StudioObject() {
   }, [glWanted]);
 
   return (
-    <div className="flex flex-col gap-8 lg:flex-row lg:items-center lg:gap-0">
-      <figure
-        data-slot="studio-object"
-        data-gl={live ? "live" : undefined}
-        className="mx-auto w-full max-w-[300px] min-w-0 sm:max-w-[340px] lg:mx-0 lg:max-w-[380px] lg:flex-1"
-      >
+    // D11.1 board notes: the object grew to reach the content's right
+    // edge (lg:ml-auto), and the config panel became a dock overlapping
+    // the code's BOTTOM edge — the overlap is a negative top margin, not
+    // absolute positioning, so the layout below always reserves the
+    // dock's real height. The caption retired to make the room.
+    <div
+      data-slot="studio-object"
+      data-gl={live ? "live" : undefined}
+      className="mx-auto w-full max-w-[340px] min-w-0 sm:max-w-[400px] lg:mr-0 lg:ml-auto lg:max-w-[500px]"
+    >
         <div
           ref={stageRef}
           className="relative aspect-square touch-pan-y"
@@ -426,16 +430,15 @@ export function StudioObject() {
               )}
             />
           )}
-        </div>
-        <figcaption className="mt-5 text-center font-mono text-[10px] tracking-[0.06em] text-muted-foreground">
-          {STUDIO_LABEL}
-        </figcaption>
-      </figure>
+      </div>
 
       <StudioConfigPanel
         value={kit}
         onChange={applyConfig}
-        className="relative z-10 mx-auto w-fit lg:mx-0 lg:-ml-14 lg:shrink-0"
+        // The dock straddles the code's bottom edge; the overlap lands
+        // on the paper margin band (8.3% + the engine quiet zone), so
+        // it never covers modules.
+        className="relative z-10 mx-auto -mt-12 w-fit lg:-mt-16"
       />
     </div>
   );

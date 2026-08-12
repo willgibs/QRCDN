@@ -46,8 +46,11 @@ export function StudioConfigPanel({
       className={cn(
         // The instrument card: lit-stroke is licensed here (a control
         // surface, not paper), the blur lets the object's light show
-        // through where the panel overlaps the stage at lg.
-        "lit-stroke flex flex-col gap-5 rounded-2xl bg-card/70 p-5 shadow-xl shadow-black/40 backdrop-blur-md",
+        // through where the panel overlaps the code's bottom edge
+        // (D11.1 board note: the dock overlap replaced the side float).
+        // Fieldsets flow horizontally and wrap; the max-w is what makes
+        // them wrap into the two-row dock instead of one long strip.
+        "lit-stroke flex max-w-[400px] flex-row flex-wrap items-start gap-x-6 gap-y-4 rounded-2xl bg-card/80 px-5 py-4 shadow-xl shadow-black/40 backdrop-blur-md",
         className,
       )}
     >

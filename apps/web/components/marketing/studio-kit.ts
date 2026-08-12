@@ -45,7 +45,6 @@ export const WHITE = "#ffffff";
 
 // Anonymous studio play, deliberately NOT the Ember cast section 04 owns.
 export const STUDIO_PAYLOAD = "HTTPS://QRCDN.COM/HELLO";
-export const STUDIO_LABEL = "qrcdn.com/hello";
 
 export const DEFAULT_KIT: KitConfig = { dot: "rounded", eye: "leaf", ink: INKS[0] };
 

@@ -1926,12 +1926,28 @@ html {
   .iw-row {
     grid-template-columns: 4rem minmax(0, 1fr) auto;
     column-gap: clamp(1rem, 2.4vw, 2.25rem);
-    align-items: baseline;
+    /* baseline -> center at D10 (board note): the ordinal, the name and
+       the arrow are three different type sizes, and baseline alignment
+       hung the small pieces off the display glyphs' baseline. */
+    align-items: center;
     row-gap: 0;
   }
-  .iw-receipt {
-    text-align: right;
-  }
+}
+/* The arrow (D10, replacing the receipt line): the row is a link and the
+   arrow says so where a sentence only described. Slides on hover with
+   the same beat the open-source cards' arrows use; plain transitions,
+   ungated — this is a real control, and color/translate are harmless
+   without hover. */
+.iw-arrow {
+  color: var(--muted-foreground);
+  transition:
+    color 240ms var(--motion-ease-out),
+    translate 240ms var(--motion-ease-out);
+}
+.iw-row:hover .iw-arrow,
+.iw-row:focus-visible .iw-arrow {
+  color: var(--foreground);
+  translate: 4px 0;
 }
 .iw-row:focus-visible {
   outline: 2px solid var(--ring);

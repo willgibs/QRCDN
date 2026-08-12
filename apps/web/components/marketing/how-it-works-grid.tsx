@@ -95,10 +95,6 @@ const SCAN_BARS = [
 ];
 const WINDOW_START = SCAN_BARS.length - 7;
 
-/** Monochrome since D9.2 (board note). Flat srgb mix, foreground at
- *  8% — structure as atmosphere, no hue. */
-const NUMERAL_TINT = "color-mix(in srgb, var(--foreground) 8%, transparent)";
-
 /** Cell 03's branch geometry, shortened at D9.2. Fixed-pixel svg so
  *  the SMIL comets and the strokes share one coordinate space. */
 const BR = {
@@ -196,22 +192,22 @@ function Cell({
   return (
     // No hover affordance on the card itself (D9.2): the cells are not
     // clickable, and a border highlight promises a click that goes
-    // nowhere. The micros are the hover reward.
+    // nowhere. The micros are the hover reward. overflow-hidden stays for
+    // the fan's clipped edges at narrow widths. The ordinal sits inline
+    // with the heading (D10, back from the D9.1/D9.2 background numeral
+    // at the board's call), titles at 20px and body at 16px on desktop.
     <li className="hw-card group relative flex min-w-0 flex-col overflow-hidden rounded-2xl border border-border bg-card/40 p-6">
-      <span
-        aria-hidden
-        className="pointer-events-none absolute -top-3 left-4 font-display text-[88px] leading-none font-bold tracking-tight select-none"
-        style={{ color: NUMERAL_TINT }}
-      >
-        {ordinal}
-      </span>
-
-      <div aria-hidden className="relative z-[1] flex h-44 items-center justify-center">
+      <div aria-hidden className="flex h-44 items-center justify-center">
         {children}
       </div>
-      <div className="relative z-[1] mt-5 flex flex-col gap-1.5 border-t border-border/60 pt-4">
-        <span className="font-display text-base font-semibold">{title}</span>
-        <p className="text-sm text-muted-foreground">{note}</p>
+      <div className="mt-5 flex flex-col gap-1.5 border-t border-border/60 pt-4">
+        <p className="flex items-baseline gap-3">
+          <span className="font-mono text-[11px] text-muted-foreground tabular-nums">
+            {ordinal}
+          </span>
+          <span className="font-display text-lg font-semibold md:text-xl">{title}</span>
+        </p>
+        <p className="text-sm text-muted-foreground md:text-base">{note}</p>
       </div>
     </li>
   );

@@ -929,8 +929,8 @@ test.describe("marketing site", () => {
       ["03", "Update links anytime"],
       ["04", "Track scan analytics"],
     ].entries()) {
-      // One ordinal per cell since D9.2: the background numeral (the
-      // meta-row duplicate retired on the board's note).
+      // One ordinal per cell: inline with the heading since D10 (the
+      // background numeral retired on the board's note).
       await expect(cells.nth(i).getByText(ordinal, { exact: true })).toHaveCount(1);
       await expect(cells.nth(i).getByText(title, { exact: true })).toBeVisible();
     }
@@ -967,7 +967,7 @@ test.describe("marketing site", () => {
     await expect(page.locator(".line-through", { hasText: "yourcafe.com/menu" })).toHaveCount(1);
   });
 
-  test("02 the index wall: six rows, each feeding a real anchor at its true ordinal (P9.10-D4)", async ({
+  test("02 the features wall: six numbered rows, each feeding a real anchor (P9.10-D4, D10)", async ({
     page,
   }) => {
     await page.goto("/");
@@ -979,36 +979,34 @@ test.describe("marketing site", () => {
     await expect(rows).toHaveCount(LANDING_INDEX.length);
     expect(LANDING_INDEX.length).toBe(6);
 
-    for (const row of LANDING_INDEX) {
-      const link = rows.filter({ hasText: row.receipt });
+    for (const [i, row] of LANDING_INDEX.entries()) {
+      // Rows number 1-6 in the wall's own order since D10 (the old echo
+      // of each target's page ordinal read as a puzzle), and the receipt
+      // line retired for the arrow, so rows resolve by position.
+      const link = rows.nth(i);
       await expect(link).toHaveAttribute("href", `#${row.id}`);
+      await expect(link.locator(".iw-ord")).toHaveText(String(i + 1).padStart(2, "0"));
+      await expect(link.locator(".iw-arrow")).toHaveCount(1);
       // A dead fragment is not an href="#", so the no-empty-anchor sweep
       // would not catch a renamed section. Assert the target really exists.
       await expect(page.locator(`#${row.id}`)).toHaveCount(1);
 
-      // THE contract of this section. `lib/landing-index.ts` records the
-      // ordinal and the name the target section renders, but the ordinals
-      // are owned by app/(marketing)/page.tsx and the names by each section
-      // file, so nothing in the type system stops those three drifting
-      // apart — the exact failure P9.7-V1 fixed for the eyebrows themselves.
-      // Comparing the row against the eyebrow the target ACTUALLY renders
-      // makes drift a red test instead of a wrong number on production.
+      // THE surviving cross-check: the row must say what the target
+      // section's own eyebrow says, or a reader who takes a row down the
+      // page meets different words when they land. (The ordinal half of
+      // this contract retired with the positional renumbering — there is
+      // no recorded ordinal left to drift.)
       const eyebrow = page
         .locator(`#${row.id} [data-slot="section-heading-main"] p`)
         .first();
-      // Read the two halves separately rather than the joined string: the
-      // ordinal and the label are siblings separated by a flex `gap`, not by
-      // whitespace, so `textContent` returns "03Studio" with no separator to
-      // split on.
-      await expect(eyebrow.locator("span").first()).toHaveText(row.ordinal);
       const full = ((await eyebrow.textContent()) ?? "").trim();
-      expect(full.slice(row.ordinal.length).trim()).toBe(row.name);
+      expect(full.endsWith(row.name)).toBe(true);
     }
 
     // The zone's order, which D4 swapped: the run leads, the wall follows.
     const headings = page.locator('section[data-slot="section"] h2');
     await expect(headings.nth(0)).toHaveText("Create codes that work forever");
-    await expect(headings.nth(1)).toHaveText("Our full-stack platform");
+    await expect(headings.nth(1)).toHaveText("Our platform");
 
     // The bento and the strip before it are gone from every breakpoint.
     await expect(page.getByText("Everything you need in one place")).toHaveCount(0);

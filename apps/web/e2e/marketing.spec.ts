@@ -906,6 +906,55 @@ test.describe("marketing site", () => {
     );
   });
 
+  // P9.10-D9 — section 01 rebuilt as a numbered 2x2 grid, the filmstrip
+  // retired. Four cells, each a bespoke visual with one hover
+  // microanimation (CSS-only, gated on hover-capable fine pointers and
+  // no-reduced-motion, so this contract pins STRUCTURE, not motion):
+  // 01 restyle crossfade, 02 fan spread, 03 the next repoint, 04 bar wave.
+  test("01 how it works: four numbered cells, the grid's structure holds (P9.10-D9)", async ({
+    page,
+  }) => {
+    await page.goto("/");
+    const grid = page.locator("ol").filter({ has: page.locator("li.hw-card") });
+
+    const cells = grid.locator("li.hw-card");
+    await expect(cells).toHaveCount(4);
+
+    // The numbers are the product pipeline, in order.
+    for (const [i, [ordinal, title]] of [
+      ["01", "Design your style"],
+      ["02", "Create new codes"],
+      ["03", "Update links anytime"],
+      ["04", "Track scan analytics"],
+    ].entries()) {
+      await expect(cells.nth(i).getByText(ordinal, { exact: true })).toBeVisible();
+      await expect(cells.nth(i).getByText(title, { exact: true })).toBeVisible();
+    }
+
+    // Cell 01 layers TWO real engine renders (base <use> mat + the
+    // cobalt restyle overlay) — the crossfade is between renders, never
+    // a repaint (QR solidity).
+    await expect(cells.nth(0).locator(".hw-restyle svg")).toHaveCount(1);
+    await expect(cells.nth(0).locator(".hw-mat-base svg")).toHaveCount(1);
+
+    // Cell 02: the three-mat fan.
+    await expect(cells.nth(1).locator(".hw-fan")).toHaveCount(3);
+
+    // Cell 03: the constant address, and the drawn-strike device is NOT
+    // the line-through class (the page-wide pin below counts exactly 1).
+    await expect(cells.nth(2).getByText("qrcdn.com/cafe", { exact: true })).toBeVisible();
+    await expect(cells.nth(2).locator(".hw-strike")).toHaveCount(1);
+    await expect(cells.nth(2).locator(".hw-next")).toHaveCount(1);
+
+    // Cell 04: the full authored series.
+    await expect(cells.nth(3).locator(".hw-bar")).toHaveCount(18);
+    await expect(cells.nth(3).getByText("1,284 scans · 30 days")).toBeVisible();
+
+    // The struck /menu artwork exists exactly ONCE page-wide — cell 03's
+    // base state, the same pin the filmstrip used to satisfy.
+    await expect(page.locator(".line-through", { hasText: "yourcafe.com/menu" })).toHaveCount(1);
+  });
+
   test("02 the index wall: six rows, each feeding a real anchor at its true ordinal (P9.10-D4)", async ({
     page,
   }) => {

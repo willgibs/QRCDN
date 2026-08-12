@@ -2287,3 +2287,151 @@ html {
 .cta-kiss.aurora-breathe::after {
   inset: -10px;
 }
+
+/* ── P9.10-D9 — the How It Works grid's microanimations ──────────────────
+   Four cells, one micro each, all demonstrating the concept they sit
+   under: the code restyles (01), the fan spreads (02), the next repoint
+   plays (03), the scans arrive (04).
+
+   THE GATE. Everything interactive here lives inside ONE media query:
+   hover-capable fine pointers with no reduced-motion preference — the
+   hero-mat precedent verbatim. Outside it, every cell is its complete,
+   polished base state: touch never sees a half-told story and reduced
+   motion never sees movement. Base-state transitions are declared
+   OUTSIDE the gate (they are inert without the hover rules that change
+   the properties), so the return leg always matches the out leg.
+
+   Transform and opacity only. The stages are fixed-height and cell 03's
+   third destination occupies layout at opacity 0, so nothing any micro
+   does can move layout — the board's "room to breathe" is load-bearing
+   geometry, not a mood. */
+
+/* 01 · restyle crossfade. The overlay's engine svg scales to the padding
+   box (the engine emits no width/height without pixelSize — the
+   .hero-paper precedent). Base <use> and overlay crossfade in step so
+   the two transparent renders never stack visibly. */
+.hw-restyle {
+  opacity: 0;
+  transition: opacity 300ms var(--motion-ease-out);
+}
+.hw-restyle svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+.hw-mat-base > svg {
+  transition: opacity 300ms var(--motion-ease-out);
+}
+.hw-chip-base,
+.hw-chip-alt {
+  transition: opacity 300ms var(--motion-ease-out);
+}
+.hw-chip-alt {
+  opacity: 0;
+}
+
+/* 02 · fan spread. The hero's asymmetric spring pair: settle-back ease
+   declared at rest, snappier spring-out applied inside the hover gate. */
+.hw-fan {
+  transition:
+    translate 360ms var(--motion-ease-spring-back),
+    rotate 360ms var(--motion-ease-spring-back);
+}
+
+/* 03 · the drawn strike. Sits over /winter's text only (its own relative
+   wrapper), scales open from the left. Deliberately NOT the
+   `line-through` class: the page-wide e2e pin counts exactly one struck
+   /menu, and this device must never be countable as a second. */
+.hw-winter {
+  transition: opacity 240ms var(--motion-ease-out);
+}
+.hw-strike {
+  position: absolute;
+  left: -1px;
+  right: -1px;
+  top: 50%;
+  height: 1px;
+  background: currentColor;
+  transform: scaleX(0);
+  transform-origin: left center;
+  transition: transform 260ms var(--motion-ease-out);
+}
+.hw-next {
+  opacity: 0;
+  translate: 0 4px;
+  transition:
+    opacity 240ms var(--motion-ease-out),
+    translate 240ms var(--motion-ease-out);
+}
+
+/* 04 · the bar wave. The animation is APPLIED on hover, not merely
+   unpaused: a paused animation with a negative delay would freeze every
+   bar mid-wave at load, and the resting chart must be exactly the
+   authored series. Hover-off removes the animation and the bar snaps
+   the ≤14% back to base — imperceptible at 5px wide, and the honest
+   trade against a frozen first paint. Phase offset by index; 18 bars ×
+   -100ms spans the 1.8s cycle, so the wave travels the full chart. */
+@keyframes hw-wave {
+  0%,
+  100% {
+    transform: scaleY(1);
+  }
+  50% {
+    transform: scaleY(1.14);
+  }
+}
+.hw-bar {
+  transform-origin: bottom;
+}
+
+@media (hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference) {
+  .hw-card:hover .hw-restyle {
+    opacity: 1;
+  }
+  .hw-card:hover .hw-mat-base > svg {
+    opacity: 0;
+  }
+  .hw-card:hover .hw-chip-base {
+    opacity: 0;
+  }
+  .hw-card:hover .hw-chip-alt {
+    opacity: 1;
+  }
+
+  .hw-card:hover .hw-fan-l {
+    translate: -14px 9px;
+    rotate: -13deg;
+    transition:
+      translate 410ms var(--motion-ease-spring-out),
+      rotate 410ms var(--motion-ease-spring-out);
+  }
+  .hw-card:hover .hw-fan-m {
+    translate: 0 -4px;
+    transition:
+      translate 410ms var(--motion-ease-spring-out),
+      rotate 410ms var(--motion-ease-spring-out);
+  }
+  .hw-card:hover .hw-fan-r {
+    translate: 14px 9px;
+    rotate: 13deg;
+    transition:
+      translate 410ms var(--motion-ease-spring-out),
+      rotate 410ms var(--motion-ease-spring-out);
+  }
+
+  .hw-card:hover .hw-winter {
+    opacity: 0.65;
+  }
+  .hw-card:hover .hw-strike {
+    transform: scaleX(1);
+  }
+  .hw-card:hover .hw-next {
+    opacity: 1;
+    translate: 0 0;
+    transition-delay: 120ms;
+  }
+
+  .hw-card:hover .hw-bar {
+    animation: hw-wave 1.8s var(--motion-ease-in-out) calc(var(--i) * -100ms) infinite;
+  }
+}

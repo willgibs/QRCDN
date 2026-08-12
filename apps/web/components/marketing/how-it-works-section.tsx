@@ -1,6 +1,6 @@
 import type { ComponentProps } from "react";
 import { Section, SectionHeading, SectionBody } from "@/components/marketing/section";
-import { Filmstrip } from "@/components/marketing/filmstrip";
+import { HowItWorksGrid } from "@/components/marketing/how-it-works-grid";
 
 /**
  * 01 — How it works (P9.7-U2, rebuilt as the filmstrip; was P9.5-T3a's
@@ -67,7 +67,10 @@ export function HowItWorksSection({
       />
 
       <SectionBody>
-        <Filmstrip />
+        {/* P9.10-D9: the filmstrip retired for the numbered 2x2 grid —
+            same four concepts and copy, each on a card of its own with
+            one hover microanimation. See how-it-works-grid.tsx. */}
+        <HowItWorksGrid />
       </SectionBody>
     </Section>
   );

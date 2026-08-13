@@ -15,8 +15,8 @@ import { StudioObject } from "./studio-object";
 // `id="studio"` is the features wall's anchor target (e2e asserts it
 // resolves): it must survive every redesign, same rule as #brand-system.
 // The /features/brand-studio doorway lives ONLY on section 04; this
-// section's close is the /studio CTA, carrying the real page promise
-// (free, no account, no watermark — /studio's own metadata).
+// section's close is the /studio CTA, carrying the page promise in the
+// board's D11.2 cut: "Free, no account required".
 
 // Every claim is live product truth: the instrument certification is the
 // C2 record (all 48 panel combos at 100), the knockout and export lines
@@ -91,7 +91,7 @@ export function StudioSection({
                 <Link href="/studio">Open the studio</Link>
               </Button>
               <p className="font-mono text-xs text-muted-foreground">
-                free · no account · no watermark
+                Free, no account required
               </p>
             </div>
           </div>

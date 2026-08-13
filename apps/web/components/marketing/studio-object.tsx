@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { clamp, normalizeStagePointer } from "@/lib/tilt-math";
+import { clamp } from "@/lib/tilt-math";
 import { stepCriticalSpring, type SpringState } from "@/lib/spring";
 import { QrSlabRenderer } from "@/lib/webgl/qr-slab-renderer";
 import {
@@ -301,6 +301,34 @@ export function StudioObject() {
       configChange: () => dispatch(swapConfigChange(machine)),
     };
 
+    // D11.2 board note: the object watches the WHOLE section, not just
+    // its own stage. Offsets are measured from the STAGE center (so it
+    // faces the cursor exactly when hovered) but scaled by the SECTION's
+    // half-extents, so movement anywhere in the section produces
+    // variation instead of saturating the clamp at the stage boundary.
+    const tiltSurface: HTMLElement = stage.closest("section") ?? stage;
+    const onPointerMove = (e: PointerEvent): void => {
+      const surface = tiltSurface.getBoundingClientRect();
+      if (surface.width <= 0 || surface.height <= 0) return;
+      const st = stage.getBoundingClientRect();
+      const cx = st.left + st.width / 2;
+      const cy = st.top + st.height / 2;
+      pointerRef.current = {
+        x: clamp((e.clientX - cx) / (surface.width / 2), -1, 1),
+        y: clamp((e.clientY - cy) / (surface.height / 2), -1, 1),
+      };
+    };
+    const resetPointer = (): void => {
+      pointerRef.current = { x: 0, y: 0 };
+    };
+    const onPointerUp = (e: PointerEvent): void => {
+      if (e.pointerType !== "mouse") resetPointer();
+    };
+    tiltSurface.addEventListener("pointermove", onPointerMove);
+    tiltSurface.addEventListener("pointerleave", resetPointer);
+    tiltSurface.addEventListener("pointercancel", resetPointer);
+    tiltSurface.addEventListener("pointerup", onPointerUp);
+
     const io = new IntersectionObserver(
       (entries) => {
         visible = entries[0]?.isIntersecting ?? false;
@@ -363,6 +391,10 @@ export function StudioObject() {
       if (matTimer !== null) clearTimeout(matTimer);
       io.disconnect();
       ro.disconnect();
+      tiltSurface.removeEventListener("pointermove", onPointerMove);
+      tiltSurface.removeEventListener("pointerleave", resetPointer);
+      tiltSurface.removeEventListener("pointercancel", resetPointer);
+      tiltSurface.removeEventListener("pointerup", onPointerUp);
       document.removeEventListener("visibilitychange", onVisibility);
       canvas.removeEventListener("webglcontextlost", onLost);
       canvas.removeEventListener("webglcontextrestored", onRestored);
@@ -373,33 +405,23 @@ export function StudioObject() {
   }, [glWanted]);
 
   return (
-    // D11.1 board notes: the object grew to reach the content's right
-    // edge (lg:ml-auto), and the config panel became a dock overlapping
-    // the code's BOTTOM edge — the overlap is a negative top margin, not
+    // D11.1 board notes: the object anchors to the content's right edge
+    // (lg:ml-auto) and the config panel became a dock overlapping the
+    // code's BOTTOM edge — the overlap is a negative top margin, not
     // absolute positioning, so the layout below always reserves the
-    // dock's real height. The caption retired to make the room.
+    // dock's real height. The caption retired to make the room. D11.2:
+    // the object shrank back to its D11 size (the push to the edge was
+    // the point, not the growth — the left column keeps the room).
     <div
       data-slot="studio-object"
       data-gl={live ? "live" : undefined}
-      className="mx-auto w-full max-w-[340px] min-w-0 sm:max-w-[400px] lg:mr-0 lg:ml-auto lg:max-w-[500px]"
+      className="mx-auto w-full max-w-[340px] min-w-0 sm:max-w-[400px] lg:mr-0 lg:ml-auto lg:max-w-[380px]"
     >
-        <div
-          ref={stageRef}
-          className="relative aspect-square touch-pan-y"
-          onPointerMove={(e) => {
-            const rect = e.currentTarget.getBoundingClientRect();
-            pointerRef.current = normalizeStagePointer(e.clientX, e.clientY, rect);
-          }}
-          onPointerLeave={() => {
-            pointerRef.current = { x: 0, y: 0 };
-          }}
-          onPointerCancel={() => {
-            pointerRef.current = { x: 0, y: 0 };
-          }}
-          onPointerUp={(e) => {
-            if (e.pointerType !== "mouse") pointerRef.current = { x: 0, y: 0 };
-          }}
-        >
+        {/* Pointer tracking lives in the GL effect on the whole #studio
+            SECTION (D11.2 board note: the object reacts to every cursor
+            move in the section, not just directly over it), so the stage
+            carries no handlers of its own. */}
+        <div ref={stageRef} className="relative aspect-square touch-pan-y">
           {/* The floor pool grounds the object in both modes — one shadow
               source, so the static mat and the live slab sit identically. */}
           <span
@@ -437,8 +459,9 @@ export function StudioObject() {
         onChange={applyConfig}
         // The dock straddles the code's bottom edge; the overlap lands
         // on the paper margin band (8.3% + the engine quiet zone), so
-        // it never covers modules.
-        className="relative z-10 mx-auto -mt-12 w-fit lg:-mt-16"
+        // it never covers modules. At the 380px D11.2 stage the band is
+        // ~70px, so lg overlap stays at 56px (-mt-14), not 64.
+        className="relative z-10 mx-auto -mt-12 w-fit lg:-mt-14"
       />
     </div>
   );

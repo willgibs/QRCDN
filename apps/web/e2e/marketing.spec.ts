@@ -837,7 +837,7 @@ test.describe("marketing site", () => {
       "href",
       "/studio",
     );
-    await expect(section.getByText("free · no account · no watermark")).toBeVisible();
+    await expect(section.getByText("Free, no account required")).toBeVisible();
     // Scrolled into view, the slab goes live (the render loop is
     // IntersectionObserver-gated). SwiftShader makes canvas PRESENCE and
     // the data-gl handshake reliable in headless; pixels are never

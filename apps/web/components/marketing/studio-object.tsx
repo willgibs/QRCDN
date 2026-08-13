@@ -405,17 +405,18 @@ export function StudioObject() {
   }, [glWanted]);
 
   return (
-    // D11.1 board notes: the object anchors to the content's right edge
-    // (lg:ml-auto) and the config panel became a dock overlapping the
-    // code's BOTTOM edge — the overlap is a negative top margin, not
-    // absolute positioning, so the layout below always reserves the
-    // dock's real height. The caption retired to make the room. D11.2:
-    // the object shrank back to its D11 size (the push to the edge was
-    // the point, not the growth — the left column keeps the room).
+    // D11.1 board notes: the object anchors to a content edge and the
+    // config panel became a dock overlapping the code's BOTTOM edge —
+    // the overlap is a negative top margin, not absolute positioning,
+    // so the layout below always reserves the dock's real height. The
+    // caption retired to make the room. D11.2: the object shrank back
+    // to its D11 size (the push to the edge was the point, not the
+    // growth). D11.4: the section flipped — the anchor is now the LEFT
+    // content edge (lg:mr-auto), the text column sits right.
     <div
       data-slot="studio-object"
       data-gl={live ? "live" : undefined}
-      className="mx-auto w-full max-w-[340px] min-w-0 sm:max-w-[400px] lg:mr-0 lg:ml-auto lg:max-w-[380px]"
+      className="mx-auto w-full max-w-[340px] min-w-0 sm:max-w-[400px] lg:ml-0 lg:mr-auto lg:max-w-[380px]"
     >
         {/* Pointer tracking lives in the GL effect on the whole #studio
             SECTION (D11.2 board note: the object reacts to every cursor

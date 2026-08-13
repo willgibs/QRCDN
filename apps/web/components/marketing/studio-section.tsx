@@ -68,13 +68,18 @@ export function StudioSection({
         className="mb-10"
       />
       <SectionBody>
-        {/* D11.1: the left column widened (20 -> 24rem) and the object
-            reaches the content's right edge — the board's "a little
-            tight" note. D11.3: items-start (was center) — measured, the
-            centering offset was the larger half of the heading-to-content
-            gap the board flagged; the compacted dock closes the rest. */}
-        <div className="grid gap-12 lg:grid-cols-[minmax(0,24rem)_1fr] lg:items-start lg:gap-16">
-          <div className="order-2 flex flex-col gap-8 lg:order-none">
+        {/* D11.1: the text column widened (20 -> 24rem); D11.3:
+            items-start (was center) — measured, the centering offset was
+            the larger half of the heading-to-content gap the board
+            flagged. D11.4 board note: the columns FLIPPED — the object
+            leads on the left, the text breathes on the right. DOM order
+            now matches visual order, so the mobile order-* pair retired
+            (the object was already first on small screens). */}
+        <div className="grid gap-12 lg:grid-cols-[1fr_minmax(0,24rem)] lg:items-start lg:gap-16">
+          <div className="min-w-0">
+            <StudioObject />
+          </div>
+          <div className="flex flex-col gap-8">
             <ul className="flex flex-col gap-6">
               {FEATURES.map(({ icon: Icon, title, note }) => (
                 <li key={title} className="flex gap-3.5">
@@ -96,9 +101,6 @@ export function StudioSection({
                 Free, no account required
               </p>
             </div>
-          </div>
-          <div className="order-1 min-w-0 lg:order-none">
-            <StudioObject />
           </div>
         </div>
       </SectionBody>

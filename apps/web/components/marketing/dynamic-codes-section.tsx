@@ -54,7 +54,10 @@ export function DynamicCodesSection({
         titleSize={titleSize}
         actions={
           DYNAMIC_CODES_DOORWAY_ENABLED ? (
-            <Button asChild variant="secondary">
+            // The landing's standard secondary pill (D13.1 board note),
+            // the same recipe as 13's contact row - not the bare app-UI
+            // button shape.
+            <Button asChild variant="secondary" className="h-9 rounded-full px-5">
               <Link href="/features/dynamic-codes">Explore dynamic codes</Link>
             </Button>
           ) : undefined

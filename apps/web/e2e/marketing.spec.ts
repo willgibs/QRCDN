@@ -341,13 +341,13 @@ test.describe("marketing site", () => {
     await expect(playgroundSection.getByText("88%", { exact: true })).toBeVisible();
   });
 
-  test("dynamic codes: the constant holds while the counter climbs (P9.10-D5, D13)", async ({
+  test("dynamic codes: the constant holds while the connection moves (P9.10-D5, D13.1)", async ({
     page,
   }) => {
     // Reduced motion pins the attract loop off (P9.10-D13), so the rest
     // state is deterministically /menu and every assertion below is
     // race-free. This context doubles as the section's reduced-motion
-    // contract: no machine driving, the window populated and still.
+    // contract: no machine driving, the connection drawn and still.
     await page.emulateMedia({ reducedMotion: "reduce" });
     await page.goto("/");
     const section = page.locator("#dynamic-codes");
@@ -365,38 +365,28 @@ test.describe("marketing site", () => {
       ).toBeVisible();
     }
 
-    // D13 rest state: the machine is off, /menu is live from the served
-    // HTML onward, and the destination window shows the full address.
+    // D13.1 rest state: the machine is off, /menu is live from the served
+    // HTML onward, and exactly ONE connection is drawn over the three
+    // dotted routes (the connect pulse's hold state).
     const plate = section.locator("[data-attract]");
     await expect(plate).toHaveAttribute("data-attract", "off");
     await expect(chips.nth(0)).toHaveAttribute("aria-pressed", "true");
-    const window_ = section.locator('[data-slot="destination-window"]');
-    await expect(window_.getByText("yourcafe.com/menu")).toBeVisible();
+    await expect(section.locator("path.ds-connect")).toHaveCount(1);
 
-    // THE contract of this device: the visitor drives the left number and the
-    // right one never moves. That pair is the unlimited-retargets guarantee
-    // (D14) demonstrated rather than asserted, so it is what CI pins.
-    const readout = section.locator('[role="status"]');
-    await expect(readout).toContainText("0 retargets");
-    await expect(readout).toContainText("0 reprints");
-
-    // First retarget is /winter: clicking the already-live /menu would
-    // honestly not be a retarget (the component neither swaps nor counts it).
+    // A retarget moves the connection: clicking the already-live /menu
+    // would honestly not be a retarget, so the first click is /winter.
     await chips.nth(1).click();
     await expect(chips.nth(1)).toHaveAttribute("aria-pressed", "true");
     await expect(chips.nth(0)).toHaveAttribute("aria-pressed", "false");
-    await expect(readout).toContainText("1 retarget");
-    await expect(window_.getByText("yourcafe.com/winter")).toBeVisible();
+    await expect(section.locator("path.ds-connect")).toHaveCount(1);
 
     await chips.nth(2).click();
     await expect(chips.nth(2)).toHaveAttribute("aria-pressed", "true");
-    await expect(readout).toContainText("2 retargets");
-    await expect(window_.getByText("yourcafe.com/order")).toBeVisible();
-    // Never moves, whatever the left number does.
-    await expect(readout).toContainText("0 reprints");
-    await expect(readout).toContainText("302");
+    await expect(section.locator("path.ds-connect")).toHaveCount(1);
 
-    // The four claims that replaced the two mono strips.
+    // The four claims that replaced the two mono strips. The retired
+    // counter's facts live HERE now (D13.1): 302 + no-store in "Never
+    // cached", the D14 unlimited policy in "Retarget anytime".
     for (const name of [
       "Retarget anytime",
       "Never cached",
@@ -424,14 +414,13 @@ test.describe("marketing site", () => {
     const chips = section.getByRole("button", { name: /Point the code at/ });
     await expect(chips.nth(1)).toHaveAttribute("aria-pressed", "true", { timeout: 6000 });
 
-    // The visitor takes the keys: instant, permanent, and the counter has
-    // counted none of the machine's own moves — only this click. /menu is
-    // the robust pick: the machine just LEFT it, so even a slow-CI tick to
+    // The visitor takes the keys: instant and permanent. /menu is the
+    // robust pick: the machine just LEFT it, so even a slow-CI tick to
     // /order cannot turn this into a same-destination no-op (that would
     // need two full 4s ticks between adjacent operations).
     await chips.nth(0).click();
     await expect(plate).toHaveAttribute("data-attract", "off");
-    await expect(section.locator('[role="status"]')).toContainText("1 retarget");
+    await expect(chips.nth(0)).toHaveAttribute("aria-pressed", "true");
   });
 
   test("access controls: three controls and the states a visitor meets (P9.7-V4)", async ({

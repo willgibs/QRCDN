@@ -2901,3 +2901,28 @@ html {
     animation-delay: 0.12s;
   }
 }
+
+/* ---------------------------------------------------------------------------
+   05 THE LIVE SWITCHBOARD (P9.10-D13) - the destination window's enter.
+
+   The "risen destination" grammar (01's repoint card) at demonstration
+   scale: the window body is keyed by destination in retarget-stage.tsx, so
+   a remount plays this on every retarget, attract-driven or visitor-driven.
+   Transform/opacity only. Reduced motion gets an instant swap (the class
+   simply never animates outside this gate), and the attract loop itself
+   never starts there - see the component's own effect. */
+@media (prefers-reduced-motion: no-preference) {
+  @keyframes dw-enter {
+    from {
+      opacity: 0;
+      transform: translateY(8px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  .dw-enter {
+    animation: dw-enter 350ms var(--motion-ease-out);
+  }
+}

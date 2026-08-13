@@ -1,12 +1,13 @@
 "use client";
 
-import { useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { definePrintCode, PrintCodeDefs, PrintMat } from "@/components/marketing/print-mat";
 import { DESTINATION_HUES, HUE_CLASSES, HUE_TINT, type DestinationLabel } from "./destination-hues";
 import { cn } from "@/lib/utils";
 
 /**
- * 05's body (P9.10-D5), replacing the `RetargetTheatre`.
+ * 05's body (P9.10-D5, second-passed at P9.10-D13), replacing the
+ * `RetargetTheatre`.
  *
  * Board redirect at the D5 R1 review, and the whole shape of this file: R1
  * offered four compositions that all took the visual WIDER, and the note was
@@ -17,28 +18,45 @@ import { cn } from "@/lib/utils";
  * turned out not to be a bigger stage; it was four claims this section was
  * making in cramped mono strips, or not making at all, given room to be read.
  *
- * The constant is a real printed code carrying a real short address, and it
- * is the SAME code the filmstrip follows one section up (`qrcdn.com/cafe`,
- * shown there moving from /menu to /winter). Section 05 is where a visitor
- * gets to move it themselves, and the counter beneath the picker turns the
- * unlimited-retargets guarantee (D14) into something they proved rather than
- * something we asserted.
+ * P9.10-D13, the second pass (THE LIVE SWITCHBOARD), kept that composition
+ * and rebuilt the plate's interior against two measured defects:
  *
- * The routing graphic survived the rebuild. R2 dropped it and the board's
+ * 1. The demo was dead at rest ("pick a destination", nothing lit, nothing
+ *    moving) while 03 idles under its light and 04 pulses every five
+ *    seconds. Most visitors never click, so most visitors never saw this
+ *    section's story happen. Now THE ATTRACT LOOP runs it for them: every
+ *    four seconds the plate retargets itself to the next destination, and
+ *    the first chip click cancels the loop permanently - the visitor has
+ *    the keys from then on. Auto-retargets NEVER increment the counter:
+ *    that number is the visitor's own proof of D14, and the machine
+ *    inflating it would be fabrication.
+ *
+ * 2. A retarget had no payoff: the claim is "the same printed code now goes
+ *    somewhere NEW", and the new place was never shown - a stroke changed
+ *    color and one mono line updated. THE DESTINATION WINDOW at the plate's
+ *    foot now shows where the code points: a small browser-idiom card whose
+ *    address strip carries the full current URL and whose body is a
+ *    distinct abstract wireframe per destination (a menu's price list, a
+ *    seasonal banner, an order form). Honest by construction: grey blocks,
+ *    no fake screenshots, the address line is the only text. The swap is
+ *    the "risen destination" grammar 01's repoint card established.
+ *
+ * The constant is a real printed code carrying a real short address, the
+ * SAME code 01's repoint card moves from /menu to /winter. Section 05 is
+ * where a visitor gets to move it themselves, and the counter beneath turns
+ * the unlimited-retargets guarantee (D14) into something they proved rather
+ * than something we asserted.
+ *
+ * The routing graphic survived both rebuilds. R2 dropped it and the board's
  * note was immediate: "I do hate we're losing the cool routing graphic...
  * any way to retain that visual idea where the QR branches out to different
- * links?" It was the section's best idea and dropping it was a mistake. It
- * comes back turned ninety degrees: the old device fanned bezier wires
- * sideways from the code's edge, which needed a wide stage, and a wide stage
- * is exactly what the GitBook layout does not have. A branch that descends
- * suits a portrait plate, and a code that splits DOWNWARD into three paths
- * reads more like routing than one that splits across.
+ * links?" It descends rather than fans sideways because a branch that
+ * splits DOWNWARD suits a portrait plate.
  *
  * Client island on purpose. The board's standing note: "don't want us to
- * build a lesser feature because we're scared of a little bit of JavaScript."
- * It carries no motion library though — plain state and CSS transitions —
- * which retires `motion/react` from the landing entirely, since the old
- * theatre was its only consumer on `/`.
+ * build a lesser feature because we're scared of a little bit of
+ * JavaScript." Still no motion library - plain state, one interval, and CSS
+ * transitions.
  */
 
 const CODE_SLUG = "qrcdn.com/cafe";
@@ -53,11 +71,15 @@ const DESTINATIONS: readonly DestinationLabel[] = [
   "yourcafe.com/order",
 ];
 
+/** The attract loop's cadence. 04's pulse edits every 5s; this sits just
+ *  under it so the two neighbors never read as metronomes of one clock. */
+const ATTRACT_MS = 4000;
+
 /** The three share one host, so the chips print only what actually differs
- *  and the readout below prints the whole address. That is also what makes
- *  three chips fit a branch three-up inside a centred plate — full labels
- *  measured 152-160px each and wrapped 2+1, which is what pushed the earlier
- *  draft into a stacked list with nothing to branch to. */
+ *  and the window's address strip prints the whole address. That is also
+ *  what makes three chips fit a branch three-up inside a centred plate -
+ *  full labels measured 152-160px each and wrapped 2+1, which is what
+ *  pushed the earlier draft into a stacked list with nothing to branch to. */
 const DEST_HOST = "yourcafe.com";
 const destPath = (label: DestinationLabel) => label.slice(DEST_HOST.length);
 
@@ -65,17 +87,17 @@ const destPath = (label: DestinationLabel) => label.slice(DEST_HOST.length);
    sit at 1/6, 3/6 and 5/6 of the width so they land on the centres of a
    three-column chip grid at any plate width. Same grammar the retired
    theatre used for its wires (active branch takes the destination's own hue
-   at 2px, dormant ones stay border-grey) — the geometry changed, the
-   language did not. */
-const BRANCH_VIEW = { w: 300, h: 74 };
+   at 2px, dormant ones stay border-grey) - the geometry changed, the
+   language did not. D13 deepened it 74 -> 84px for the wider plate. */
+const BRANCH_VIEW = { w: 300, h: 84 };
 const BRANCH_X = [48, 150, 252] as const;
 function branchPath(x: number): string {
   if (x === 150) return `M150 0V${BRANCH_VIEW.h}`;
-  return `M150 0V20C150 50 ${x} 34 ${x} ${BRANCH_VIEW.h}`;
+  return `M150 0V24C150 58 ${x} 44 ${x} ${BRANCH_VIEW.h}`;
 }
 
 /** 16-grid line icon, the idiom section 09's feature strip established at
- *  P9.10-D2 — same viewBox, stroke weight and cap treatment, so the two
+ *  P9.10-D2 - same viewBox, stroke weight and cap treatment, so the two
  *  feature families read as one system rather than two icon sets. */
 function FeatureIcon({ d, extra }: { d: string; extra?: ReactNode }) {
   return (
@@ -135,8 +157,8 @@ const FEATURES: ReadonlyArray<{ icon: ReactNode; name: string; desc: string; sid
 ];
 
 /** Centre-aligned on the board's call at the R2 review. The section is
- *  symmetric now — centred heading, centred plate, a column of claims either
- *  side — and left-aligned cards were the one thing still reading as the old
+ *  symmetric now - centred heading, centred plate, a column of claims either
+ *  side - and left-aligned cards were the one thing still reading as the old
  *  left-aligned section pattern inside a composition that had left it. */
 function Feature({ icon, name, desc }: { icon: ReactNode; name: string; desc: string }) {
   return (
@@ -159,25 +181,167 @@ function tint(label: DestinationLabel) {
   return HUE_TINT[DESTINATION_HUES[label]];
 }
 
+/** The destination pages as abstract wireframes - grey blocks only, no fake
+ *  screenshots and no invented content (the address strip is the window's
+ *  only text). Each destination gets a DISTINCT silhouette so a swap reads
+ *  as a different page at a glance: the menu's title-and-price-list, the
+ *  seasonal banner, the order form. All three fill the same fixed-height
+ *  body, so the plate never changes height as destinations swap (zero
+ *  layout shift under the attract loop). */
+function WindowBody({ active }: { active: DestinationLabel }) {
+  if (active === "yourcafe.com/menu") {
+    return (
+      <div className="flex h-full flex-col gap-3">
+        <div className="h-2.5 w-2/5 rounded-full bg-foreground/15" />
+        {(
+          [
+            ["m1", "w-1/2"],
+            ["m2", "w-2/5"],
+            ["m3", "w-[45%]"],
+          ] as const
+        ).map(([key, w]) => (
+          <div key={key} className="flex items-center justify-between">
+            <div className={cn("h-2 rounded-full bg-foreground/10", w)} />
+            <div className="h-2 w-7 rounded-full bg-foreground/10" />
+          </div>
+        ))}
+      </div>
+    );
+  }
+  if (active === "yourcafe.com/winter") {
+    return (
+      <div className="flex h-full flex-col gap-3">
+        <div className="h-10 w-full rounded-lg bg-foreground/10" />
+        <div className="h-2 w-3/4 rounded-full bg-foreground/10" />
+        <div className="h-2 w-3/5 rounded-full bg-foreground/10" />
+      </div>
+    );
+  }
+  return (
+    <div className="flex h-full flex-col gap-2">
+      <div className="h-6 w-full rounded-md border border-foreground/10 bg-foreground/[0.04]" />
+      <div className="h-6 w-full rounded-md border border-foreground/10 bg-foreground/[0.04]" />
+      <div className="h-6 w-24 rounded-md bg-foreground/20" />
+    </div>
+  );
+}
+
 /**
- * The instrument itself: the constant on paper, its address, and the lever.
- * Exported as `RetargetPlate` because `/features/dynamic-codes` composes the
- * same demonstration in its S2 slot ("Retarget it yourself, right here") but
- * brings its own page-depth copy, so it wants this without the landing's
- * four flanking claims.
+ * The destination window (D13): the retarget's payoff. A small
+ * browser-idiom card - dot trio, address strip carrying the full current
+ * URL with the destination's own hue dot, wireframe body. The body is
+ * KEYED by destination so only the active wireframe is ever in the DOM
+ * (the served-HTML opacity:0 sweep stays trivially clean) and the enter
+ * animation replays on every retarget, attract or visitor. The rise+fade
+ * lives in globals.css's dw block behind the reduced-motion gate; reduced
+ * motion gets an instant swap.
+ */
+function DestinationWindow({ active }: { active: DestinationLabel }) {
+  return (
+    <div
+      data-slot="destination-window"
+      className="mt-5 overflow-hidden rounded-[14px] border border-border bg-card/70"
+    >
+      <div className="flex items-center gap-3 border-b border-border/70 px-3.5 py-2">
+        <span aria-hidden className="flex shrink-0 gap-[5px]">
+          <span className="size-[5px] rounded-full bg-muted-foreground/30" />
+          <span className="size-[5px] rounded-full bg-muted-foreground/30" />
+          <span className="size-[5px] rounded-full bg-muted-foreground/30" />
+        </span>
+        <span className="flex min-w-0 flex-1 items-center justify-center gap-1.5 rounded-[7px] bg-background/70 px-2.5 py-1">
+          <span aria-hidden className={cn("size-1.5 shrink-0 rounded-full", hue(active).dot)} />
+          <span className="truncate font-mono text-[11px] text-muted-foreground">{active}</span>
+        </span>
+        {/* Balances the dot trio so the address pill centres true. */}
+        <span aria-hidden className="w-[25px] shrink-0" />
+      </div>
+      <div key={active} className="dw-enter h-[120px] px-4 py-3.5" aria-hidden>
+        <WindowBody active={active} />
+      </div>
+    </div>
+  );
+}
+
+/**
+ * The instrument itself: the constant on paper, its address, the lever, and
+ * where the code points right now. Exported as `RetargetPlate` because
+ * `/features/dynamic-codes` composes the same demonstration in its S2 slot
+ * ("Retarget it yourself, right here") but brings its own page-depth copy,
+ * so it wants this without the landing's four flanking claims.
  */
 function StageInner() {
-  const [active, setActive] = useState<DestinationLabel | null>(null);
+  const [active, setActive] = useState<DestinationLabel>(DESTINATIONS[0]);
   const [count, setCount] = useState(0);
+  // takenOver is permanent for the component's life: the first chip click
+  // ends attract mode and the effect below never re-arms it.
+  const [takenOver, setTakenOver] = useState(false);
+  const [attract, setAttract] = useState(false);
+  const rootRef = useRef<HTMLDivElement | null>(null);
+
+  /* The attract loop (D13): the demo runs itself until touched. Gated three
+     ways - reduced motion never starts it (watched in BOTH directions, the
+     03 rule), it only ticks while the plate is actually in view, and the
+     first visitor interaction tears it down for good. SSR renders
+     data-attract="off"; the effect flips it on after hydration, so the
+     attribute is also an honest "is the machine driving" signal for e2e. */
+  useEffect(() => {
+    if (takenOver) return;
+    const root = rootRef.current;
+    if (!root) return;
+    const media = window.matchMedia("(prefers-reduced-motion: no-preference)");
+    let inView = false;
+    let timer: number | null = null;
+
+    const sync = () => {
+      const want = media.matches && inView;
+      if (want && timer === null) {
+        timer = window.setInterval(() => {
+          setActive(
+            (cur) => DESTINATIONS[(DESTINATIONS.indexOf(cur) + 1) % DESTINATIONS.length],
+          );
+        }, ATTRACT_MS);
+        setAttract(true);
+      } else if (!want && timer !== null) {
+        window.clearInterval(timer);
+        timer = null;
+        setAttract(false);
+      }
+    };
+
+    const io = new IntersectionObserver(
+      (entries) => {
+        inView = entries.some((e) => e.isIntersecting);
+        sync();
+      },
+      { threshold: 0.3 },
+    );
+    io.observe(root);
+    media.addEventListener("change", sync);
+    return () => {
+      io.disconnect();
+      media.removeEventListener("change", sync);
+      if (timer !== null) window.clearInterval(timer);
+    };
+  }, [takenOver]);
 
   function pick(label: DestinationLabel) {
+    // First touch takes the keys permanently (flipping takenOver reruns the
+    // effect above, whose cleanup clears the interval).
+    setTakenOver(true);
+    setAttract(false);
+    // Clicking the destination the code already points at is honestly not a
+    // retarget, so it neither swaps nor counts.
     if (label === active) return;
     setActive(label);
     setCount((n) => n + 1);
   }
 
   return (
-    <div className="lit-stroke rounded-[22px] bg-white/[0.055] px-7 py-7">
+    <div
+      ref={rootRef}
+      data-attract={attract ? "on" : "off"}
+      className="lit-stroke rounded-[22px] bg-white/[0.055] px-7 py-7"
+    >
       <PrintCodeDefs codes={[PRINT_CODE]} />
 
       <div className="flex flex-col items-center gap-3">
@@ -186,13 +350,13 @@ function StageInner() {
       </div>
 
       {/* The routing graphic: one trunk out of the code, three branches down.
-          Purely decorative — the chips beneath are the real controls — so it
+          Purely decorative - the chips beneath are the real controls - so it
           is aria-hidden and never a tab stop. */}
       <svg
         aria-hidden
         viewBox={`0 0 ${BRANCH_VIEW.w} ${BRANCH_VIEW.h}`}
         preserveAspectRatio="none"
-        className="mt-3 block h-[74px] w-full overflow-visible"
+        className="mt-3 block h-[84px] w-full overflow-visible"
       >
         {DESTINATIONS.map((label, i) => {
           const on = active === label;
@@ -249,19 +413,12 @@ function StageInner() {
         })}
       </div>
 
-      <div className="mt-5 flex flex-col items-center gap-1.5 border-t border-border pt-4">
-        <span className="font-mono text-[12.5px]">
-          {active ? (
-            <>
-              <span className="text-muted-foreground">now points at </span>
-              <span className="text-foreground">{active}</span>
-            </>
-          ) : (
-            <span className="text-muted-foreground/55">pick a destination</span>
-          )}
-        </span>
-        {/* The counter is the guarantee, proven rather than asserted: the
-            visitor drives the left number and the right one never moves. */}
+      <DestinationWindow active={active} />
+
+      {/* The counter is the guarantee, proven rather than asserted: the
+          visitor drives the left number and the right one never moves. The
+          attract loop's own retargets are deliberately NOT in it. */}
+      <div className="mt-5 flex flex-col items-center border-t border-border pt-4">
         <p
           role="status"
           aria-live="polite"
@@ -279,7 +436,7 @@ function StageInner() {
 
 export function RetargetPlate() {
   return (
-    <div className="mx-auto w-full max-w-[27rem]">
+    <div className="mx-auto w-full max-w-[28rem]">
       <StageInner />
     </div>
   );
@@ -290,7 +447,7 @@ export function RetargetStage() {
   const right = FEATURES.filter((f) => f.side === "r");
 
   return (
-    <div className="grid items-center gap-12 lg:grid-cols-[minmax(0,1fr)_26rem_minmax(0,1fr)] lg:gap-14">
+    <div className="grid items-center gap-12 lg:grid-cols-[minmax(0,1fr)_28rem_minmax(0,1fr)] lg:gap-14">
       {/* The visual leads on small screens: reading two feature columns before
           seeing the thing they describe is backwards, and at one column the
           left/right split has no meaning anyway. */}
@@ -302,9 +459,9 @@ export function RetargetStage() {
 
       {/* The middle track is pinned rather than `auto`: an auto track sizes to
           CONTENT, so the plate's own max-width never applied and it kept
-          collapsing to whatever the chips happened to measure. Board note at
-          R3: the visual container may go wider if it helps the graphic. */}
-      <div className="order-1 mx-auto w-full max-w-[26rem] lg:order-none">
+          collapsing to whatever the chips happened to measure. 26rem -> 28rem
+          at D13 for the destination window's measure. */}
+      <div className="order-1 mx-auto w-full max-w-[28rem] lg:order-none">
         <StageInner />
       </div>
 

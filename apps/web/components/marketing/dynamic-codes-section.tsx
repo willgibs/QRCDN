@@ -8,7 +8,10 @@ import { DYNAMIC_CODES_DOORWAY_ENABLED } from "@/lib/marketing-flags";
 /**
  * 05 — Dynamic codes. Rebuilt at P9.10-D5 on the board's reference (GitBook's
  * enterprise section): the heading, lede and doorway sit centered, one
- * upgraded visual holds the middle, and four claims flank it.
+ * upgraded visual holds the middle, and four claims flank it. Second-passed
+ * at P9.10-D13 (THE LIVE SWITCHBOARD): the composition is unchanged here;
+ * the plate's interior gained the destination window and the attract loop
+ * (see retarget-stage.tsx, which carries the full story).
  *
  * The two `MonoStrip` guarantee lines this section used to close on are gone,
  * but nothing they said is: "302 + no-store" and "≤ 5 min worst case" became

@@ -42,21 +42,23 @@ import { cn } from "@/lib/utils";
  * are inert while position is static below lg).
  */
 
-const RENDERS = PAYLOADS.map((payload) => ({
-  day: renderQr({ data: payload, style: STATE_DAY }).svg,
+// D12.1 board note: the frozen fourth mat read as a defect ("doesn't
+// seem to be connected or sync"), so /LAUNCH joined the fleet as a
+// fourth CONNECTED code and the D5 frozen-snapshot truth moved into the
+// section's explainer copy where it can be said in words.
+const ALL_PAYLOADS = [...PAYLOADS, "HTTPS://QRCDN.COM/LAUNCH"] as const;
+const DAY_RESULTS = ALL_PAYLOADS.map((payload) => renderQr({ data: payload, style: STATE_DAY }));
+const RENDERS = ALL_PAYLOADS.map((payload, i) => ({
+  day: DAY_RESULTS[i].svg,
   mono: renderQr({ data: payload, style: STATE_MONO }).svg,
   glacier: renderQr({ data: payload, style: STATE_GLACIER }).svg,
 }));
-
-// The frozen snapshot: rendered once, in the day style it was created
-// with, and never again — that is the whole point of it.
-const FROZEN_RENDER = renderQr({ data: "HTTPS://QRCDN.COM/LAUNCH", style: STATE_DAY });
 
 // Code size derived from module count, never picked (the manifesto
 // derivation): 3.8px/module floor over the full side incl. quiet zone,
 // rounded up to a multiple of 4. These payloads encode at v2 -> 33 side
 // -> 128px. If a payload changes, this re-derives itself.
-const KN_QR = Math.ceil((FROZEN_RENDER.sideLength * 3.8) / 4) * 4;
+const KN_QR = Math.ceil((DAY_RESULTS[0].sideLength * 3.8) / 4) * 4;
 /** Mat box = code + p-3.5 (14px) each side. */
 const KN_MAT_W = KN_QR + 28;
 
@@ -67,19 +69,28 @@ const KN_MAT_W = KN_QR + 28;
  * its mat's left-edge middle. Spokes are authored HUB -> MAT (direction
  * is load-bearing: the packet dash math assumes distance 0 at the hub).
  */
-// Port y = card top (108) + measured card height 236 / 2 (trued against
-// the rendered box, the capture-pass step).
-const PORT = { x: 256, y: 226 };
-const MATS = [
-  { left: 520, top: 12, label: "qrcdn.com/menu", kind: "table tent", stagger: "" },
-  { left: 704, top: 100, label: "qrcdn.com/hours", kind: "door sticker", stagger: "kn-m2" },
-  { left: 520, top: 264, label: "qrcdn.com/events", kind: "ticket", stagger: "kn-m3" },
+// D12.1: the hub CENTERS (board note) with two codes per side. Card
+// 240w at (320,112), measured h 236 -> two ports at its edge centers,
+// (320,230) left and (560,230) right. Mats anchor at their inner edge
+// middles (right edge 196 for the left pair, left edge 684 for the
+// right pair); rows at y 20/250, anchors 117/347. The top pair lands
+// first, the bottom pair +0.12s (kn-m2 on mats, kn-p2 on packets).
+const CARD_POS = { left: 320, top: 112 };
+const PORTS = [
+  { x: 320, y: 230 },
+  { x: 560, y: 230 },
 ] as const;
-const FROZEN_POS = { left: 704, top: 312 };
+const MATS = [
+  { index: 0, left: 40, top: 20, label: "qrcdn.com/menu", kind: "table tent", stagger: "" },
+  { index: 2, left: 40, top: 250, label: "qrcdn.com/events", kind: "ticket", stagger: "kn-m2" },
+  { index: 1, left: 684, top: 20, label: "qrcdn.com/hours", kind: "door sticker", stagger: "" },
+  { index: 3, left: 684, top: 250, label: "qrcdn.com/launch", kind: "poster", stagger: "kn-m2" },
+] as const;
 const SPOKES = [
-  { d: `M ${PORT.x} ${PORT.y} C 352 226, 420 110, 520 110`, packet: "" },
-  { d: `M ${PORT.x} ${PORT.y} C 360 226, 420 198, 704 198`, packet: "kn-p2" },
-  { d: `M ${PORT.x} ${PORT.y} C 352 226, 420 362, 520 362`, packet: "kn-p3" },
+  { d: "M 320 230 C 285 230, 255 117, 196 117", packet: "" },
+  { d: "M 320 230 C 285 230, 255 347, 196 347", packet: "kn-p2" },
+  { d: "M 560 230 C 595 230, 625 117, 684 117", packet: "" },
+  { d: "M 560 230 C 595 230, 625 347, 684 347", packet: "kn-p2" },
 ] as const;
 
 function PaperSwatch({ className, style }: { className?: string; style?: CSSProperties }) {
@@ -228,7 +239,7 @@ export function KitNetwork() {
   return (
     <div
       data-slot="kit-network"
-      className="relative grid grid-cols-2 justify-items-center gap-6 lg:mx-auto lg:block lg:h-[524px] lg:w-[880px]"
+      className="relative grid grid-cols-2 justify-items-center gap-6 lg:mx-auto lg:block lg:h-[460px] lg:w-[880px]"
     >
       {/* The wiring: dotted spokes (connection, quiet) + the pulse
           packets (one keyframe set for all lengths via pathLength=100 on
@@ -238,7 +249,7 @@ export function KitNetwork() {
       <svg
         data-slot="kit-network-lines"
         aria-hidden
-        viewBox="0 0 880 524"
+        viewBox="0 0 880 460"
         className="pointer-events-none absolute inset-0 hidden size-full lg:block"
       >
         {SPOKES.map((spoke, i) => (
@@ -247,7 +258,9 @@ export function KitNetwork() {
             <path d={spoke.d} pathLength={100} className={cn("kn-packet", spoke.packet)} fill="none" />
           </g>
         ))}
-        <circle cx={PORT.x} cy={PORT.y} r={3} className="kn-port" />
+        {PORTS.map((port, i) => (
+          <circle key={i} cx={port.x} cy={port.y} r={3} className="kn-port" />
+        ))}
       </svg>
 
       {/* The hub: the kit card IS the engine. lit-stroke marks it as the
@@ -256,7 +269,7 @@ export function KitNetwork() {
       {/* Positioning lives on this wrapper, NOT on the card: lit-stroke
           pins its own position:relative for the hairline pseudo and would
           beat lg:absolute at equal specificity. */}
-      <div className="col-span-2 lg:absolute" style={{ left: 16, top: 108 }}>
+      <div className="col-span-2 lg:absolute" style={{ left: CARD_POS.left, top: CARD_POS.top }}>
       <div className="lit-stroke w-[240px] rounded-2xl bg-card/60 p-5 text-sm">
         <p className="mb-3 flex items-center gap-2.5 font-medium text-foreground">
           <span className="relative inline-flex size-5" aria-hidden>
@@ -304,42 +317,16 @@ export function KitNetwork() {
           </div>
           <div className="flex items-center justify-between border-t border-border/60 py-2">
             <dt>attached codes</dt>
-            <dd>3</dd>
+            <dd>4</dd>
           </div>
         </dl>
       </div>
       </div>
 
-      {MATS.map((mat, i) => (
-        <ConnectedMat key={mat.label} index={i} {...mat} />
+      {MATS.map((mat) => (
+        <ConnectedMat key={mat.label} {...mat} />
       ))}
 
-      {/* The frozen snapshot (D5's null-kit case): no line, one render,
-          never restyles. Dimmed via brightness, never opacity (the fan
-          rule: opacity lets the ground show through paper). */}
-      <div className="lg:absolute" style={{ left: FROZEN_POS.left, top: FROZEN_POS.top }}>
-      <figure
-        className={cn(
-          "relative m-0 flex flex-col gap-2 rounded-xl bg-white p-3.5 brightness-[0.85]",
-          MAT_SHADOW,
-        )}
-        style={{ width: KN_MAT_W }}
-      >
-        <span data-qr className="relative block">
-          <span
-            className="block [&_svg]:h-auto [&_svg]:w-full"
-            dangerouslySetInnerHTML={{ __html: FROZEN_RENDER.svg }}
-          />
-        </span>
-        <figcaption className="flex flex-col gap-0.5 font-mono text-[0.6rem] text-[#6b6b74]">
-          <span>qrcdn.com/launch</span>
-          <span className="opacity-70">poster</span>
-          <span className="text-[0.55rem] tracking-[0.08em] uppercase opacity-80">
-            no kit · frozen
-          </span>
-        </figcaption>
-      </figure>
-      </div>
     </div>
   );
 }

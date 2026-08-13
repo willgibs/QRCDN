@@ -805,21 +805,24 @@ test.describe("marketing site", () => {
     // The hub: the kit card is the engine.
     await expect(section.getByText("Ember", { exact: true })).toBeVisible();
     await expect(section.getByText("attached codes", { exact: true })).toBeVisible();
-    // The fleet: three connected mats (three engine layers each) plus the
-    // FROZEN one (D5's null-kit case: one render, no line, never
-    // restyles) = 4 figures, 10 engine svgs inside [data-qr].
+    // The fleet (D12.1: the hub centered, two codes per side, ALL four
+    // connected — the frozen mat retired into the explainer copy):
+    // 4 figures x three engine layers = 12 engine svgs inside [data-qr].
     await expect(section.locator("figure")).toHaveCount(4);
-    expect(await section.locator("figure [data-qr] svg").count()).toBe(10);
-    // The wiring: one line layer, three dotted spokes + three packet
+    expect(await section.locator("figure [data-qr] svg").count()).toBe(12);
+    // The wiring: one line layer, four dotted spokes + four packet
     // paths sharing their geometry.
     const lines = section.locator('[data-slot="kit-network-lines"]');
     await expect(lines).toHaveCount(1);
-    expect(await lines.locator("path").count()).toBe(6);
-    // Captions: the connected artifacts and the honest frozen label.
+    expect(await lines.locator("path").count()).toBe(8);
+    // Captions: the four connected artifacts.
     await expect(section.getByText("qrcdn.com/menu", { exact: true })).toBeVisible();
     await expect(section.getByText("qrcdn.com/events", { exact: true })).toBeVisible();
     await expect(section.getByText("qrcdn.com/launch", { exact: true })).toBeVisible();
-    await expect(section.getByText("no kit · frozen")).toBeVisible();
+    // The explainer row (D12.1): the feature in words, carrying the D5
+    // frozen-snapshot truth the visual no longer draws.
+    await expect(section.getByText("Old looks stay safe")).toBeVisible();
+    await expect(section.getByText("Edits propagate instantly")).toBeVisible();
   });
 
   test("kit network under reduced motion: the day still (P9.10-D12)", async ({ browser }) => {

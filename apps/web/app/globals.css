@@ -2885,25 +2885,17 @@ html {
   .kn-blk-3 {
     animation: kn-blk-3 24s var(--motion-ease-in-out) infinite;
   }
-  /* The arrival cascade: spoke 2 and its mat run +0.12s, spoke 3
-     +0.24s - a delay shifts ALL windows equally, which is exactly
-     what arrival stagger wants. The card leads undelayed. */
+  /* The arrival cascade (D12.1, mirrored pairs): the TOP two spokes
+     and mats land together, the BOTTOM pair +0.12s - a delay shifts
+     ALL windows equally, which is exactly what arrival stagger wants.
+     The card leads undelayed. */
   .kn-p2 {
     animation-delay: 0.12s;
-  }
-  .kn-p3 {
-    animation-delay: 0.24s;
   }
   .kn-m2 .kn-state-2,
   .kn-m2 .kn-state-3,
   .kn-m2 .kn-caption,
   .kn-m2 .kn-ring {
     animation-delay: 0.12s;
-  }
-  .kn-m3 .kn-state-2,
-  .kn-m3 .kn-state-3,
-  .kn-m3 .kn-caption,
-  .kn-m3 .kn-ring {
-    animation-delay: 0.24s;
   }
 }

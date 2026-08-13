@@ -2,15 +2,15 @@ import type { ComponentProps } from "react";
 import { Section, SectionHeading, SectionBody } from "@/components/marketing/section";
 import { LearnMoreLink } from "@/components/marketing/learn-more-link";
 import { BRAND_STUDIO_DOORWAY_ENABLED } from "@/lib/marketing-flags";
-import { KitSyncTheatre } from "./kit-sync-theatre";
+import { KitNetwork } from "./kit-network";
 
-// 04 — Brand system. P9.5-T3b's `KitContactSheet` body retired at P9.9-C1
-// (board pick from the C1 exploration artifact: "B, the sync theatre, with
-// A's physicality") in favor of `KitSyncTheatre`: the section now SHOWS
-// the P9.8 hard-sync flagship (D5 as amended: kit edits propagate to every
-// attached code) instead of captioning it, and the heading takes the
-// stronger claim the reversal made true. Mono strip cites D5 as amended at
-// P9.8 — see docs/DECISIONS.md.
+// 04 — Brand kits. The body is THE KIT NETWORK since P9.10-D12 (board
+// brief: the brand card as the central engine, codes connected by subtle
+// dotted lines, a pulse carrying every kit update out to them) — the D5
+// hard-sync flagship (kit edits propagate to every attached code; a
+// null-kit code is a frozen snapshot) drawn literally. Its predecessor
+// KitSyncTheatre (P9.9-C1) lives on as /features/brand-studio's body and
+// still owns the ks CSS block.
 //
 // P9.5-T-F2: `id="brand-system"` is the bento's anchor target; e2e asserts
 // it resolves to exactly one element. It must survive every redesign.
@@ -42,7 +42,7 @@ export function BrandSystemSection({
       )}
 
       <SectionBody className="max-w-5xl">
-        <KitSyncTheatre />
+        <KitNetwork />
       </SectionBody>
     </Section>
   );

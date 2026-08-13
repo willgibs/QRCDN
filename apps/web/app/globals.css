@@ -2489,3 +2489,421 @@ html {
     display: none;
   }
 }
+
+/* ============================================================ */
+/* 04 THE KIT NETWORK (P9.10-D12) - the hub-and-spokes pulse.
+   One 24s master timeline, the ks choreography re-staged onto
+   network geometry (kit-network.tsx). Card edits at the beats
+   25 / 58.333 / 91.667; each edit's pulse departs 0.3s later and
+   travels its spoke in 0.84s; every connected code restyles 120ms
+   after ITS arrival (spokes cascade at +0.12s / +0.24s). 0% and
+   100% render identical day-rest pixels (the ks wrap guarantee -
+   every keyframe set below has equal first and last frames).
+   Rest-state hiding lives HERE in base classes, never in markup,
+   so served HTML carries no opacity:0 (standing invariant).
+   Reduced motion: no animation blocks apply - the day still with
+   static dotted lines, nothing hidden that matters. */
+
+/* The dotted spokes: connection, quiet. Dots in USER px (no
+   pathLength - normalizing would rescale the dot rhythm per
+   spoke) with non-scaling strokes. */
+.kn-line {
+  stroke: var(--border);
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-dasharray: 0.1 7;
+  vector-effect: non-scaling-stroke;
+  opacity: 0.7;
+}
+/* The pulse packet rides the SAME d with pathLength=100, so one
+   keyframe set serves every spoke length (the C1 misregistration
+   answer). dasharray 10 190: the dash occupies pattern slot 0-10
+   and the 190 gap guarantees at most one dash ever intersects the
+   0-100 path. Rest offset 20 parks it off-path on the hub side
+   (hidden with no display games - reduced motion and pre-delay
+   paint both show nothing). */
+.kn-packet {
+  stroke: var(--au-4);
+  stroke-width: 2.5;
+  stroke-linecap: round;
+  stroke-dasharray: 10 190;
+  stroke-dashoffset: 20;
+}
+.kn-port {
+  fill: var(--au-4);
+  opacity: 0.35;
+}
+/* Step-switch rest states (mono and glacier layers, card values,
+   swatch blocks) - the ks mechanism, kn timeline. */
+.kn-state-2,
+.kn-state-3,
+.kn-ch-v2,
+.kn-ch-v3,
+.kn-blk-2,
+.kn-blk-3 {
+  opacity: 0;
+}
+.kn-ch-v1 {
+  opacity: 1;
+}
+.kn-ch-v1,
+.kn-ch-v2,
+.kn-ch-v3 {
+  display: inline-block;
+}
+.kn-caption {
+  color: #6b6b74;
+}
+/* The arrival afterglow: currentColor ring + bloom, hue stepped
+   with the packet by kn-ring-hue. */
+.kn-ring {
+  border: 1px solid currentColor;
+  box-shadow: 0 0 14px -2px currentColor;
+  color: var(--au-4);
+  opacity: 0;
+}
+
+/* Travel: offset 20 -> -112 slides the pattern 132 units; the dash
+   enters the path when offset < 10 and its tail clears at -110, so
+   the whole flight lives inside the ramp. The leading edge reaches
+   the mat at 83.3% of the ramp: arrivals 29.17 / 62.50 / 95.83 -
+   exactly 1.0s after each card edit. The resets are keyframe-level
+   step-end: a fast-ramp reset would sweep a ghost dash backwards
+   across the path for up to a frame. */
+@keyframes kn-pulse {
+  0% {
+    stroke-dashoffset: 20;
+  }
+  26.25% {
+    stroke-dashoffset: 20;
+  }
+  29.75% {
+    stroke-dashoffset: -112;
+    animation-timing-function: step-end;
+  }
+  59.58% {
+    stroke-dashoffset: 20;
+  }
+  63.08% {
+    stroke-dashoffset: -112;
+    animation-timing-function: step-end;
+  }
+  92.92% {
+    stroke-dashoffset: 20;
+  }
+  96.42% {
+    stroke-dashoffset: -112;
+    animation-timing-function: step-end;
+  }
+  100% {
+    stroke-dashoffset: 20;
+  }
+}
+/* Hue steps only while the dash is hidden; first and last frames
+   both au-4 so the wrap frame-equality holds strictly. Window 2
+   carries glacier's blue family; window 3 the warm day return. */
+@keyframes kn-pulse-hue {
+  0%,
+  10% {
+    stroke: var(--au-4);
+  }
+  10.01%,
+  45% {
+    stroke: var(--au-2);
+  }
+  45.01%,
+  78% {
+    stroke: var(--au-3);
+  }
+  78.01%,
+  100% {
+    stroke: var(--au-4);
+  }
+}
+/* Restyle steps at pulse arrival + 55ms, 120ms ramps - the pulse
+   IS the cover story, no plate. Mono steps off hard at 63.7 UNDER
+   the already-opaque glacier layer; glacier's visible 96.0-96.5
+   fade reveals the always-opaque day base, so beat 3 needs no
+   fourth layer. Mat paper washes ride these same classes. */
+@keyframes kn-state-2 {
+  0%,
+  29.4% {
+    opacity: 0;
+  }
+  29.9%,
+  63.6% {
+    opacity: 1;
+  }
+  63.7%,
+  100% {
+    opacity: 0;
+  }
+}
+@keyframes kn-state-3 {
+  0%,
+  62.7% {
+    opacity: 0;
+  }
+  63.2%,
+  96% {
+    opacity: 1;
+  }
+  96.5%,
+  100% {
+    opacity: 0;
+  }
+}
+/* Caption ink walks the papers on the same arrival ramps. */
+@keyframes kn-caption-flip {
+  0%,
+  29.4% {
+    color: #6b6b74;
+  }
+  29.9%,
+  62.7% {
+    color: #9d9da6;
+  }
+  63.2%,
+  96% {
+    color: #85a8bd;
+  }
+  96.5%,
+  100% {
+    color: #6b6b74;
+  }
+}
+/* Card value pops and swatch blocks: the ks shapes verbatim - the
+   beats sit at the same percentages, so the proven relative
+   choreography transfers unchanged (0.9s pops become 1.2s at the
+   24s period, the same relative rhythm). The card LEADS: no
+   stagger delay on any card animation. */
+@keyframes kn-v1 {
+  0%,
+  20% {
+    opacity: 1;
+    transform: translateY(0);
+    filter: blur(0);
+  }
+  25%,
+  90% {
+    opacity: 0;
+    transform: translateY(-8px);
+    filter: blur(2px);
+  }
+  91% {
+    opacity: 0;
+    transform: translateY(8px);
+    filter: blur(2px);
+  }
+  96%,
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+    filter: blur(0);
+  }
+}
+@keyframes kn-v2 {
+  0%,
+  22% {
+    opacity: 0;
+    transform: translateY(8px);
+    filter: blur(2px);
+  }
+  27%,
+  53% {
+    opacity: 1;
+    transform: translateY(0);
+    filter: blur(0);
+  }
+  58%,
+  100% {
+    opacity: 0;
+    transform: translateY(-8px);
+    filter: blur(2px);
+  }
+}
+@keyframes kn-v3 {
+  0%,
+  55% {
+    opacity: 0;
+    transform: translateY(8px);
+    filter: blur(2px);
+  }
+  60%,
+  86.5% {
+    opacity: 1;
+    transform: translateY(0);
+    filter: blur(0);
+  }
+  91.5%,
+  100% {
+    opacity: 0;
+    transform: translateY(-8px);
+    filter: blur(2px);
+  }
+}
+@keyframes kn-blk-2 {
+  0%,
+  23% {
+    opacity: 0;
+  }
+  27%,
+  55% {
+    opacity: 1;
+  }
+  59%,
+  100% {
+    opacity: 0;
+  }
+}
+@keyframes kn-blk-3 {
+  0%,
+  56% {
+    opacity: 0;
+  }
+  60%,
+  88% {
+    opacity: 1;
+  }
+  92%,
+  100% {
+    opacity: 0;
+  }
+}
+/* The arrival ring: a 0.45s bloom right as the packet lands. */
+@keyframes kn-ring {
+  0%,
+  29.1% {
+    opacity: 0;
+  }
+  29.5% {
+    opacity: 0.85;
+  }
+  31.1%,
+  62.4% {
+    opacity: 0;
+  }
+  62.9% {
+    opacity: 0.85;
+  }
+  64.5%,
+  95.7% {
+    opacity: 0;
+  }
+  96.2% {
+    opacity: 0.85;
+  }
+  97.8%,
+  100% {
+    opacity: 0;
+  }
+}
+@keyframes kn-ring-hue {
+  0%,
+  10% {
+    color: var(--au-4);
+  }
+  10.01%,
+  45% {
+    color: var(--au-2);
+  }
+  45.01%,
+  78% {
+    color: var(--au-3);
+  }
+  78.01%,
+  100% {
+    color: var(--au-4);
+  }
+}
+/* The port flashes as each pulse departs (26.25 / 59.58 / 92.92). */
+@keyframes kn-port {
+  0%,
+  25.9% {
+    opacity: 0.35;
+  }
+  26.4% {
+    opacity: 1;
+  }
+  27.9%,
+  59.2% {
+    opacity: 0.35;
+  }
+  59.7% {
+    opacity: 1;
+  }
+  61.2%,
+  92.5% {
+    opacity: 0.35;
+  }
+  93% {
+    opacity: 1;
+  }
+  94.5%,
+  100% {
+    opacity: 0.35;
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .kn-packet {
+    animation:
+      kn-pulse 24s linear infinite,
+      kn-pulse-hue 24s linear infinite;
+  }
+  .kn-port {
+    animation: kn-port 24s var(--motion-ease-in-out) infinite;
+  }
+  .kn-state-2 {
+    animation: kn-state-2 24s linear infinite;
+  }
+  .kn-state-3 {
+    animation: kn-state-3 24s linear infinite;
+  }
+  .kn-caption {
+    animation: kn-caption-flip 24s linear infinite;
+  }
+  .kn-ring {
+    animation:
+      kn-ring 24s linear infinite,
+      kn-ring-hue 24s linear infinite;
+  }
+  /* Same bounce the ks pops ship (the transitions.dev reference
+     curve - a documented exception to the token set). */
+  .kn-ch-v1 {
+    animation: kn-v1 24s cubic-bezier(0.34, 1.45, 0.64, 1) infinite;
+  }
+  .kn-ch-v2 {
+    animation: kn-v2 24s cubic-bezier(0.34, 1.45, 0.64, 1) infinite;
+  }
+  .kn-ch-v3 {
+    animation: kn-v3 24s cubic-bezier(0.34, 1.45, 0.64, 1) infinite;
+  }
+  .kn-blk-2 {
+    animation: kn-blk-2 24s var(--motion-ease-in-out) infinite;
+  }
+  .kn-blk-3 {
+    animation: kn-blk-3 24s var(--motion-ease-in-out) infinite;
+  }
+  /* The arrival cascade: spoke 2 and its mat run +0.12s, spoke 3
+     +0.24s - a delay shifts ALL windows equally, which is exactly
+     what arrival stagger wants. The card leads undelayed. */
+  .kn-p2 {
+    animation-delay: 0.12s;
+  }
+  .kn-p3 {
+    animation-delay: 0.24s;
+  }
+  .kn-m2 .kn-state-2,
+  .kn-m2 .kn-state-3,
+  .kn-m2 .kn-caption,
+  .kn-m2 .kn-ring {
+    animation-delay: 0.12s;
+  }
+  .kn-m3 .kn-state-2,
+  .kn-m3 .kn-state-3,
+  .kn-m3 .kn-caption,
+  .kn-m3 .kn-ring {
+    animation-delay: 0.24s;
+  }
+}

@@ -797,21 +797,43 @@ test.describe("marketing site", () => {
     ).toHaveAttribute("href", "/contact");
   });
 
-  test("brand system: the sync theatre stages the hard-sync flagship (P9.9-C1)", async ({
+  test("brand system: the kit network wires every code to the hub (P9.10-D12)", async ({
     page,
   }) => {
     await page.goto("/");
     const section = page.locator("#brand-system");
-    // The kit card (the control) and its identity.
+    // The hub: the kit card is the engine.
     await expect(section.getByText("Ember", { exact: true })).toBeVisible();
     await expect(section.getByText("attached codes", { exact: true })).toBeVisible();
-    // Three print artifacts (the simple mat form, board call at C1 close),
-    // each carrying three engine-render layers (day + mono + glacier)
-    // inside a [data-qr] wrapper = 9 engine svgs.
-    await expect(section.locator("figure")).toHaveCount(3);
-    expect(await section.locator("figure [data-qr] svg").count()).toBe(9);
+    // The fleet: three connected mats (three engine layers each) plus the
+    // FROZEN one (D5's null-kit case: one render, no line, never
+    // restyles) = 4 figures, 10 engine svgs inside [data-qr].
+    await expect(section.locator("figure")).toHaveCount(4);
+    expect(await section.locator("figure [data-qr] svg").count()).toBe(10);
+    // The wiring: one line layer, three dotted spokes + three packet
+    // paths sharing their geometry.
+    const lines = section.locator('[data-slot="kit-network-lines"]');
+    await expect(lines).toHaveCount(1);
+    expect(await lines.locator("path").count()).toBe(6);
+    // Captions: the connected artifacts and the honest frozen label.
     await expect(section.getByText("qrcdn.com/menu", { exact: true })).toBeVisible();
     await expect(section.getByText("qrcdn.com/events", { exact: true })).toBeVisible();
+    await expect(section.getByText("qrcdn.com/launch", { exact: true })).toBeVisible();
+    await expect(section.getByText("no kit · frozen")).toBeVisible();
+  });
+
+  test("kit network under reduced motion: the day still (P9.10-D12)", async ({ browser }) => {
+    // The first landing section whose rest state is guarded ONLY by
+    // stylesheet base classes (no covering plate) — pin that the mono
+    // layer rests hidden and the hub still reads.
+    const context = await browser.newContext({ reducedMotion: "reduce" });
+    const page = await context.newPage();
+    await page.goto("/");
+    const section = page.locator("#brand-system");
+    await section.scrollIntoViewIfNeeded();
+    await expect(section.getByText("Ember", { exact: true })).toBeVisible();
+    await expect(section.locator(".kn-state-2").first()).toHaveCSS("opacity", "0");
+    await context.close();
   });
 
   test("studio object: one real code, live restyle, WebGL enhancement (P9.10-D11)", async ({

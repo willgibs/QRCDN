@@ -37,23 +37,27 @@ import { cn } from "@/lib/utils";
  * sync claim.
  *
  * "Ember" is the recurring demo brand (playground preset, state-cards).
+ *
+ * P9.10-D12: the STATES and PAYLOADS are exported — the landing's
+ * KitNetwork imports them so the expensively-verified cast stays
+ * single-sourced (this theatre remains /features/brand-studio's body).
  */
 
-const STATE_DAY = parseQrStyle({
+export const STATE_DAY = parseQrStyle({
   v: 1,
   dots: { style: "rounded", sizeRatio: 0.88 },
   eyes: { frame: "leaf", pupil: "rounded", color: null },
   fill: { type: "solid", color: "#131316" },
   background: { transparent: false, color: "#ffffff" },
 });
-const STATE_MONO = parseQrStyle({
+export const STATE_MONO = parseQrStyle({
   v: 1,
   dots: { style: "square", sizeRatio: 1 },
   eyes: { frame: "square", pupil: "square", color: null },
   fill: { type: "solid", color: "#ffffff" },
   background: { transparent: false, color: "#18181b" },
 });
-const STATE_GLACIER = parseQrStyle({
+export const STATE_GLACIER = parseQrStyle({
   v: 1,
   dots: { style: "circle", sizeRatio: 0.78 },
   eyes: { frame: "circle", pupil: "dot", color: null },
@@ -61,7 +65,7 @@ const STATE_GLACIER = parseQrStyle({
   background: { transparent: false, color: "#04131d" },
 });
 
-const PAYLOADS = [
+export const PAYLOADS = [
   "HTTPS://QRCDN.COM/MENU",
   "HTTPS://QRCDN.COM/HOURS",
   "HTTPS://QRCDN.COM/EVENTS",

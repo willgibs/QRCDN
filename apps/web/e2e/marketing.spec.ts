@@ -423,7 +423,7 @@ test.describe("marketing site", () => {
     await expect(chips.nth(0)).toHaveAttribute("aria-pressed", "true");
   });
 
-  test("access controls: three controls and the states a visitor meets (P9.7-V4)", async ({
+  test("access controls: the three doors a scan can meet (P9.10-D14)", async ({
     page,
   }) => {
     await page.goto("/");
@@ -431,16 +431,25 @@ test.describe("marketing site", () => {
       .locator("section")
       .filter({ has: page.getByRole("heading", { name: "Control who can visit" }) });
 
-    // Password and expiry are Pro; pause deliberately is not, because
-    // setCodePausedCore has no plan gate at all.
+    // The three control names survive every redesign as headings; password
+    // and expiry are Pro, pause deliberately is not (setCodePausedCore has
+    // no plan gate at all).
     for (const name of ["Password", "Expiry", "Pause"]) {
       await expect(section.getByRole("heading", { name, exact: true })).toBeVisible();
     }
 
-    // The two scan-facing states moved here from #dynamic-codes with the
-    // cards themselves: the /p gate and the /u neutral page.
+    // The doors (P9.10-D14): both scanner-facing routes copy-mirrored from
+    // their real pages, plus the pass-through with the redirect contract.
+    await expect(section.getByText("This code is password-protected.")).toBeVisible();
+    await expect(section.getByText("This code isn't live right now.")).toBeVisible();
+    await expect(section.getByText("Forwarded.", { exact: true })).toBeVisible();
+    await expect(section.getByText("302 · no-store")).toBeVisible();
     await expect(section.getByText(/^\/p\//)).toBeVisible();
     await expect(section.getByText(/^\/u\//)).toBeVisible();
+
+    // The indistinguishability claim is the section's strongest and the
+    // /u route's own documented design intent.
+    await expect(section.getByText(/indistinguishable from unclaimed ones/)).toBeVisible();
 
     // The honest limit is on the page, not just in a code comment.
     await expect(section.getByText("A gate, not a vault.")).toBeVisible();

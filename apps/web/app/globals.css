@@ -2491,14 +2491,16 @@ html {
 }
 
 /* ============================================================ */
-/* 04 THE KIT NETWORK (P9.10-D12) - the hub-and-spokes pulse.
-   One 24s master timeline, the ks choreography re-staged onto
+/* 04 THE KIT NETWORK (P9.10-D12; period 24s -> 15s at D12.2, the
+   board's "movement more common" note - the percentages never moved).
+   One 15s master timeline, the ks choreography re-staged onto
    network geometry (kit-network.tsx). Card edits at the beats
-   25 / 58.333 / 91.667; each edit's pulse departs 0.3s later and
-   travels its spoke in 0.84s; every connected code restyles 120ms
-   after ITS arrival (spokes cascade at +0.12s / +0.24s). 0% and
-   100% render identical day-rest pixels (the ks wrap guarantee -
-   every keyframe set below has equal first and last frames).
+   25 / 58.333 / 91.667 (every 5s); each edit's pulse departs ~0.19s
+   later, travels its spoke in ~0.53s, and every connected code
+   restyles ~75ms after ITS arrival, 0.625s after the edit (mirrored
+   pairs cascade at +0.12s). 0% and 100% render identical day-rest
+   pixels (the ks wrap guarantee - every keyframe set below has
+   equal first and last frames).
    Rest-state hiding lives HERE in base classes, never in markup,
    so served HTML carries no opacity:0 (standing invariant).
    Reduced motion: no animation blocks apply - the day still with
@@ -2848,42 +2850,42 @@ html {
 @media (prefers-reduced-motion: no-preference) {
   .kn-packet {
     animation:
-      kn-pulse 24s linear infinite,
-      kn-pulse-hue 24s linear infinite;
+      kn-pulse 15s linear infinite,
+      kn-pulse-hue 15s linear infinite;
   }
   .kn-port {
-    animation: kn-port 24s var(--motion-ease-in-out) infinite;
+    animation: kn-port 15s var(--motion-ease-in-out) infinite;
   }
   .kn-state-2 {
-    animation: kn-state-2 24s linear infinite;
+    animation: kn-state-2 15s linear infinite;
   }
   .kn-state-3 {
-    animation: kn-state-3 24s linear infinite;
+    animation: kn-state-3 15s linear infinite;
   }
   .kn-caption {
-    animation: kn-caption-flip 24s linear infinite;
+    animation: kn-caption-flip 15s linear infinite;
   }
   .kn-ring {
     animation:
-      kn-ring 24s linear infinite,
-      kn-ring-hue 24s linear infinite;
+      kn-ring 15s linear infinite,
+      kn-ring-hue 15s linear infinite;
   }
   /* Same bounce the ks pops ship (the transitions.dev reference
      curve - a documented exception to the token set). */
   .kn-ch-v1 {
-    animation: kn-v1 24s cubic-bezier(0.34, 1.45, 0.64, 1) infinite;
+    animation: kn-v1 15s cubic-bezier(0.34, 1.45, 0.64, 1) infinite;
   }
   .kn-ch-v2 {
-    animation: kn-v2 24s cubic-bezier(0.34, 1.45, 0.64, 1) infinite;
+    animation: kn-v2 15s cubic-bezier(0.34, 1.45, 0.64, 1) infinite;
   }
   .kn-ch-v3 {
-    animation: kn-v3 24s cubic-bezier(0.34, 1.45, 0.64, 1) infinite;
+    animation: kn-v3 15s cubic-bezier(0.34, 1.45, 0.64, 1) infinite;
   }
   .kn-blk-2 {
-    animation: kn-blk-2 24s var(--motion-ease-in-out) infinite;
+    animation: kn-blk-2 15s var(--motion-ease-in-out) infinite;
   }
   .kn-blk-3 {
-    animation: kn-blk-3 24s var(--motion-ease-in-out) infinite;
+    animation: kn-blk-3 15s var(--motion-ease-in-out) infinite;
   }
   /* The arrival cascade (D12.1, mirrored pairs): the TOP two spokes
      and mats land together, the BOTTOM pair +0.12s - a delay shifts

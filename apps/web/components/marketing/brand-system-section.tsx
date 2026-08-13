@@ -43,8 +43,24 @@ export function BrandSystemSection({
         </SectionBody>
       )}
 
-      <SectionBody className="max-w-5xl">
-        <KitNetwork />
+      {/* The sandbox (D12.2 board note): a full-width framed canvas
+          around the network — the design-tool playground read. The dot
+          lattice is the canvas texture (border-token dots on a 24px
+          lattice, edge-faded), desktop-only like the frame itself; below
+          lg the network stacks bare. */}
+      <SectionBody>
+        <div className="relative lg:rounded-3xl lg:border lg:border-border/60 lg:bg-card/25 lg:px-10 lg:py-14">
+          <div
+            aria-hidden
+            className="pointer-events-none absolute inset-0 hidden rounded-[inherit] lg:block"
+            style={{
+              backgroundImage: "radial-gradient(circle, var(--border) 1px, transparent 1px)",
+              backgroundSize: "24px 24px",
+              maskImage: "radial-gradient(ellipse 75% 85% at 50% 50%, black 55%, transparent 100%)",
+            }}
+          />
+          <KitNetwork />
+        </div>
       </SectionBody>
 
       {/* The explainer row (D12.1): the feature in words. Every claim is

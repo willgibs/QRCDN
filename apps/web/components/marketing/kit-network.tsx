@@ -20,13 +20,14 @@ import { cn } from "@/lib/utils";
  * `brand_kit_id` null is a frozen snapshot — depicted honestly as the
  * fourth mat: no dotted line, one render, never restyles.
  *
- * Zero client JS. One 24s CSS master timeline (globals.css `kn-*`, the
- * proven ks choreography re-staged onto network geometry): the card
- * edits at 25%/58.33%/91.67%, an aurora-hued dash packet departs 0.3s
- * later and travels each spoke in 0.84s (pathLength=100 normalizes the
- * keyframes across spoke lengths — the C1 misregistration answer), and
- * every connected code restyles 120ms after ITS pulse arrives, spokes
- * cascading at +0.12s/+0.24s. Reduced motion: the day still with static
+ * Zero client JS. One 15s CSS master timeline (globals.css `kn-*`, the
+ * proven ks choreography re-staged onto network geometry; 24s -> 15s at
+ * D12.2 for the board's "movement more common" note): the card edits at
+ * 25%/58.33%/91.67% (every 5s), an aurora-hued dash packet departs and
+ * travels each spoke in ~0.53s (pathLength=100 normalizes the keyframes
+ * across spoke lengths — the C1 misregistration answer), and every
+ * connected code restyles 0.625s after the edit, the mirrored pairs
+ * cascading at +0.12s. Reduced motion: the day still with static
  * dotted lines — every rest state hides via stylesheet base classes, so
  * served HTML carries no opacity:0 (standing invariant).
  *
@@ -80,10 +81,15 @@ const PORTS = [
   { x: 320, y: 230 },
   { x: 560, y: 230 },
 ] as const;
-const MATS = [
+// Split by ROW: the mobile grid renders top pair / card / bottom pair
+// (D12.2 board note - two codes above the brand card, two beneath); at
+// lg everything is absolute so DOM order only affects paint order.
+const MATS_TOP = [
   { index: 0, left: 40, top: 20, label: "qrcdn.com/menu", kind: "table tent", stagger: "" },
-  { index: 2, left: 40, top: 250, label: "qrcdn.com/events", kind: "ticket", stagger: "kn-m2" },
   { index: 1, left: 684, top: 20, label: "qrcdn.com/hours", kind: "door sticker", stagger: "" },
+] as const;
+const MATS_BOTTOM = [
+  { index: 2, left: 40, top: 250, label: "qrcdn.com/events", kind: "ticket", stagger: "kn-m2" },
   { index: 3, left: 684, top: 250, label: "qrcdn.com/launch", kind: "poster", stagger: "kn-m2" },
 ] as const;
 const SPOKES = [
@@ -266,6 +272,10 @@ export function KitNetwork() {
       {/* The hub: the kit card IS the engine. lit-stroke marks it as the
           instrument (D0 note 3); the network's port sits at its
           right-edge center. */}
+      {MATS_TOP.map((mat) => (
+        <ConnectedMat key={mat.label} {...mat} />
+      ))}
+
       {/* Positioning lives on this wrapper, NOT on the card: lit-stroke
           pins its own position:relative for the hairline pseudo and would
           beat lg:absolute at equal specificity. */}
@@ -323,10 +333,9 @@ export function KitNetwork() {
       </div>
       </div>
 
-      {MATS.map((mat) => (
+      {MATS_BOTTOM.map((mat) => (
         <ConnectedMat key={mat.label} {...mat} />
       ))}
-
     </div>
   );
 }

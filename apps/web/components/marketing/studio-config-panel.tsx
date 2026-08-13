@@ -20,7 +20,7 @@ import { cn } from "@/lib/utils";
    can't collide with the focus-visible ring utilities, which share the
    outer ring slot. */
 const CHIP =
-  "lit-stroke flex size-10 cursor-pointer items-center justify-center rounded-lg bg-card/50 text-foreground/75 transition-colors duration-(--duration-normal) ease-(--motion-ease-out) hover:bg-card hover:text-foreground peer-checked:bg-muted peer-checked:text-foreground peer-checked:inset-ring peer-checked:inset-ring-foreground/50 peer-focus-visible:ring-2 peer-focus-visible:ring-ring peer-focus-visible:ring-offset-2 peer-focus-visible:ring-offset-background";
+  "lit-stroke flex size-9 cursor-pointer items-center justify-center rounded-lg bg-card/50 text-foreground/75 transition-colors duration-(--duration-normal) ease-(--motion-ease-out) hover:bg-card hover:text-foreground peer-checked:bg-muted peer-checked:text-foreground peer-checked:inset-ring peer-checked:inset-ring-foreground/50 peer-focus-visible:ring-2 peer-focus-visible:ring-ring peer-focus-visible:ring-offset-2 peer-focus-visible:ring-offset-background";
 
 function DialLegend({ children }: { children: string }) {
   return (
@@ -47,16 +47,19 @@ export function StudioConfigPanel({
         // The instrument card: lit-stroke is licensed here (a control
         // surface, not paper), the blur lets the object's light show
         // through where the panel overlaps the code's bottom edge
-        // (D11.1 board note: the dock overlap replaced the side float).
-        // Fieldsets flow horizontally and wrap; the max-w is what makes
-        // them wrap into the two-row dock instead of one long strip.
-        "lit-stroke flex max-w-[400px] flex-row flex-wrap items-start gap-x-6 gap-y-4 rounded-2xl bg-card/80 px-5 py-4 shadow-xl shadow-black/40 backdrop-blur-md",
+        // (D11.1 board note: the dock overlap replaced the side float;
+        // D11.3 compacted it — the dock's height is what pushes the
+        // vertically-centered columns apart, so every pixel here is two
+        // in the section). Fieldsets flow horizontally and wrap; the
+        // max-w is what makes them wrap into the two-row dock instead
+        // of one long strip.
+        "lit-stroke flex max-w-[360px] flex-row flex-wrap items-start gap-x-5 gap-y-3 rounded-2xl bg-card/80 px-4 py-3.5 shadow-xl shadow-black/40 backdrop-blur-md",
         className,
       )}
     >
       <fieldset>
         <DialLegend>Module</DialLegend>
-        <div className="mt-2.5 flex flex-wrap gap-2">
+        <div className="mt-2 flex flex-wrap gap-1.5">
           {DOT_STYLES.map((s) => (
             <label key={s}>
               <input
@@ -78,7 +81,7 @@ export function StudioConfigPanel({
 
       <fieldset>
         <DialLegend>Eye</DialLegend>
-        <div className="mt-2.5 flex flex-wrap gap-2">
+        <div className="mt-2 flex flex-wrap gap-1.5">
           {EYE_FRAMES.map((f) => (
             <label key={f}>
               <input
@@ -100,7 +103,7 @@ export function StudioConfigPanel({
 
       <fieldset>
         <DialLegend>Ink</DialLegend>
-        <div className="mt-2.5 flex flex-wrap items-center gap-2">
+        <div className="mt-2 flex flex-wrap items-center gap-1.5">
           {INKS.map((hex) => (
             <label key={hex}>
               <input
@@ -113,7 +116,7 @@ export function StudioConfigPanel({
               />
               <span
                 aria-hidden
-                className="block size-8 cursor-pointer rounded-full border border-white/20 transition-shadow duration-(--duration-normal) ease-(--motion-ease-out) peer-checked:ring-2 peer-checked:ring-foreground/70 peer-checked:ring-offset-2 peer-checked:ring-offset-background peer-focus-visible:ring-2 peer-focus-visible:ring-ring peer-focus-visible:ring-offset-2 peer-focus-visible:ring-offset-background"
+                className="block size-7 cursor-pointer rounded-full border border-white/20 transition-shadow duration-(--duration-normal) ease-(--motion-ease-out) peer-checked:ring-2 peer-checked:ring-foreground/70 peer-checked:ring-offset-2 peer-checked:ring-offset-background peer-focus-visible:ring-2 peer-focus-visible:ring-ring peer-focus-visible:ring-offset-2 peer-focus-visible:ring-offset-background"
                 style={{ backgroundColor: hex }}
               />
               <span className="sr-only">{hex} ink</span>
@@ -122,7 +125,7 @@ export function StudioConfigPanel({
           <Link
             href="/studio"
             aria-label="More inks in the studio"
-            className="flex size-8 items-center justify-center rounded-full border border-dashed border-border text-sm text-muted-foreground transition-colors duration-(--duration-normal) ease-(--motion-ease-out) hover:border-foreground/50 hover:text-foreground"
+            className="flex size-7 items-center justify-center rounded-full border border-dashed border-border text-sm text-muted-foreground transition-colors duration-(--duration-normal) ease-(--motion-ease-out) hover:border-foreground/50 hover:text-foreground"
           >
             +
           </Link>

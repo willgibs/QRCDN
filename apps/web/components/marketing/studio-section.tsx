@@ -30,7 +30,7 @@ const FEATURES = [
   {
     icon: ImagePlus,
     title: "Logo knockout",
-    note: "Drop a mark in the center. The engine carves its quiet space and holds error correction above the floor.",
+    note: "Drop a mark in the center. The engine carves its space and holds error correction above the floor.",
   },
   {
     icon: Download,
@@ -62,7 +62,7 @@ export function StudioSection({
       <SectionHeading
         eyebrow="Studio"
         index={index}
-        title="Design one right now"
+        title="Design your perfect brand"
         lede="The real engine under a real light: turn a dial and the object follows. Everything else waits in the studio, free."
         titleSize={titleSize}
         className="mb-10"
@@ -70,8 +70,10 @@ export function StudioSection({
       <SectionBody>
         {/* D11.1: the left column widened (20 -> 24rem) and the object
             reaches the content's right edge — the board's "a little
-            tight" note. */}
-        <div className="grid gap-12 lg:grid-cols-[minmax(0,24rem)_1fr] lg:items-center lg:gap-16">
+            tight" note. D11.3: items-start (was center) — measured, the
+            centering offset was the larger half of the heading-to-content
+            gap the board flagged; the compacted dock closes the rest. */}
+        <div className="grid gap-12 lg:grid-cols-[minmax(0,24rem)_1fr] lg:items-start lg:gap-16">
           <div className="order-2 flex flex-col gap-8 lg:order-none">
             <ul className="flex flex-col gap-6">
               {FEATURES.map(({ icon: Icon, title, note }) => (

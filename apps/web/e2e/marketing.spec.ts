@@ -675,9 +675,9 @@ test.describe("marketing site", () => {
 
   test("heads: the amended section heads are live (P9.7-V1 IA rewrite)", async ({ page }) => {
     await page.goto("/");
-    // P9.9-C2: 03 restaged — the historic pre-T3a head returns with the
-    // dials body (was "Customize your brand design").
-    await expect(page.getByRole("heading", { name: "Design one right now" })).toBeVisible();
+    // P9.10-D11.3 board cut (was "Design one right now" through D11.2;
+    // "Customize your brand design" before P9.9-C2).
+    await expect(page.getByRole("heading", { name: "Design your perfect brand" })).toBeVisible();
     // P9.9-C1: section 04 takes the stronger claim the P9.8 hard-sync
     // reversal made true (was "Every code starts from your kit.").
     await expect(page.getByRole("heading", { name: "Every code syncs instantly" })).toBeVisible();
